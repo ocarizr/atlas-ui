@@ -1,0 +1,49 @@
+name: Pull request validation
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  plan:
+    uses: ./.github/workflows/reusable-plan.yml
+  quality:
+    needs: plan
+    uses: ./.github/workflows/reusable-quality.yml
+    with:
+      tooling: ${{ needs.plan.outputs.tooling == 'true' }}
+      configure: ${{ needs.plan.outputs.configure == 'true' }}
+  build:
+    needs: plan
+    if: needs.plan.outputs.has-build == 'true'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      matrix: ${{ needs.plan.outputs.matrix }}
+  required:
+    name: PR validation
+    if: always()
+    needs: [plan, quality, build]
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - name: Require successful applicable checks
+        shell: pwsh
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          BUILD_REQUIRED: ${{ needs.plan.outputs.has-build }}
+        run: |
+          if ($env:PLAN_RESULT -ne 'success' -or $env:QUALITY_RESULT -ne 'success') {
+            throw 'Planning or repository validation failed.'
+          }
+          if ($env:BUILD_REQUIRED -eq 'true' -and $env:BUILD_RESULT -ne 'success') {
+            throw 'Required component validation did not succeed.'
+          }
+          if ($env:BUILD_REQUIRED -ne 'true' -and $env:BUILD_RESULT -ne 'skipped') {
+            throw 'Unexpected component validation result.'
+          }
+          Write-Host 'All applicable PR validations passed.'

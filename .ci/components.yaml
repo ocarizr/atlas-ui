@@ -1,0 +1,66 @@
+# Dependencies describe code linkage, not the preview process relationship.
+components:
+  core:
+    paths: [Engine/Foundation/**, Engine/Core/**, Engine/Config/**, Engine/Logging/**, Engine/Profiling/**, Engine/JobSystem/**, Engine/ECS/**, Tests/Core/**, Tests/Jobs/**, Tests/ECS/**]
+    depends_on: []
+    build_targets: []
+    test_labels: []
+  content:
+    paths: [Engine/AssetSystem/**, Engine/Streaming/**, Engine/Serialization/**, Tests/Content/**]
+    depends_on: [core]
+    build_targets: []
+    test_labels: []
+  ui:
+    paths: [Engine/UI/**, Engine/MVVM/**, Engine/Animation/**, Engine/Video/**, Engine/Localization/**, Engine/Renderer/**, Engine/Application/**, Tests/UI/**]
+    depends_on: [core, content]
+    build_targets: []
+    test_labels: []
+  ipc:
+    paths: [Protocols/**, Engine/IPC/**, Tests/IPC/**]
+    depends_on: [core]
+    build_targets: []
+    test_labels: []
+  game:
+    paths: [Apps/AtlasGame/**, Tests/Game/**]
+    depends_on: [ui, ipc]
+    build_targets: []
+    test_labels: []
+  editor:
+    paths: [Apps/AtlasEditor/**, Tests/Editor/**]
+    depends_on: [ui, ipc]
+    build_targets: []
+    test_labels: []
+  tools:
+    paths: [Tools/**, Tests/ContentTools/**]
+    depends_on: [ui, content]
+    build_targets: []
+    test_labels: []
+
+# Add real target names and CTest labels when implementing each component.
+# Source code in an unwired component is an error, not an implicit skip.
+global_paths:
+  - CMakeLists.txt
+  - CMakePresets.json
+  - pytest.ini
+  - cmake/**
+  - ThirdParty/**
+  - .ci/**
+  - .github/**
+  - scripts/**
+  - Tests/Tooling/**
+  - Tests/Support/**
+  - .clang-*
+  - .editorconfig
+  - .gitattributes
+  - .gitignore
+
+documentation_paths: [README.md, CONTRIBUTING.md, LICENSE, docs/**]
+asset_paths: [Assets/**]
+
+profiles:
+  - {configure: windows-msvc, configuration: Debug}
+  - {configure: windows-msvc, configuration: Release}
+  - {configure: windows-asan, configuration: Debug}
+  - {configure: windows-analysis, configuration: Debug}
+  - {configure: windows-tidy, configuration: Debug}
+  - {configure: windows-coverage, configuration: Debug}
