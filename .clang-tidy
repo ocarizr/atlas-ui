@@ -1,0 +1,14 @@
+Checks: >-
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  misc-throw-by-value-catch-by-reference,
+  readability-function-size
+WarningsAsErrors: '*'
+HeaderFilterRegex: '(^|[/\\])(Engine|Apps|Tools|Tests)[/\\]'
+FormatStyle: file
+CheckOptions:
+  readability-function-size.LineThreshold: '60'

@@ -1,0 +1,6 @@
+# Default ownership; specialized areas can be assigned below as the team grows.
+* @ocarizr
+
+# Keep workflow and ownership changes explicitly reviewable.
+/.github/ @ocarizr
+/.ci/ @ocarizr

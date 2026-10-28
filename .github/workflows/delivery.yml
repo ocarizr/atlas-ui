@@ -1,0 +1,80 @@
+name: Main packaging and tagged releases
+on:
+  push:
+    branches: [main]
+    tags: ['v*', 'V*']
+permissions:
+  contents: read
+concurrency:
+  group: delivery-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  gate:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    outputs:
+      publish: ${{ steps.policy.outputs.publish }}
+      version: ${{ steps.policy.outputs.version }}
+      tag: ${{ steps.policy.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-ci
+      - name: Validate delivery ref and main ancestry
+        id: policy
+        env:
+          DELIVERY_REF: ${{ github.ref }}
+        run: python -m scripts.ci.release_policy --ref $env:DELIVERY_REF --github-output $env:GITHUB_OUTPUT
+  plan:
+    needs: gate
+    uses: ./.github/workflows/reusable-plan.yml
+    with:
+      full: true
+  quality:
+    needs: plan
+    uses: ./.github/workflows/reusable-quality.yml
+    with:
+      tooling: true
+      configure: true
+  build:
+    needs: plan
+    if: needs.plan.outputs.has-build == 'true'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      matrix: ${{ needs.plan.outputs.matrix }}
+  package:
+    needs: [gate, plan, quality, build]
+    if: >-
+      always() && !cancelled() && needs.gate.result == 'success' && needs.plan.result == 'success' &&
+      needs.quality.result == 'success' &&
+      ((needs.plan.outputs.has-build == 'true' && needs.build.result == 'success') ||
+       (needs.plan.outputs.has-build == 'false' && needs.build.result == 'skipped'))
+    uses: ./.github/workflows/reusable-package.yml
+    with:
+      version: ${{ needs.gate.outputs.version }}
+  publish:
+    needs: [gate, package]
+    if: >-
+      always() && !cancelled() && needs.gate.result == 'success' &&
+      needs.package.result == 'success' && needs.gate.outputs.publish == 'true'
+    permissions:
+      contents: write
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: atlas-windows-${{ github.sha }}
+          path: release-assets
+      - name: Publish the validated tag and package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.gate.outputs.tag }}
+        run: |
+          $taskAssets = @(Get-ChildItem -LiteralPath release-assets -File | ForEach-Object { $_.FullName })
+          if ($taskAssets.Count -eq 0) { throw 'No release artifacts were downloaded.' }
+          gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --verify-tag --title $env:RELEASE_TAG --generate-notes @taskAssets
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

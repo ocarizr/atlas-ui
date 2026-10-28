@@ -1,0 +1,73 @@
+# CMake: out-of-source builds and local presets
+/build/
+/out/
+/cmake-build-*/
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+
+# Local IDE state; shared settings may be committed
+.vs/
+.idea/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+.vscode/*.local.json
+
+# C++ intermediate files
+*.obj
+*.o
+*.pch
+*.gch
+*.pdb
+*.idb
+*.ipch
+*.ilk
+*.exp
+*.tlog
+*.lastbuildstate
+*.res
+# Generated .dll/.lib/.exe belong under build/out, not a global wildcard:
+# intentionally versioned SDK files must not disappear silently.
+
+# Dependencies, local SDKs, generated code and cooked assets
+/_deps/
+/.tools/
+/.cache/
+/.local/
+/vcpkg_installed/
+/generated/
+/cooked/
+/packages/
+/dist/
+
+# Test, sanitizer, coverage and profiler outputs
+/TestResults/
+/coverage/
+/reports/
+*.profraw
+*.profdata
+*.coverage
+*.dmp
+*.etl
+*.sarif
+/logs/
+
+# Scratch files and Windows metadata
+/tmp/
+/temp/
+/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.tmp
+*.bak
+Thumbs.db
+Desktop.ini
+
+# Local configuration / credentials; examples may be committed
+.env
+.env.*
+!.env.example

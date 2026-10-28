@@ -1,0 +1,83 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "cacheVariables": { "BUILD_TESTING": "ON" }
+    },
+    {
+      "name": "windows-msvc",
+      "inherits": "windows-base",
+      "displayName": "Windows x64 / Visual Studio 2022",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64"
+    },
+    {
+      "name": "windows-asan",
+      "inherits": "windows-msvc",
+      "displayName": "Windows x64 / MSVC AddressSanitizer",
+      "cacheVariables": { "ATLAS_ENABLE_ASAN": "ON" }
+    },
+    {
+      "name": "windows-analysis",
+      "inherits": "windows-msvc",
+      "displayName": "Windows x64 / MSVC static analysis",
+      "cacheVariables": { "ATLAS_ENABLE_MSVC_ANALYSIS": "ON" }
+    },
+    {
+      "name": "windows-clang",
+      "inherits": "windows-base",
+      "displayName": "Windows x64 / clang-cl + Ninja",
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "clang-cl" }
+    },
+    {
+      "name": "windows-tidy",
+      "inherits": "windows-clang",
+      "displayName": "Windows x64 / clang-tidy",
+      "cacheVariables": { "ATLAS_ENABLE_CLANG_TIDY": "ON" }
+    },
+    {
+      "name": "windows-coverage",
+      "inherits": "windows-clang",
+      "displayName": "Windows x64 / LLVM source coverage",
+      "cacheVariables": { "ATLAS_ENABLE_COVERAGE": "ON" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-debug", "configurePreset": "windows-msvc", "configuration": "Debug" },
+    { "name": "windows-release", "configurePreset": "windows-msvc", "configuration": "Release" },
+    { "name": "windows-asan", "configurePreset": "windows-asan", "configuration": "Debug" },
+    { "name": "windows-analysis", "configurePreset": "windows-analysis", "configuration": "Debug" },
+    { "name": "windows-tidy", "configurePreset": "windows-tidy", "configuration": "Debug" },
+    { "name": "windows-coverage", "configurePreset": "windows-coverage", "configuration": "Debug" }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-msvc",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "windows-asan",
+      "configurePreset": "windows-asan",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "windows-coverage",
+      "configurePreset": "windows-coverage",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" },
+      "environment": { "LLVM_PROFILE_FILE": "${sourceDir}/build/windows-coverage/%m-%p.profraw" }
+    }
+  ]
+}
