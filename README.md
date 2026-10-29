@@ -2,7 +2,7 @@
 
 A retained-mode UI platform for Windows, written in C++20. Atlas UI combines reusable runtime libraries, a visual editor, a dependency-driven job system, asynchronous asset streaming, and event-driven MVVM bindings.
 
-The job system is the first implementation priority. Build and validate its frame-graph capabilities before implementing production UI systems. A manually authored UI follows, then the editor, using the same libraries and Direct3D 12 renderer.
+The job system and asset streamer are implementation prerequisites. Validate job frame graphs and stream-backed resource loading before implementing production UI systems. A manually authored UI follows, then the editor, using the same libraries and Direct3D 12 renderer.
 
 ## Technology
 
@@ -13,7 +13,7 @@ The job system is the first implementation priority. Build and validate its fram
 | Graphics | Direct3D 12 only |
 | ECS | EnTT |
 | Video | AV1/WebM with dav1d and libwebm |
-| UI sound effects | XAudio2 2.9 (Windows SDK) |
+| Audio | Opus/libopus, decoded to PCM for XAudio2 2.9 (Windows SDK) |
 | Serialized content | XML, including UI and ViewModel documents |
 | Configuration | YAML |
 | Interprocess communication | gRPC with Protocol Buffers |
@@ -43,7 +43,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-**Current status:** a persistent-worker independent-job library, GoogleTest suites, pinned external dependencies, generated session protocol and four executable entry points. AtlasGame/AtlasEditor run a headless startup smoke path; they do not yet open a UI window or run preview RPC services. AtlasCook/AtlasPackage expose help and reject unimplemented processing commands. Dependencies/DAGs and the synthetic frame-graph gate precede UI implementation.
+**Current status:** persistent-worker independent jobs, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Dependency DAGs and the synthetic frame-graph gate precede production UI.
 
 ## Documentation
 
@@ -63,5 +63,6 @@ ctest --preset windows-debug
 | [Continuous integration and delivery](docs/12-ci-and-delivery.md) | Impact selection, validation, packaging, release gates |
 | [Dependencies and media](docs/13-dependencies-and-media.md) | Pinned packages, AV1/WebM and UI sound effects |
 | [Job-system implementation plan](docs/14-job-system-implementation-plan.md) | Foundation, maturity milestones and the gate before UI |
+| [Streamer and media jobs](docs/15-streamer-and-media-jobs.md) | Exclusive storage boundary, memory/loose sources, bundle plan and decode scheduling |
 
 The integration branch is `main`. Pull requests run relevant validation; pushes to `main` also package the current deliverables. Releases require a `vMAJOR.MINOR.PATCH` or `VMAJOR.MINOR.PATCH` tag pointing to a commit in `main` history.

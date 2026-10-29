@@ -4,6 +4,8 @@
 
 The scheduler is foundational. Do not begin production UI systems against a sequential placeholder and retrofit jobs later. Complete milestones 0-3 below before building jobified UI layout; use synthetic UI-shaped data to validate the scheduler first.
 
+The streamer is the next foundation alongside independent jobs, before production UI/media. Its memory/loose backend dispatches completions as jobs and isolates disk reads on a persistent I/O thread. Establish this exclusive boundary now and evolve scheduling with the graph milestones. See the [streamer/media plan](15-streamer-and-media-jobs.md).
+
 ## Milestone 0: independent-job foundation (this delivery)
 
 - A fixed set of persistent workers and a synchronized ready queue.
@@ -40,11 +42,11 @@ Build synthetic Measure/Arrange/Geometry/RenderData stages over dirty subtrees w
 
 Acceptance: no visual-stage work leaks into later frames; dirty-only execution equals a full sequential reference; stable ordered outputs across worker counts/seeds; no worker blocks on prerequisites; no event cycle silently reopens an earlier phase. Record reference hardware, task counts, critical path, allocations, wall time and overhead. Demonstrate benefit on independent subtrees without hiding regressions on small workloads.
 
-**UI-ready means milestones 0-3 have tests, Windows sanitizer/static-analysis evidence, traceable ownership and a measured synthetic frame graph.** It does not require work stealing, a fiber runtime or the full streaming system.
+**UI-ready means milestones 0-3 and the streamer foundation have tests, Windows sanitizer/static-analysis evidence, traceable ownership and a measured synthetic frame graph.** Resource consumers must already use streamer-fed jobs. Work stealing, fibers, bundles and full playback are not prerequisites.
 
-## Milestone 4: streaming workloads
+## Milestone 4: advanced streaming workloads
 
-Add priority/QoS, cancellation, bounded queues, resource budgets and async/dedicated blocking-I/O integration. Background operations may span frames; only usable resource generations are published at controlled boundaries. Prevent streaming/decode from starving frame-critical work.
+Extend the early streamer's bounded reads and dedicated I/O worker with priority/QoS, cancellation, global budgets and overlapped Windows I/O. Integrate storage completions, demux and decoding through ready jobs without blocking CPU workers. Background work may span frames; publish usable generations at controlled boundaries. Prevent streaming/decode from starving frame-critical or audio work.
 
 ## Milestone 5: measured scheduler optimization
 

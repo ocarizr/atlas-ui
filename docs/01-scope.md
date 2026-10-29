@@ -36,7 +36,7 @@ The long-term direction is a complete frontend stack suitable for production-sca
 
 Gameplay, physics, world rendering, and a world/entity editor are future possibilities. They are not initial deliverables. Other operating systems and additional rendering backends are outside the supported target.
 
-UI sound effects are required for interaction and timeline feedback, using XAudio2 2.9. Video audio, music streaming and spatial/gameplay audio are outside the initial sound-effects scope. Public AV1/WebM decoding with dav1d and libwebm replaces the proprietary video-codec requirement.
+UI sounds use Opus/libopus with PCM playback through XAudio2 2.9. AV1/Opus use WebM and streamer-fed demux/decode jobs; combined playback needs an explicit synchronization contract. Music systems and spatial/gameplay audio remain outside scope. The streamer is the sole application-managed storage boundary and precedes production UI/media.
 
 ## Design provenance
 

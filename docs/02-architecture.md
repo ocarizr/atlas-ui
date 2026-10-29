@@ -39,7 +39,7 @@ The editor owns the authoring document. Preview state is a synchronized projecti
 | ECS | EnTT integration and Atlas access/structural-mutation policies |
 | UI | Widget hierarchy, layout, invalidation, interaction, render-data preparation |
 | MVVM | ViewModel state, named authored bindings, notifications, actions, prepared wiring |
-| AssetSystem / Streaming | Identity, lifetime, dependency loading, asynchronous CPU/GPU preparation |
+| AssetSystem / Streaming | Exclusive storage boundary, IDs, memory/loose/future bundle ranges, job-based loading/preparation |
 | Serialization | XML authoring, validation, cooked data and generated constructors |
 | Animation | Keyframes, curves, tracks, property animation and events |
 | Video | Public AV1/WebM decoding with dav1d/libwebm and timeline-controlled playback |

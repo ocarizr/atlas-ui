@@ -15,11 +15,11 @@ components:
   content:
     paths:
     - Engine/AssetSystem/**
-    - Engine/Streaming/**
     - Engine/Serialization/**
     - Tests/Content/**
     depends_on:
     - core
+    - streaming
     build_targets: []
     test_labels: []
   ui:
@@ -92,6 +92,18 @@ components:
     - atlas_jobs_tests
     test_labels:
     - jobs
+  streaming:
+    paths:
+    - Engine/Streaming/**
+    - Tests/Streaming/**
+    depends_on:
+    - jobs
+    - platform
+    build_targets:
+    - atlas_streaming
+    - atlas_streaming_tests
+    test_labels:
+    - streaming
   platform:
     paths:
     - Engine/Audio/**

@@ -7,7 +7,8 @@
 #include <directx-dxc/dxcapi.h>
 #include <entt/entity/registry.hpp>
 #include <gtest/gtest.h>
-#include <mkvparser/mkvreader.h>
+#include <mkvparser/mkvparser.h>
+#include <opus/opus.h>
 #include <pugixml.hpp>
 #include <yaml-cpp/yaml.h>
 
@@ -37,9 +38,20 @@ TEST(DependencyTests, OpensAndClosesThePublicAv1Decoder)
     ASSERT_EQ(dav1d_open(&context, &settings), 0);
     dav1d_close(&context);
     EXPECT_EQ(context, nullptr);
-    const mkvparser::MkvReader reader;
-    static_cast<void>(reader);
+    int major = 0;
+    int minor = 0;
+    int build = 0;
+    int revision = 0;
+    mkvparser::GetVersion(major, minor, build, revision);
+    EXPECT_GE(major, 1);
     EXPECT_NE(dav1d_version(), nullptr);
+}
+
+TEST(DependencyTests, InitializesThePublicOpusDecoder)
+{
+    const int size = opus_decoder_get_size(2);
+    EXPECT_GT(size, 0);
+    EXPECT_NE(opus_get_version_string(), nullptr);
 }
 
 TEST(DependencyTests, CreatesTheDirectXShaderCompilerUtilities)

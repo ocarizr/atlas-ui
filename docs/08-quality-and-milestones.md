@@ -34,6 +34,7 @@ Windows validation includes formatting, clang-tidy, MSVC analysis, Debug/Release
 | --- | --- |
 | Development foundation | Build/style policies, modular CI, documentation, package/release gates |
 | Scheduler foundation | Independent jobs, worker lifecycle, failures, entry points and dependency integration |
+| Streamer foundation | Exclusive storage boundary, memory/loose ranges, bounded requests and ready completion/decode jobs |
 | UI-readiness gate | Dependency DAGs, ranges/children and a measured synthetic frame graph (plan milestones 1-3) |
 | First UI runtime | AtlasGame window showing manually authored XML UI through the established job graph |
 | Tested systems | EnTT integration, persistent workers, layout/invalidation, widgets and profiling |

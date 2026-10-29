@@ -9,6 +9,7 @@
     "grpc",
     "gtest",
     "libwebm",
+    "opus",
     "protobuf",
     "pugixml",
     "spdlog",

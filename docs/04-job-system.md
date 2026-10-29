@@ -12,7 +12,7 @@ A job with N prerequisites has a dependency count of N. Completed prerequisites 
 
 A mutex alone does not express A before B: B could acquire it first. Dependency eligibility, child completion, and mutual exclusion are distinct contracts. Establish graph edges before making dependent jobs runnable.
 
-Idle workers may park and wake. Scheduler synchronization is acceptable; long blocking I/O must not consume the CPU pool. Async I/O or a dedicated blocking-I/O integration remains to be designed.
+Idle workers may park and wake. Scheduler synchronization is acceptable; long blocking I/O must not consume the CPU pool. The streamer foundation isolates disk reads on a persistent dedicated I/O thread and dispatches ready completions as jobs. Overlapped Windows I/O remains a later milestone. All media read through this infrastructure; see the [streamer/media contract](15-streamer-and-media-jobs.md).
 
 ## Scheduling choices
 

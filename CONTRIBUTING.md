@@ -4,7 +4,7 @@
 
 Atlas UI targets Windows Desktop and C++20. Use Direct3D 12 exclusively, EnTT for ECS infrastructure, XML for serialized application content, YAML for configuration, and gRPC/Protocol Buffers for IPC.
 
-External libraries use the pinned vcpkg manifest. Video uses public AV1/WebM libraries (dav1d/libwebm), and UI sound effects use XAudio2 2.9 from the Windows SDK. Complete the job-system UI-readiness gate before implementing production UI systems.
+External libraries use the pinned vcpkg manifest. AV1/Opus use dav1d, libopus and libwebm; XAudio2 2.9 plays decoded PCM. The streamer is the sole application-managed storage boundary. Media consumers receive buffers and use ready jobs without blocking CPU workers on I/O. Establish the streamer foundation and complete the job-system UI-readiness gate before production UI.
 
 Apply Domain-Driven Design through explicit vocabulary, invariants, and context boundaries. Shared systems are reusable CMake libraries with small public APIs and declared dependencies. Applications are composition roots; libraries must not depend on application or editor implementation details.
 

@@ -6,6 +6,8 @@ Windows only; C++20; Direct3D 12 only; EnTT; XML serialized content and ViewMode
 
 These choices are closed unless an explicit design change reopens them.
 
+Opus/libopus is the compressed audio choice; XAudio2 receives decoded PCM. Streaming infrastructure exclusively owns application-managed filesystem access. Memory/loose assets precede bundles, and streaming/demux/decode consumers follow the job-based pipeline described in the [streamer contract](15-streamer-and-media-jobs.md).
+
 ## Next implementation contracts
 
 1. **First UI:** what reference screen or minimum image/text/button composition should be shown? Which sizing/input behavior is needed immediately?

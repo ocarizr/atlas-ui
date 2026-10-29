@@ -32,7 +32,7 @@ Affected components share one build job per compiler/configuration profile. Targ
 
 ## Registered targets and dependency setup
 
-Jobs, protocol, dependency integration, application-host contracts and all four executable entry points have actual targets and CTest labels. Planned contexts still have empty target lists; adding source without registering its targets fails CI. Dependency setup bootstraps the pinned vcpkg checkout and caches compiled package archives. Initial uncached builds may take substantially longer than subsequent runs.
+Jobs, streaming, protocol, dependency integration, application-host contracts and all four executable entry points have actual targets and CTest labels. Streaming registers `atlas_streaming`, `atlas_streaming_tests` and the `streaming` label; changes to its scheduler or tested media dependencies select its validation. Planned contexts still have empty target lists; adding source without targets fails CI. Dependency setup bootstraps pinned vcpkg and caches compiled archives. Initial uncached builds may take substantially longer.
 
 When implementing a component, add its actual library/application and test target names to `build_targets`, its CTest labels to `test_labels`, and any missing paths/dependencies. CTest labels scope test execution, and zero discovered tests is an error. Profiles cover Debug, Release, ASan, MSVC analysis, clang-tidy and LLVM coverage. Coverage jobs merge fresh profiles and retain a text report; no percentage threshold has been set.
 

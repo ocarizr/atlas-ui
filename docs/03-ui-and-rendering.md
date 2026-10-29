@@ -47,6 +47,6 @@ Clocks, interpolation, blending, conflicting property writers, seek/loop/scrub e
 
 AV1/WebM video uses the public dav1d decoder and libwebm demuxer. Looping, seeking, scrubbing, bounded frame queues, keyframe policy and timeline events remain required. Decoder CPU/thread budgets and color/upload behavior require implementation and benchmarks; integration alone does not prove playback performance. See [media contracts](13-dependencies-and-media.md).
 
-UI sound effects use XAudio2 2.9: button, hover/focus and selection feedback plus event-track commands. Short sounds should be preloaded, with bounded reusable voices and explicit gain/device handling. Video-audio synchronization is separate from this initial SFX scope.
+UI sounds use Opus/libopus decoded to PCM for XAudio2 2.9: button, hover/focus and selection feedback plus event-track commands. Prefetch through the streamer, decode through jobs and use bounded reusable voices with explicit gain/device handling. Codecs never open files. Per-stream decoding is ordered; independent streams may run concurrently. Synchronization and real-time callback restrictions follow the [streamer/media contract](15-streamer-and-media-jobs.md).
 
 Localization uses string tables, language switching, fallback languages and plural forms. Reload is desirable. Fonts are assets; Unicode, shaping, fallback fonts, RTL support, and rasterization are not yet specified. Changes to text metrics or language must invalidate affected layout regions.

@@ -18,8 +18,9 @@ The manifest uses vcpkg's required JSON format, an exception for tool-owned conf
 | Graphics | Windows SDK: Direct3D 12, DXGI, DXGUID |
 | Text and images | Windows SDK: DirectWrite and WIC |
 | UI sound effects | Windows SDK: XAudio2 2.9 and COM |
+| Audio decode | libopus / `Atlas::AudioDependencies` (`Opus::opus`) |
 | Video decode | dav1d / `Atlas::VideoDependencies` |
-| Video container | libwebm / `Atlas::VideoDependencies` |
+| Video/audio container | libwebm / `Atlas::VideoDependencies` |
 
 Domain-oriented interface targets expose dependencies without coupling the scheduler to graphics, serialization, ECS or IPC. Dependency tests exercise real library symbols; generating and round-tripping a session message verifies the Protobuf toolchain. No proprietary video SDK or fallback is retained.
 
@@ -50,11 +51,13 @@ Hardware AV1 decoding can be investigated later behind the video contract; the i
 
 ## UI sound effects
 
-Audio is now in scope for button presses, hover/focus/selection feedback and timeline events. Use XAudio2 2.9 from the Windows SDK. Short clips should start as preloaded PCM WAVE assets with reusable/bounded source voices, a master/UI gain group and explicit device/error handling.
+Use **Opus/libopus** for compressed audio and XAudio2 2.9 for playback. [libopus](https://opus-codec.org/docs/opus_api-1.6/group__opus__decoder.html) decodes compressed packets to PCM; XAudio2 receives those prepared PCM buffers. The pinned public `opus` package is linked through `Atlas::AudioDependencies`. WebM carries audio-only UI sounds or Opus tracks accompanying AV1; no additional file-opening decoder wrapper is introduced.
 
-Behavior/timeline events issue audio commands at defined update points. Do not decode large clips or wait for disk/device work in a UI-frame job. Playback/device latency is separate from completion of the frame's CPU work. Spatial audio, music streaming and video-audio synchronization are not part of the initial UI-SFX contract.
+Button presses, hover/focus/selection feedback and timeline events use preloaded or prefetched Opus clips, reusable/bounded source voices, a master/UI gain group and explicit device/error handling. Decode jobs preserve packet order and exclusive access to each decoder state; independent streams can decode concurrently. Pre-skip, output gain, channel mapping and end padding need explicit playback contracts.
 
-The audio dependency is linked in this delivery; voice pooling, asset loading and actual UI-triggered playback remain implementation milestones. This does not introduce gameplay audio or a general audio engine.
+Behavior/timeline events issue audio commands at defined update points. The streamer supplies compressed bytes, demux/decode jobs prepare PCM and an audio-owner handoff submits ready buffers. No disk waits or expensive work belongs in frame jobs or real-time XAudio2 callbacks. Playback/device latency is separate from CPU completion. Video audio will share this Opus path; timestamps, clock ownership, seek/preroll and synchronization must be validated before combined playback. Spatial/gameplay audio and a general music system remain outside scope.
+
+The current integration test decodes a streamed Opus packet on a CPU job. Complete container playback, voice pooling and UI-triggered sound remain milestones. All media receive buffers through [the streamer](15-streamer-and-media-jobs.md); file-opening helpers such as libwebm's `MkvReader` are forbidden in media consumers.
 
 ## Deployment
 

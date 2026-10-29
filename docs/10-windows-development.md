@@ -81,6 +81,6 @@ The local test preset writes `build/windows-coverage/%m-%p.profraw`. Component C
 
 ## Validation scope
 
-The native suites cover the scheduler, generated protocol, linked dependencies and application entry points. D3D12 integration uses a WARP device; the audio check initializes XAudio2 without claiming audible playback. The current application smoke path is headless. CI tooling has separate pytest regression tests for impact selection, release gating and asset validation. Neither bootstrap tests nor decoder initialization validate a complete UI or video player.
+The native suites cover jobs, streamer memory/file ranges and lifecycle, generated protocol, linked dependencies and entry points. A media integration test decodes streamer-provided Opus bytes on a CPU job. D3D12 uses WARP; XAudio2 initialization does not claim audible playback. Application smoke paths are headless. CI tooling has separate pytest regression tests for impact selection, release gating and assets. These checks do not validate complete UI/media playback or bundle loading.
 
 See [CI and delivery](12-ci-and-delivery.md) for selective builds, packages and release rules.
