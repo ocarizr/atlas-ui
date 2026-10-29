@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<atlas_package schemaVersion="1" version="@PROJECT_VERSION@" platform="windows-x64" kind="application-bootstrap">
+  <Description>Application entry points, the independent-job scheduler, documentation and dependency notices. Rendering, content processing and preview services are not implemented yet.</Description>
+</atlas_package>

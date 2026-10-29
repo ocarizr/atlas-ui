@@ -6,9 +6,17 @@ Checks: >-
   modernize-use-nullptr,
   modernize-use-override,
   misc-throw-by-value-catch-by-reference,
-  readability-function-size
+  readability-function-size,
+  readability-identifier-naming
 WarningsAsErrors: '*'
-HeaderFilterRegex: '(^|[/\\])(Engine|Apps|Tools|Tests)[/\\]'
+HeaderFilterRegex: '(^|[/\\])(libs|apps|tools|tests)[/\\]'
 FormatStyle: file
 CheckOptions:
   readability-function-size.LineThreshold: '60'
+  readability-identifier-naming.ClassCase: lower_case
+  readability-identifier-naming.StructCase: lower_case
+  readability-identifier-naming.EnumCase: lower_case
+  readability-identifier-naming.EnumConstantCase: lower_case
+  readability-identifier-naming.TypeAliasCase: lower_case
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.VariableCase: lower_case

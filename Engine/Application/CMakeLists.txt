@@ -1,6 +1,0 @@
-add_library(atlas_application STATIC src/EntryPoint.cpp)
-add_library(Atlas::Application ALIAS atlas_application)
-target_include_directories(atlas_application PUBLIC include)
-target_compile_features(atlas_application PUBLIC cxx_std_20)
-target_link_libraries(atlas_application PRIVATE Atlas::Jobs Atlas::Protocol spdlog::spdlog)
-atlas_configure_target(atlas_application)

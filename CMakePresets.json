@@ -7,7 +7,7 @@
       "hidden": true,
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
-      "cacheVariables": { "BUILD_TESTING": "ON" }
+      "cacheVariables": { "BUILD_TESTING": "ON", "VCPKG_TARGET_TRIPLET": "x64-windows" }
     },
     {
       "name": "windows-msvc",
@@ -40,6 +40,12 @@
       "inherits": "windows-clang",
       "displayName": "Windows x64 / clang-tidy",
       "cacheVariables": { "ATLAS_ENABLE_CLANG_TIDY": "ON" }
+    },
+    {
+      "name": "windows-portable",
+      "inherits": "windows-clang",
+      "displayName": "Portable libraries on Windows / native SDK integration disabled",
+      "cacheVariables": { "ATLAS_BUILD_WINDOWS_INTEGRATION": "OFF" }
     },
     {
       "name": "windows-coverage",

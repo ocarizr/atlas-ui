@@ -1,6 +1,0 @@
-add_library(atlas_streaming STATIC src/AssetStreamer.cpp src/AssetReader.cpp)
-add_library(Atlas::Streaming ALIAS atlas_streaming)
-target_include_directories(atlas_streaming PUBLIC include)
-target_compile_features(atlas_streaming PUBLIC cxx_std_20)
-target_link_libraries(atlas_streaming PUBLIC Atlas::Jobs)
-atlas_configure_target(atlas_streaming)

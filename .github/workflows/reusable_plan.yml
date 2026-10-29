@@ -1,0 +1,44 @@
+name: Plan validation
+on:
+  workflow_call:
+    inputs:
+      full:
+        type: boolean
+        default: false
+    outputs:
+      matrix:
+        value: ${{ jobs.plan.outputs.matrix }}
+      has-build:
+        value: ${{ jobs.plan.outputs.has-build }}
+      configure:
+        value: ${{ jobs.plan.outputs.configure }}
+      tooling:
+        value: ${{ jobs.plan.outputs.tooling }}
+jobs:
+  plan:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.impact.outputs.matrix }}
+      has-build: ${{ steps.impact.outputs.has-build }}
+      configure: ${{ steps.impact.outputs.configure }}
+      tooling: ${{ steps.impact.outputs.tooling }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup_ci
+      - name: Select affected components
+        id: impact
+        shell: pwsh
+        env:
+          FULL_VALIDATION: ${{ inputs.full }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if ($env:FULL_VALIDATION -eq 'true') {
+            python -m scripts.ci.impact --all --github-output $env:GITHUB_OUTPUT
+          } else {
+            python -m scripts.ci.impact --base $env:BASE_SHA --head $env:HEAD_SHA --github-output $env:GITHUB_OUTPUT
+          }

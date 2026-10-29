@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: ./.github/actions/setup-ci
+      - uses: ./.github/actions/setup_ci
       - name: Validate delivery ref and main ancestry
         id: policy
         env:
@@ -29,19 +29,19 @@ jobs:
         run: python -m scripts.ci.release_policy --ref $env:DELIVERY_REF --github-output $env:GITHUB_OUTPUT
   plan:
     needs: gate
-    uses: ./.github/workflows/reusable-plan.yml
+    uses: ./.github/workflows/reusable_plan.yml
     with:
       full: true
   quality:
     needs: plan
-    uses: ./.github/workflows/reusable-quality.yml
+    uses: ./.github/workflows/reusable_quality.yml
     with:
       tooling: true
       configure: true
   build:
     needs: [plan, quality]
     if: needs.plan.outputs.has-build == 'true'
-    uses: ./.github/workflows/reusable-build.yml
+    uses: ./.github/workflows/reusable_build.yml
     with:
       matrix: ${{ needs.plan.outputs.matrix }}
   package:
@@ -51,7 +51,7 @@ jobs:
       needs.quality.result == 'success' &&
       ((needs.plan.outputs.has-build == 'true' && needs.build.result == 'success') ||
        (needs.plan.outputs.has-build == 'false' && needs.build.result == 'skipped'))
-    uses: ./.github/workflows/reusable-package.yml
+    uses: ./.github/workflows/reusable_package.yml
     with:
       version: ${{ needs.gate.outputs.version }}
   publish:
@@ -74,7 +74,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.gate.outputs.tag }}
         run: |
-          $taskAssets = @(Get-ChildItem -LiteralPath release-assets -File | ForEach-Object { $_.FullName })
-          if ($taskAssets.Count -eq 0) { throw 'No release artifacts were downloaded.' }
-          gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --verify-tag --title $env:RELEASE_TAG --generate-notes @taskAssets
+          $task_assets = @(Get-ChildItem -LiteralPath release-assets -File | ForEach-Object { $_.FullName })
+          if ($task_assets.Count -eq 0) { throw 'No release artifacts were downloaded.' }
+          gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --verify-tag --title $env:RELEASE_TAG --generate-notes @task_assets
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -4,12 +4,15 @@ import json
 import re
 from pathlib import Path
 
+from scripts.ci.architecture import validate_architecture
+
 from scripts.ci.config import read_yaml
 from scripts.ci.impact import repository_files, validate_components
 
 
 def main():
     root = Path.cwd()
+    validate_architecture(root)
     validate_components(read_yaml(root / ".ci/components.yaml"))
     errors = []
     for relative in repository_files(root):

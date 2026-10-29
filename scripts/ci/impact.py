@@ -46,7 +46,7 @@ def select_components(config, paths, full=False):
     for path in paths:
         owners = {name for name, item in components.items() if matches(path, item["paths"])}
         if (Path(path).suffix.lower() in SOURCE_SUFFIXES and not owners
-                and not path.startswith(("ThirdParty/", "Tests/Support/"))):
+                and not path.startswith(("third_party/", "tests/support/"))):
             raise ValueError(f"Unmapped source file: {path}")
         if matches(path, config.get("global_paths", [])):
             selected.update(components)
@@ -86,9 +86,16 @@ def build_matrix(config, selected, source_files):
         if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.:+-]*", target) for target in targets):
             raise ValueError(f"Invalid build target for {name}")
         components_to_build.append(name)
-    return {"include": [
-        {"components": components_to_build, **profile} for profile in config["profiles"]
-    ] if components_to_build else []}
+    entries = []
+    for profile in config["profiles"]:
+        excluded = set(profile.get("exclude_components", []))
+        if excluded - config["components"].keys():
+            raise ValueError("Profile excludes an unknown component")
+        names = [name for name in components_to_build if name not in excluded]
+        if names:
+            entries.append({"components": names, "configure": profile["configure"],
+                            "configuration": profile["configuration"]})
+    return {"include": entries}
 
 
 def repository_files(root):

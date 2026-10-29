@@ -9,17 +9,17 @@ concurrency:
   cancel-in-progress: true
 jobs:
   plan:
-    uses: ./.github/workflows/reusable-plan.yml
+    uses: ./.github/workflows/reusable_plan.yml
   quality:
     needs: plan
-    uses: ./.github/workflows/reusable-quality.yml
+    uses: ./.github/workflows/reusable_quality.yml
     with:
       tooling: ${{ needs.plan.outputs.tooling == 'true' }}
       configure: ${{ needs.plan.outputs.configure == 'true' }}
   build:
     needs: [plan, quality]
     if: needs.plan.outputs.has-build == 'true'
-    uses: ./.github/workflows/reusable-build.yml
+    uses: ./.github/workflows/reusable_build.yml
     with:
       matrix: ${{ needs.plan.outputs.matrix }}
   required:

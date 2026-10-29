@@ -1,22 +1,22 @@
 components:
   core:
     paths:
-    - Engine/Foundation/**
-    - Engine/Core/**
-    - Engine/Config/**
-    - Engine/Logging/**
-    - Engine/Profiling/**
-    - Engine/ECS/**
-    - Tests/Core/**
-    - Tests/ECS/**
+    - libs/foundation/**
+    - libs/core/**
+    - libs/config/**
+    - libs/logging/**
+    - libs/profiling/**
+    - libs/ecs/**
+    - tests/core/**
+    - tests/ecs/**
     depends_on: []
     build_targets: []
     test_labels: []
   content:
     paths:
-    - Engine/AssetSystem/**
-    - Engine/Serialization/**
-    - Tests/Content/**
+    - libs/asset_system/**
+    - libs/serialization/**
+    - tests/content/**
     depends_on:
     - core
     - streaming
@@ -24,13 +24,13 @@ components:
     test_labels: []
   ui:
     paths:
-    - Engine/UI/**
-    - Engine/MVVM/**
-    - Engine/Animation/**
-    - Engine/Video/**
-    - Engine/Localization/**
-    - Engine/Renderer/**
-    - Tests/UI/**
+    - libs/ui/**
+    - libs/mvvm/**
+    - libs/animation/**
+    - libs/video/**
+    - libs/localization/**
+    - libs/renderer/**
+    - tests/ui/**
     depends_on:
     - core
     - content
@@ -38,9 +38,9 @@ components:
     test_labels: []
   ipc:
     paths:
-    - Protocols/**
-    - Engine/IPC/**
-    - Tests/IPC/**
+    - protocols/**
+    - libs/ipc/**
+    - tests/ipc/**
     depends_on:
     - core
     build_targets:
@@ -50,8 +50,8 @@ components:
     - ipc
   game:
     paths:
-    - Apps/AtlasGame/**
-    - Tests/Game/**
+    - apps/game/**
+    - tests/game/**
     depends_on:
     - ui
     - application
@@ -61,8 +61,8 @@ components:
     - game
   editor:
     paths:
-    - Apps/AtlasEditor/**
-    - Tests/Editor/**
+    - apps/editor/**
+    - tests/editor/**
     depends_on:
     - ui
     - application
@@ -72,8 +72,8 @@ components:
     - editor
   tools:
     paths:
-    - Tools/**
-    - Tests/ContentTools/**
+    - tools/**
+    - tests/content_tools/**
     depends_on:
     - content
     - application
@@ -84,8 +84,8 @@ components:
     - tools
   jobs:
     paths:
-    - Engine/JobSystem/**
-    - Tests/Jobs/**
+    - libs/jobs/**
+    - tests/jobs/**
     depends_on: []
     build_targets:
     - atlas_jobs
@@ -94,33 +94,42 @@ components:
     - jobs
   streaming:
     paths:
-    - Engine/Streaming/**
-    - Tests/Streaming/**
+    - libs/streaming/**
+    - tests/streaming/**
     depends_on:
     - jobs
-    - platform
+    - dependencies
     build_targets:
     - atlas_streaming
     - atlas_streaming_tests
     test_labels:
     - streaming
-  platform:
+  dependencies:
     paths:
-    - Engine/Audio/**
-    - Tests/Platform/**
+    - libs/audio/**
+    - tests/dependencies/**
     depends_on: []
     build_targets:
     - atlas_dependency_tests
     test_labels:
     - dependencies
+  windows:
+    paths:
+    - libs/platform/windows/**
+    - tests/platform/windows/**
+    depends_on: []
+    build_targets:
+    - atlas_windows_tests
+    test_labels:
+    - windows
   application:
     paths:
-    - Engine/Application/**
-    - Tests/Application/**
+    - libs/application/**
+    - tests/application/**
     depends_on:
     - jobs
     - ipc
-    - platform
+    - dependencies
     build_targets:
     - atlas_application
     - atlas_application_tests
@@ -131,12 +140,12 @@ global_paths:
 - CMakePresets.json
 - pytest.ini
 - cmake/**
-- ThirdParty/**
+- third_party/**
 - .ci/**
 - .github/**
 - scripts/**
-- Tests/Tooling/**
-- Tests/Support/**
+- tests/tooling/**
+- tests/support/**
 - .clang-*
 - .editorconfig
 - .gitattributes
@@ -150,7 +159,7 @@ documentation_paths:
 - LICENSE
 - docs/**
 asset_paths:
-- Assets/**
+- assets/**
 profiles:
 - configure: windows-msvc
   configuration: Debug
@@ -164,3 +173,7 @@ profiles:
   configuration: Debug
 - configure: windows-coverage
   configuration: Debug
+- configure: windows-portable
+  configuration: Debug
+  exclude_components:
+  - windows

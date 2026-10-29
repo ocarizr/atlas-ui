@@ -17,9 +17,12 @@ def main():
     parser.add_argument("--configuration", required=True)
     args = parser.parse_args()
     config = read_yaml(".ci/components.yaml")
-    profile = {"configure": args.configure, "configuration": args.configuration}
-    if profile not in config["profiles"]:
+    profile = next((item for item in config["profiles"]
+                    if item["configure"] == args.configure and item["configuration"] == args.configuration), None)
+    if profile is None:
         raise ValueError("Unknown validation profile")
+    if set(args.component).intersection(profile.get("exclude_components", [])):
+        raise ValueError("Selected component is excluded by this profile")
     selected = [config["components"][name] for name in args.component]
     if any(not item["build_targets"] or not item["test_labels"] for item in selected):
         raise ValueError("Every selected component needs build targets and test labels")
