@@ -2,7 +2,7 @@
 
 A retained-mode UI platform for Windows, written in C++20. Atlas UI combines reusable runtime libraries, a visual editor, a dependency-driven job system, asynchronous asset streaming, and event-driven MVVM bindings.
 
-The first milestone is a Windows application displaying a manually authored UI. The editor follows, using the same UI libraries and Direct3D 12 renderer.
+The job system is the first implementation priority. Build and validate its frame-graph capabilities before implementing production UI systems. A manually authored UI follows, then the editor, using the same libraries and Direct3D 12 renderer.
 
 ## Technology
 
@@ -12,6 +12,8 @@ The first milestone is a Windows application displaying a manually authored UI. 
 | Language and build | C++20, CMake, Visual Studio 2022, Ninja |
 | Graphics | Direct3D 12 only |
 | ECS | EnTT |
+| Video | AV1/WebM with dav1d and libwebm |
+| UI sound effects | XAudio2 2.9 (Windows SDK) |
 | Serialized content | XML, including UI and ViewModel documents |
 | Configuration | YAML |
 | Interprocess communication | gRPC with Protocol Buffers |
@@ -34,12 +36,14 @@ The editor owns the authoring document. C++ changes may stop the preview, trigge
 The project follows Domain-Driven Design and Test-Driven Development. See [Contributing](CONTRIBUTING.md) and the [Windows development guide](docs/10-windows-development.md).
 
 ```powershell
+. ./scripts/Initialize-Toolchain.ps1
+./scripts/Bootstrap-Dependencies.ps1
 cmake --preset windows-msvc
 cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-**Current status:** development infrastructure and design documentation. Production libraries, applications, and GoogleTest suites have not been implemented yet. An empty C++ test suite is an error, not a passing result. The initial package contains the development documentation; it is not a runnable UI application.
+**Current status:** a persistent-worker independent-job library, GoogleTest suites, pinned external dependencies, generated session protocol and four executable entry points. AtlasGame/AtlasEditor run a headless startup smoke path; they do not yet open a UI window or run preview RPC services. AtlasCook/AtlasPackage expose help and reject unimplemented processing commands. Dependencies/DAGs and the synthetic frame-graph gate precede UI implementation.
 
 ## Documentation
 
@@ -57,5 +61,7 @@ ctest --preset windows-debug
 | [Windows development](docs/10-windows-development.md) | Build profiles, analysis, sanitizers, coverage |
 | [Technical decisions](docs/11-technical-decisions.md) | Rationale and implementation constraints |
 | [Continuous integration and delivery](docs/12-ci-and-delivery.md) | Impact selection, validation, packaging, release gates |
+| [Dependencies and media](docs/13-dependencies-and-media.md) | Pinned packages, AV1/WebM and UI sound effects |
+| [Job-system implementation plan](docs/14-job-system-implementation-plan.md) | Foundation, maturity milestones and the gate before UI |
 
 The integration branch is `main`. Pull requests run relevant validation; pushes to `main` also package the current deliverables. Releases require a `vMAJOR.MINOR.PATCH` or `VMAJOR.MINOR.PATCH` tag pointing to a commit in `main` history.

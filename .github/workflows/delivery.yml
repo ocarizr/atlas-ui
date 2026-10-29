@@ -39,7 +39,7 @@ jobs:
       tooling: true
       configure: true
   build:
-    needs: plan
+    needs: [plan, quality]
     if: needs.plan.outputs.has-build == 'true'
     uses: ./.github/workflows/reusable-build.yml
     with:

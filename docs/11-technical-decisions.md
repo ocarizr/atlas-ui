@@ -10,7 +10,7 @@ Keep UI render-data preparation separate from native graphics-resource ownership
 
 ## EnTT
 
-Use [EnTT](https://github.com/skypjack/entt) instead of developing a general ECS framework. It provides ECS infrastructure compatible with the C++20 project. Pin and validate a release when dependency management is introduced; do not consume a floating branch.
+Use [EnTT](https://github.com/skypjack/entt) instead of developing a general ECS framework. It provides ECS infrastructure compatible with the C++20 project. The package version is fixed by the vcpkg baseline; do not consume a floating branch.
 
 Atlas remains responsible for UI hierarchy, scheduling, mutation boundaries and access ownership. EnTT does not replace the custom job system, MVVM or streaming policy.
 

@@ -2,9 +2,11 @@
 
 ## Shared technology
 
+Current entry points perform headless bootstrap only. The managed preview lifecycle and RPC services below are planned contracts, not an implemented editor session.
+
 AtlasEditor uses Atlas UI and the Direct3D 12 renderer libraries for its own interface. AtlasGame uses those same libraries to generate the preview in a separate process. New compositions and native C++ behavior/types can extend the editor.
 
-The first milestone remains a standalone runtime with manually authored UI. Hierarchy, inspector and persistence are added afterward; the editor can then progressively author its own interface.
+The job-system maturity gate precedes production UI implementation. A standalone runtime with manually authored UI follows that gate; hierarchy, inspector and persistence are added afterward so the editor can progressively author its own interface.
 
 ## Preview lifecycle
 

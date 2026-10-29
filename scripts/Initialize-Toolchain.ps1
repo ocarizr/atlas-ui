@@ -12,6 +12,7 @@ $taskDevCommand = Join-Path $taskVsRoot 'Common7/Tools/VsDevCmd.bat'
 $taskEnvironment = & $env:ComSpec /d /c "call `"$taskDevCommand`" -no_logo -arch=x64 -host_arch=x64 >nul && set"
 if ($LASTEXITCODE -ne 0) { throw 'Developer environment initialization failed.' }
 
+$env:VCPKG_VISUAL_STUDIO_PATH = $taskVsRoot
 $taskExportNames = @('INCLUDE', 'LIB', 'LIBPATH', 'VCToolsInstallDir', 'WindowsSdkDir', 'WindowsSDKVersion')
 foreach ($taskLine in $taskEnvironment) {
     if ($taskLine -match '^([^=]+)=(.*)$') {
@@ -31,9 +32,18 @@ $taskToolDirectories = @(
     (Join-Path $taskVsRoot 'Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja')
 )
 $env:Path = ($taskToolDirectories -join ';') + ';' + $env:Path
+$env:VCPKG_DEFAULT_BINARY_CACHE = Join-Path (Split-Path -Parent $PSScriptRoot) '.tools/vcpkg-cache'
+New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+if (-not $env:VCPKG_BINARY_SOURCES) {
+    $taskExistingCache = Join-Path $env:LOCALAPPDATA 'vcpkg/archives'
+    $env:VCPKG_BINARY_SOURCES = "clear;files,$taskExistingCache,read;files,$env:VCPKG_DEFAULT_BINARY_CACHE,readwrite"
+}
 if ($ExportForGitHub) {
     if (-not $env:GITHUB_PATH -or -not $env:GITHUB_ENV) { throw 'GitHub environment files are required.' }
     $env:Path.Split(';') | Where-Object { $_ } | Select-Object -Unique |
         Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    "VCPKG_VISUAL_STUDIO_PATH=$taskVsRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+    "VCPKG_DEFAULT_BINARY_CACHE=$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+    "VCPKG_BINARY_SOURCES=$env:VCPKG_BINARY_SOURCES" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 }
 Write-Host 'Initialized Visual Studio 2022 x64, CMake, Ninja and LLVM.'

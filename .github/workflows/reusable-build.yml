@@ -7,9 +7,9 @@ on:
         required: true
 jobs:
   component:
-    name: ${{ matrix.component }} / ${{ matrix.configure }} / ${{ matrix.configuration }}
+    name: ${{ matrix.configure }} / ${{ matrix.configuration }}
     runs-on: windows-2022
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(inputs.matrix) }}
@@ -22,14 +22,17 @@ jobs:
           toolchain: 'true'
       - name: Build named targets and run labeled tests
         env:
-          COMPONENT: ${{ matrix.component }}
+          COMPONENTS: ${{ join(matrix.components, ' ') }}
           CONFIGURE_PRESET: ${{ matrix.configure }}
           BUILD_CONFIGURATION: ${{ matrix.configuration }}
-        run: python -m scripts.ci.build_component --component $env:COMPONENT --configure $env:CONFIGURE_PRESET --configuration $env:BUILD_CONFIGURATION
+        shell: pwsh
+        run: |
+          $taskComponents = $env:COMPONENTS.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
+          python -m scripts.ci.build_component --component @taskComponents --configure $env:CONFIGURE_PRESET --configuration $env:BUILD_CONFIGURATION
       - name: Retain coverage report
         if: matrix.configure == 'windows-coverage'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: coverage-${{ matrix.component }}
+          name: coverage-selected-components
           path: build/windows-coverage/coverage/report.txt
           if-no-files-found: error

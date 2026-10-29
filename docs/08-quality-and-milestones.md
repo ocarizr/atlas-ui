@@ -33,19 +33,21 @@ Windows validation includes formatting, clang-tidy, MSVC analysis, Debug/Release
 | Stage | Observable result |
 | --- | --- |
 | Development foundation | Build/style policies, modular CI, documentation, package/release gates |
-| First runtime | Shared minimal libraries + AtlasGame window showing manually authored XML UI |
+| Scheduler foundation | Independent jobs, worker lifecycle, failures, entry points and dependency integration |
+| UI-readiness gate | Dependency DAGs, ranges/children and a measured synthetic frame graph (plan milestones 1-3) |
+| First UI runtime | AtlasGame window showing manually authored XML UI through the established job graph |
 | Tested systems | EnTT integration, persistent workers, layout/invalidation, widgets and profiling |
 | MVVM vertical slice | Gain XP/apply damage update presentation through actions/events/bindings |
 | Measured parallelism | Incremental layout graph compared against sequential execution |
 | Content pipeline | Validated XML, constructors, cooked content, packages and streaming |
 | Editor bootstrap | Atlas UI editor, hierarchy/inspector and managed gRPC preview process |
 | Extensibility | Create and integrate an editor contribution; rebuild/restart native behavior |
-| Complete 1.0 scope | Expanded widgets, animation, localization, Bink video, tools and end-to-end tests |
+| Complete 1.0 scope | Expanded widgets, animation, localization, AV1/WebM video and UI sound effects, tools and end-to-end tests |
 
-This is a dependency-oriented sequence, not a delivery schedule. The first visible UI need not wait for a complete scheduler or editor.
+This is a dependency-oriented sequence, not a delivery schedule. The production UI must wait for the scheduler's documented UI-readiness gate; it does not require every later optimization or streaming feature.
 
 ## Success criteria and risks
 
 Version 1.0 should load packaged UI, stream assets, support ECS/MVVM/localization/video/timelines/events, provide visual authoring, diagnostics, cooking/packaging, jobified processing, deterministic frames and measured parallel speedups.
 
-Hardware, frame-time/FPS, memory, widget/list counts, load-time and speedup budgets remain open. Layout dependencies can limit parallelism; codegen affects build time and binary size; Bink requires SDK integration; editor recovery and IPC need explicit ownership/versioning. Resolve these with measurements and contracts.
+Hardware, frame-time/FPS, memory, widget/list counts, load-time and speedup budgets remain open. Layout dependencies can limit parallelism; codegen affects build time and binary size; media decode, voice/device handling and deployment require integration tests; editor recovery and IPC need explicit ownership/versioning. Resolve these with measurements and contracts.

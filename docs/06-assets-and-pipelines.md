@@ -8,7 +8,7 @@ Tool-mandated JSON files such as CMake presets and GitHub Actions outputs are to
 
 ## Asset types
 
-Textures, materials, fonts, localization, animations, videos, and UI blueprints are required. A UI blueprint means a reusable UI asset; it does not imply a visual programming language.
+Textures, materials, fonts, localization, animations, AV1/WebM videos, PCM WAVE UI sound effects and UI blueprints are required. A UI blueprint means a reusable UI asset; it does not imply a visual programming language.
 
 Assets need stable identity, references, dependency validation, and diagnostic errors. Storage layout, ID scheme, migration and compatibility policies remain open.
 
@@ -42,4 +42,4 @@ Ownership, RAM/VRAM budgets, cache/eviction, prefetch, cancellation after upload
 
 PR validation parses XML, checks mapped asset paths and identities, and resolves declared dependency references. The initial inventory contract is documented in [CI and delivery](12-ci-and-delivery.md); full UI/ViewModel schemas will be added with their implementations.
 
-Test authoring/cooked semantic equivalence, missing references, incompatible versions, cancellation, cleanup, round trips where supported, and packaged standalone loading. The current foundation package contains documentation; runtime installation rules will be added with real targets.
+Test authoring/cooked semantic equivalence, missing references, incompatible versions, cancellation, cleanup, round trips where supported, and packaged standalone loading. The current bootstrap package contains four entry-point executables, their non-system runtime dependencies, documentation and notices. Content cooking and a rendered UI are not implemented yet.

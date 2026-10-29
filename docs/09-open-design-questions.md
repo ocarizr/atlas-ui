@@ -9,7 +9,7 @@ These choices are closed unless an explicit design change reopens them.
 ## Next implementation contracts
 
 1. **First UI:** what reference screen or minimum image/text/button composition should be shown? Which sizing/input behavior is needed immediately?
-2. **Dependencies:** which package manager and pinned versions should own EnTT, GoogleTest, spdlog, gRPC/Protobuf, XML/YAML parsers, shader tools and fonts?
+2. **Dependencies:** vcpkg and a pinned baseline are established. Which upgrade policy and media encoding toolchain should follow?
 3. **Preview recovery:** restore only authoring/selection/view state, or also transient animation, XP/health and simulation state after rebuilding?
 4. **Frame definition:** does completion mean CPU phases/submission, GPU completion, or presentation? How do late events and cycles behave?
 5. **Determinism:** what replay/time/publication contract is required, and is bitwise equality across hardware necessary?
@@ -23,8 +23,8 @@ These choices are closed unless an explicit design change reopens them.
 - Binding directions, converters, command validation, event ordering, subscriptions, collections and competing property writers.
 - Reflection eliminated by cooking versus metadata retained for authoring and runtime extensions.
 - RAM/VRAM budgets, priorities, caching/eviction, fallbacks, failed loads, cancellation and hot reload.
-- Animation clocks, interpolation/blending, scrub/seek/loop events and optional external audio integration.
-- Bink SDK availability and integration milestone; text shaping, Unicode, fallback fonts, plurals and RTL requirements.
+- Animation clocks, interpolation/blending, scrub/seek/loop events and UI sound-command timing.
+- AV1 encoding profiles, measured decoder budgets, UI-SFX voice/device policy; text shaping, Unicode, fallback fonts, plurals and RTL requirements.
 
 ## Editor and delivery
 

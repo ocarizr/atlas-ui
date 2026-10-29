@@ -69,7 +69,7 @@ def select_components(config, paths, full=False):
 
 
 def build_matrix(config, selected, source_files):
-    entries = []
+    components_to_build = []
     for name in sorted(selected):
         item = config["components"][name]
         targets, labels = item.get("build_targets", []), item.get("test_labels", [])
@@ -85,9 +85,10 @@ def build_matrix(config, selected, source_files):
             raise ValueError(f"Component {name} needs test_labels")
         if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.:+-]*", target) for target in targets):
             raise ValueError(f"Invalid build target for {name}")
-        for profile in config["profiles"]:
-            entries.append({"component": name, **profile})
-    return {"include": entries}
+        components_to_build.append(name)
+    return {"include": [
+        {"components": components_to_build, **profile} for profile in config["profiles"]
+    ] if components_to_build else []}
 
 
 def repository_files(root):

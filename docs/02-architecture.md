@@ -42,7 +42,8 @@ The editor owns the authoring document. Preview state is a synchronized projecti
 | AssetSystem / Streaming | Identity, lifetime, dependency loading, asynchronous CPU/GPU preparation |
 | Serialization | XML authoring, validation, cooked data and generated constructors |
 | Animation | Keyframes, curves, tracks, property animation and events |
-| Video | Bink integration and timeline-controlled playback |
+| Video | Public AV1/WebM decoding with dav1d/libwebm and timeline-controlled playback |
+| Audio | XAudio2 UI sound effects, short-clip assets and bounded voices |
 | Localization | String tables, language switching, fallback and plurals |
 | Renderer | Direct3D 12 resources, materials, shaders and UI submission |
 | Application | Windows host composition and execution lifecycle |
@@ -60,4 +61,4 @@ EnTT provides storage/query infrastructure. Atlas defines hierarchy semantics, a
 
 Support custom allocators and memory tracking. Frame, job, asset, and persistent lifetimes need explicit ownership. Metadata for inspection/bindings must be reconciled with prepared construction and the cooked-runtime reflection goals.
 
-Use C++20 and CMake, out-of-source builds, multi-config generators, Visual Studio 2022 and Ninja. Modules are optional; concepts, constexpr, and noexcept should serve concrete contracts. Third-party versions and the dependency manager remain to be fixed before production targets are added.
+Use C++20 and CMake, out-of-source builds, multi-config generators, Visual Studio 2022 and Ninja. Modules are optional; concepts, constexpr, and noexcept should serve concrete contracts. External dependencies are pinned through the vcpkg baseline in `vcpkg.json`; native graphics, text, image and audio APIs come from the Windows SDK. See [dependencies and media](13-dependencies-and-media.md).

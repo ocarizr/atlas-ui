@@ -23,6 +23,11 @@ add_library(atlas_instrumentation INTERFACE)
 add_library(Atlas::Instrumentation ALIAS atlas_instrumentation)
 
 if(ATLAS_ENABLE_ASAN)
+    # The pinned vendor archives are not ASan-instrumented. MSVC requires a
+    # consistent STL annotation ABI across linked objects; retain ASan memory
+    # instrumentation but disable vector/string container annotations here.
+    target_compile_definitions(atlas_instrumentation INTERFACE
+        _DISABLE_VECTOR_ANNOTATION _DISABLE_STRING_ANNOTATION)
     target_compile_options(atlas_instrumentation INTERFACE /fsanitize=address /Zi)
     target_link_options(atlas_instrumentation INTERFACE /INCREMENTAL:NO /DEBUG)
 endif()

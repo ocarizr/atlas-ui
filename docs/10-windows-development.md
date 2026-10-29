@@ -11,6 +11,8 @@ Use a Developer PowerShell x64 with CMake/Ninja/LLVM on PATH, especially for Nin
 ## Build profiles
 
 ```powershell
+. ./scripts/Initialize-Toolchain.ps1
+./scripts/Bootstrap-Dependencies.ps1
 cmake --list-presets=all
 cmake --preset windows-msvc
 cmake --build --preset windows-debug
@@ -27,9 +29,9 @@ ctest --preset windows-debug
 | windows-tidy | clang-tidy integrated with compilation |
 | windows-coverage | LLVM source-based coverage |
 
-Builds live under `build/<preset>`. Local overrides use untracked `CMakeUserPresets.json`. Owned targets call `atlas_configure_target(name)`; each library also declares public requirements and dependencies. Do not impose project warnings on third parties.
+Builds live under `build/<preset>`. Local overrides use untracked `CMakeUserPresets.json`. Owned targets call `atlas_configure_target(name)` and tests use `atlas_configure_test(name)`; each library also declares public requirements and dependencies. Do not impose project warnings on third parties.
 
-The current foundation has no production C++ targets or GoogleTest cases. CTest must fail if no tests exist. CI reports the foundation state explicitly and validates real tooling tests; it does not claim that runtime tests passed.
+The jobs, protocol, dependency and entry-point targets now have real CTest labels. CTest fails if a selected component has no tests. The applications remain bootstrap programs, not a rendered UI or running editor service. If upgrading a build directory created before vcpkg integration, configure once with `cmake --fresh --preset windows-msvc`. The first dependency build downloads/builds Debug and Release packages; later profiles reuse the binary cache.
 
 ## Style and analysis
 
@@ -49,9 +51,13 @@ Formatting uses Allman braces, four spaces and a 100-column limit. The script ch
 
 clang-tidy needs actual compiler includes/defines. Ninja exports compile commands. Selected diagnostics fail the check; suppressions need a concrete reason. Keep tool versions aligned between local use and CI.
 
+MSVC analysis excludes imported external headers through `/analyze:external-`; owned code remains analyzed with warnings as errors. Test targets alone disable C6326 because GoogleTest assertion macros expand constant comparisons at their call sites. clang-tidy receives `/EHsc` explicitly so its Windows driver matches the compiler's exception mode.
+
 ## Sanitizers
 
 MSVC [ASan](https://learn.microsoft.com/en-us/cpp/sanitizers/asan?view=msvc-170) is supported on Windows x86/x64. Its [limitations](https://learn.microsoft.com/en-us/cpp/sanitizers/asan-known-issues?view=msvc-170) include incompatibility with /RTC, incremental linking and Edit and Continue. ASan does not detect data races.
+
+The pinned vendor archives use their normal non-ASan ABI. The ASan profile disables MSVC vector/string container annotations consistently in owned targets to avoid annotation-ABI link mismatches with those archives. Atlas code remains memory-instrumented, but accesses within a container's allocated capacity may not receive container-overflow diagnostics, and vendor internals are not fully instrumented. A fully sanitized dependency build is a separate future profile.
 
 ```powershell
 cmake --preset windows-asan
@@ -71,10 +77,10 @@ cmake --build --preset windows-coverage
 ctest --preset windows-coverage
 ```
 
-The local test preset writes `build/windows-coverage/%m-%p.profraw`. Component CI uses a separate per-run directory, merges fresh profiles, includes the selected native test executables and retains a text report. This path becomes active when real targets and CTest labels are registered. Never publish stale results as current coverage.
+The local test preset writes `build/windows-coverage/%m-%p.profraw`. Component CI uses a separate per-run directory, merges fresh profiles, includes the selected native test executables and retains a text report. The registered foundation targets use this path. Never publish stale results as current coverage.
 
 ## Validation scope
 
-The foundation's compiler/static-analysis/ASan/LLVM coverage settings were checked using disposable static-library/executable probes on Windows. These are infrastructure checks, not a production test suite. CI tooling has its own regression tests for impact selection, release gating and asset validation.
+The native suites cover the scheduler, generated protocol, linked dependencies and application entry points. D3D12 integration uses a WARP device; the audio check initializes XAudio2 without claiming audible playback. The current application smoke path is headless. CI tooling has separate pytest regression tests for impact selection, release gating and asset validation. Neither bootstrap tests nor decoder initialization validate a complete UI or video player.
 
 See [CI and delivery](12-ci-and-delivery.md) for selective builds, packages and release rules.

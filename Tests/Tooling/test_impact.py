@@ -69,5 +69,16 @@ def test_matrix_uses_named_targets_and_test_labels(component_config):
         build_targets=["atlas_editor", "atlas_editor_tests"], test_labels=["editor"]
     )
     assert build_matrix(component_config, {"editor"}, []) == {
-        "include": [{"component": "editor", "configure": "windows-msvc", "configuration": "Debug"}]
+        "include": [{"components": ["editor"], "configure": "windows-msvc", "configuration": "Debug"}]
+    }
+
+
+def test_shared_consumers_share_one_build_per_profile(component_config):
+    for name in ("game", "editor"):
+        component_config["components"][name].update(
+            build_targets=[f"atlas_{name}"], test_labels=[name]
+        )
+    assert build_matrix(component_config, {"game", "editor"}, []) == {
+        "include": [{"components": ["editor", "game"],
+                     "configure": "windows-msvc", "configuration": "Debug"}]
     }

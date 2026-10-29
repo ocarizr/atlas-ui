@@ -17,3 +17,13 @@ runs:
       if: inputs.toolchain == 'true'
       shell: pwsh
       run: . ./scripts/Initialize-Toolchain.ps1 -ExportForGitHub
+    - name: Restore compiled dependency cache
+      if: inputs.toolchain == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: .tools/vcpkg-cache
+        key: vcpkg-windows-msvc17-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'dependencies/vcpkg-ports/**') }}
+    - name: Bootstrap pinned dependencies
+      if: inputs.toolchain == 'true'
+      shell: pwsh
+      run: ./scripts/Bootstrap-Dependencies.ps1

@@ -1,66 +1,154 @@
-# Dependencies describe code linkage, not the preview process relationship.
 components:
   core:
-    paths: [Engine/Foundation/**, Engine/Core/**, Engine/Config/**, Engine/Logging/**, Engine/Profiling/**, Engine/JobSystem/**, Engine/ECS/**, Tests/Core/**, Tests/Jobs/**, Tests/ECS/**]
+    paths:
+    - Engine/Foundation/**
+    - Engine/Core/**
+    - Engine/Config/**
+    - Engine/Logging/**
+    - Engine/Profiling/**
+    - Engine/ECS/**
+    - Tests/Core/**
+    - Tests/ECS/**
     depends_on: []
     build_targets: []
     test_labels: []
   content:
-    paths: [Engine/AssetSystem/**, Engine/Streaming/**, Engine/Serialization/**, Tests/Content/**]
-    depends_on: [core]
+    paths:
+    - Engine/AssetSystem/**
+    - Engine/Streaming/**
+    - Engine/Serialization/**
+    - Tests/Content/**
+    depends_on:
+    - core
     build_targets: []
     test_labels: []
   ui:
-    paths: [Engine/UI/**, Engine/MVVM/**, Engine/Animation/**, Engine/Video/**, Engine/Localization/**, Engine/Renderer/**, Engine/Application/**, Tests/UI/**]
-    depends_on: [core, content]
+    paths:
+    - Engine/UI/**
+    - Engine/MVVM/**
+    - Engine/Animation/**
+    - Engine/Video/**
+    - Engine/Localization/**
+    - Engine/Renderer/**
+    - Tests/UI/**
+    depends_on:
+    - core
+    - content
     build_targets: []
     test_labels: []
   ipc:
-    paths: [Protocols/**, Engine/IPC/**, Tests/IPC/**]
-    depends_on: [core]
-    build_targets: []
-    test_labels: []
+    paths:
+    - Protocols/**
+    - Engine/IPC/**
+    - Tests/IPC/**
+    depends_on:
+    - core
+    build_targets:
+    - atlas_protocol
+    - atlas_protocol_tests
+    test_labels:
+    - ipc
   game:
-    paths: [Apps/AtlasGame/**, Tests/Game/**]
-    depends_on: [ui, ipc]
-    build_targets: []
-    test_labels: []
+    paths:
+    - Apps/AtlasGame/**
+    - Tests/Game/**
+    depends_on:
+    - ui
+    - application
+    build_targets:
+    - atlas_game
+    test_labels:
+    - game
   editor:
-    paths: [Apps/AtlasEditor/**, Tests/Editor/**]
-    depends_on: [ui, ipc]
-    build_targets: []
-    test_labels: []
+    paths:
+    - Apps/AtlasEditor/**
+    - Tests/Editor/**
+    depends_on:
+    - ui
+    - application
+    build_targets:
+    - atlas_editor
+    test_labels:
+    - editor
   tools:
-    paths: [Tools/**, Tests/ContentTools/**]
-    depends_on: [ui, content]
-    build_targets: []
-    test_labels: []
-
-# Add real target names and CTest labels when implementing each component.
-# Source code in an unwired component is an error, not an implicit skip.
+    paths:
+    - Tools/**
+    - Tests/ContentTools/**
+    depends_on:
+    - content
+    - application
+    build_targets:
+    - atlas_cook
+    - atlas_package
+    test_labels:
+    - tools
+  jobs:
+    paths:
+    - Engine/JobSystem/**
+    - Tests/Jobs/**
+    depends_on: []
+    build_targets:
+    - atlas_jobs
+    - atlas_jobs_tests
+    test_labels:
+    - jobs
+  platform:
+    paths:
+    - Engine/Audio/**
+    - Tests/Platform/**
+    depends_on: []
+    build_targets:
+    - atlas_dependency_tests
+    test_labels:
+    - dependencies
+  application:
+    paths:
+    - Engine/Application/**
+    - Tests/Application/**
+    depends_on:
+    - jobs
+    - ipc
+    - platform
+    build_targets:
+    - atlas_application
+    - atlas_application_tests
+    test_labels:
+    - application
 global_paths:
-  - CMakeLists.txt
-  - CMakePresets.json
-  - pytest.ini
-  - cmake/**
-  - ThirdParty/**
-  - .ci/**
-  - .github/**
-  - scripts/**
-  - Tests/Tooling/**
-  - Tests/Support/**
-  - .clang-*
-  - .editorconfig
-  - .gitattributes
-  - .gitignore
-
-documentation_paths: [README.md, CONTRIBUTING.md, LICENSE, docs/**]
-asset_paths: [Assets/**]
-
+- CMakeLists.txt
+- CMakePresets.json
+- pytest.ini
+- cmake/**
+- ThirdParty/**
+- .ci/**
+- .github/**
+- scripts/**
+- Tests/Tooling/**
+- Tests/Support/**
+- .clang-*
+- .editorconfig
+- .gitattributes
+- .gitignore
+- vcpkg.json
+- vcpkg-configuration.json
+- dependencies/**
+documentation_paths:
+- README.md
+- CONTRIBUTING.md
+- LICENSE
+- docs/**
+asset_paths:
+- Assets/**
 profiles:
-  - {configure: windows-msvc, configuration: Debug}
-  - {configure: windows-msvc, configuration: Release}
-  - {configure: windows-asan, configuration: Debug}
-  - {configure: windows-analysis, configuration: Debug}
-  - {configure: windows-tidy, configuration: Debug}
-  - {configure: windows-coverage, configuration: Debug}
+- configure: windows-msvc
+  configuration: Debug
+- configure: windows-msvc
+  configuration: Release
+- configure: windows-asan
+  configuration: Debug
+- configure: windows-analysis
+  configuration: Debug
+- configure: windows-tidy
+  configuration: Debug
+- configure: windows-coverage
+  configuration: Debug

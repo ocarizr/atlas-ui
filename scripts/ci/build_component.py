@@ -1,4 +1,4 @@
-"""Build only a component's named targets and run its registered CTest labels."""
+"""Build selected named targets once per profile and run their CTest labels."""
 
 import argparse
 import os
@@ -12,16 +12,19 @@ from scripts.ci.coverage import collect_coverage
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--component", required=True)
+    parser.add_argument("--component", required=True, nargs="+")
     parser.add_argument("--configure", required=True)
     parser.add_argument("--configuration", required=True)
     args = parser.parse_args()
     config = read_yaml(".ci/components.yaml")
-    component = config["components"][args.component]
     profile = {"configure": args.configure, "configuration": args.configuration}
     if profile not in config["profiles"]:
         raise ValueError("Unknown validation profile")
-    targets, labels = component["build_targets"], component["test_labels"]
+    selected = [config["components"][name] for name in args.component]
+    if any(not item["build_targets"] or not item["test_labels"] for item in selected):
+        raise ValueError("Every selected component needs build targets and test labels")
+    targets = sorted({target for item in selected for target in item["build_targets"]})
+    labels = sorted({label for item in selected for label in item["test_labels"]})
     if not targets or not labels:
         raise ValueError("Real build_targets and test_labels are required")
     build = Path("build") / args.configure
@@ -30,7 +33,7 @@ def main():
         ["cmake", "--build", str(build), "--config", args.configuration, "--target", *targets],
         check=True,
     )
-    expression = "^(?:" + "|".join(re.escape(label) for label in labels) + ")$"
+    expression = "^(" + "|".join(re.escape(label) for label in labels) + ")$"
     environment = os.environ.copy()
     profiles = build / "coverage"
     if args.configure == "windows-coverage":

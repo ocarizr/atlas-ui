@@ -41,10 +41,12 @@ The editor draws its own interface; the AtlasGame preview process produces the p
 
 Animate transforms, opacity, color, visibility, material parameters, video controls, and custom properties. Timelines provide keyframes, curves, tracks, and synchronized event tracks, addressed by time or frame.
 
-Clocks, interpolation, blending, conflicting property writers, seek/loop/scrub event behavior, and binding precedence remain open. Events may show tooltips or enable buttons; emitting an SFX event does not define an audio engine.
+Clocks, interpolation, blending, conflicting property writers, seek/loop/scrub event behavior, and binding precedence remain open. Events may show tooltips, enable buttons or enqueue UI sound-effect commands. Audio device work must not block the frame's CPU jobs.
 
 ## Video and localization
 
-Bink video should support looping, seeking, scrubbing, and timeline events. Audio is not required. SDK availability, decoding, upload, frame discard and synchronization need integration contracts.
+AV1/WebM video uses the public dav1d decoder and libwebm demuxer. Looping, seeking, scrubbing, bounded frame queues, keyframe policy and timeline events remain required. Decoder CPU/thread budgets and color/upload behavior require implementation and benchmarks; integration alone does not prove playback performance. See [media contracts](13-dependencies-and-media.md).
+
+UI sound effects use XAudio2 2.9: button, hover/focus and selection feedback plus event-track commands. Short sounds should be preloaded, with bounded reusable voices and explicit gain/device handling. Video-audio synchronization is separate from this initial SFX scope.
 
 Localization uses string tables, language switching, fallback languages and plural forms. Reload is desirable. Fonts are assets; Unicode, shaping, fallback fonts, RTL support, and rasterization are not yet specified. Changes to text metrics or language must invalidate affected layout regions.

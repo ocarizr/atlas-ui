@@ -36,7 +36,7 @@ The long-term direction is a complete frontend stack suitable for production-sca
 
 Gameplay, physics, world rendering, and a world/entity editor are future possibilities. They are not initial deliverables. Other operating systems and additional rendering backends are outside the supported target.
 
-Audio playback is not required for video. Timeline events may eventually request sound through an external integration; a sound engine is not currently specified.
+UI sound effects are required for interaction and timeline feedback, using XAudio2 2.9. Video audio, music streaming and spatial/gameplay audio are outside the initial sound-effects scope. Public AV1/WebM decoding with dav1d and libwebm replaces the proprietary video-codec requirement.
 
 ## Design provenance
 

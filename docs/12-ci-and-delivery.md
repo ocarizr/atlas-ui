@@ -28,9 +28,11 @@ Every PR targeting `main` gets planning and a final `PR validation` status. Docu
 
 Selected builds compile explicit targets rather than the default all target. Their dependencies may still compile when necessary. Building an editor's required runtime libraries is different from unnecessarily building the AtlasGame executable.
 
-## Foundation state and future targets
+Affected components share one build job per compiler/configuration profile. Targets and labels are deduplicated, so shared libraries are not rebuilt in separate jobs for each consumer. Component jobs start after repository quality/configuration, allowing the initial dependency build to populate the shared binary cache first.
 
-There are currently no production C++ targets/tests. Component target/label lists are deliberately empty. The planner emits no fabricated build matrix for this state; real Python tooling tests and repository checks still run. Adding component source without registering targets fails CI.
+## Registered targets and dependency setup
+
+Jobs, protocol, dependency integration, application-host contracts and all four executable entry points have actual targets and CTest labels. Planned contexts still have empty target lists; adding source without registering its targets fails CI. Dependency setup bootstraps the pinned vcpkg checkout and caches compiled package archives. Initial uncached builds may take substantially longer than subsequent runs.
 
 When implementing a component, add its actual library/application and test target names to `build_targets`, its CTest labels to `test_labels`, and any missing paths/dependencies. CTest labels scope test execution, and zero discovered tests is an error. Profiles cover Debug, Release, ASan, MSVC analysis, clang-tidy and LLVM coverage. Coverage jobs merge fresh profiles and retain a text report; no percentage threshold has been set.
 
@@ -55,7 +57,7 @@ Inventory paths use forward slashes relative to `Assets/`. Validation checks XML
 
 Pushes to `main` run full applicable validation and then packaging. A normal branch push never creates a GitHub Release. CPack uses explicit install rules; it does not archive the whole checkout or local tools. ZIP files and SHA256 checksums are retained as workflow artifacts.
 
-The current package is explicitly a **development foundation** containing README, contribution guidance, design documents, license, and an XML manifest. It contains no runtime executable. Add installation rules and update the manifest/package description when actual applications become deliverables.
+The current **application bootstrap** package contains AtlasGame, AtlasEditor, AtlasCook and AtlasPackage, non-system runtime DLLs, design documents, an XML manifest and dependency notices. The applications perform startup smoke checks; content tools only expose help/reject unimplemented commands. No rendered UI, active preview service or cooked-content pipeline is claimed.
 
 ## Version-tag publishing
 

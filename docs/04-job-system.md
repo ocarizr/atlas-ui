@@ -1,5 +1,9 @@
 # Job system
 
+## Implementation status
+
+The current library implements independent jobs, persistent workers, completion handles, error propagation, idle observation, statistics and draining shutdown. Dependency counters, DAGs, child groups, ParallelFor and frame barriers below describe the target contract, not features already implemented. See the [implementation plan and UI-readiness gate](14-job-system-implementation-plan.md).
+
 ## Execution contract
 
 The job system is a first-class platform capability. Reuse persistent worker threads rather than creating a thread per job. Required capabilities include child jobs, dependencies, ParallelFor, DAGs, synchronization points, and profiling of execution and dependencies.
