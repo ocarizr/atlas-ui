@@ -8,6 +8,7 @@
 | `.github/workflows/delivery.yml` | Main-branch packaging and version-tag publishing |
 | `reusable_plan.yml` | Change impact and dependency-aware build matrix |
 | `reusable_quality.yml` | Repository checks, assets, tooling tests, workflow lint, style/configuration |
+| `reusable_dependencies.yml` | Explicit dependency preparation, progress, cache snapshots and failure diagnostics |
 | `reusable_build.yml` | Named component targets and labeled tests across Windows profiles |
 | `reusable_package.yml` | Release build, CPack ZIP and SHA256 checksums |
 | `.github/actions/setup_ci/action.yml` | Shared Python/toolchain initialization |
@@ -28,11 +29,23 @@ Every PR targeting `main` gets planning and a final `PR validation` status. Docu
 
 Selected builds compile explicit targets rather than the default all target. Their dependencies may still compile when necessary. Building an editor's required runtime libraries is different from unnecessarily building the atlas_game executable.
 
-Affected components share one build job per compiler/configuration profile. Targets and labels are deduplicated, so shared libraries are not rebuilt in separate jobs for each consumer. Component jobs start after repository quality/configuration, allowing the initial dependency build to populate the shared binary cache first.
+Affected components share one build job per compiler/configuration profile. Targets and labels are deduplicated. Fast repository quality runs first; a separate dependency job then prepares the binary cache before component builds start. Documentation-only PRs skip dependency preparation and native builds. Quality checks never trigger dependency compilation through CMake configuration.
 
 The `windows-portable` profile disables Windows SDK integration and excludes the `windows` component through declarative `exclude_components`. Portable changes validate without native SDK targets; changes confined to Windows adapters do not create an empty portable build job. The runner rejects excluded components before configuring/building.
 
 ## Registered targets and dependency setup
+
+### Cold-build cost and cache recovery
+
+The first hosted-runner build must compile both Debug and Release dependencies. In the initial PR run, the cache restored zero packages; Protobuf took approximately 17 minutes and OpenSSL 7 minutes, and the old 45-minute quality job timed out during gRPC. The native Atlas tests had not started. A cold dependency build remains expensive; warm cache restoration avoids repeating that compiler work.
+
+Dependency preparation now has its own 120-minute job with a 90-minute install-step limit. The remaining budget permits cache/log preservation after a step failure. `scripts.ci.prepare_dependencies` forwards output and emits native-build progress heartbeats every 30 seconds of silence. Completed build/package intermediates are cleaned to limit runner disk use. Failure diagnostics retain the captured install output and remaining native build logs.
+
+The shared setup action restores content-addressed vcpkg archives using same-manifest and compatible prior-snapshot fallbacks, including the previous cache-key scheme. vcpkg validates package ABI identities before reusing archives. New archive inventories are saved explicitly with an immutable run/attempt key even after preparation failure; unchanged inventories are not uploaded again. A hard cancellation of the entire job may still prevent cleanup, unlike a bounded install-step timeout with cleanup time remaining.
+
+CI uses only the persisted project archive provider, so successful preparation cannot depend on an unshared machine-local cache. Local development may continue reading its existing user cache.
+
+Component and packaging jobs restore these archives and configure with `--only-binarycaching`. A missing/incompatible cache fails rather than silently rebuilding dependencies in every validation job. Within a job, configure profiles share `build/dependencies/vcpkg_installed`. Local development retains normal source installation unless the explicit CI environment policy is set. No new credentials, package-feed secrets or write repository permissions are required.
 
 Jobs, streaming, protocol, dependency integration, application-host contracts and all four executable entry points have actual targets and CTest labels. Streaming registers `atlas_streaming`, `atlas_streaming_tests` and the `streaming` label; changes to its scheduler or tested media dependencies select its validation. Planned contexts still have empty target lists; adding source without targets fails CI. Dependency setup bootstraps pinned vcpkg and caches compiled archives. Initial uncached builds may take substantially longer.
 

@@ -34,7 +34,10 @@ $task_tool_directories = @(
 $env:Path = ($task_tool_directories -join ';') + ';' + $env:Path
 $env:VCPKG_DEFAULT_BINARY_CACHE = Join-Path (Split-Path -Parent $PSScriptRoot) '.tools/vcpkg-cache'
 New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
-if (-not $env:VCPKG_BINARY_SOURCES) {
+if ($ExportForGitHub) {
+    # Every archive required by another runner must be in the persisted tree.
+    $env:VCPKG_BINARY_SOURCES = "clear;files,$env:VCPKG_DEFAULT_BINARY_CACHE,readwrite"
+} elseif (-not $env:VCPKG_BINARY_SOURCES) {
     $task_existing_cache = Join-Path $env:LOCALAPPDATA 'vcpkg/archives'
     $env:VCPKG_BINARY_SOURCES = "clear;files,$task_existing_cache,read;files,$env:VCPKG_DEFAULT_BINARY_CACHE,readwrite"
 }

@@ -11,7 +11,7 @@ on:
 jobs:
   quality:
     runs-on: windows-2022
-    timeout-minutes: 45
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -38,6 +38,3 @@ jobs:
           clang-tidy --verify-config
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           clang-format --style=file --dump-config | Out-Null
-      - name: Configure development foundation
-        if: inputs.configure
-        run: cmake --preset windows-msvc

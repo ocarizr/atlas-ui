@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from scripts.ci.config import read_yaml
+from scripts.ci.configure import configure_command
 from scripts.ci.coverage import collect_coverage
 
 
@@ -31,7 +32,7 @@ def main():
     if not targets or not labels:
         raise ValueError("Real build_targets and test_labels are required")
     build = Path("build") / args.configure
-    subprocess.run(["cmake", "--preset", args.configure], check=True)
+    subprocess.run(configure_command(args.configure), check=True)
     subprocess.run(
         ["cmake", "--build", str(build), "--config", args.configuration, "--target", *targets],
         check=True,

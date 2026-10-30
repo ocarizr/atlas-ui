@@ -39,11 +39,15 @@ jobs:
       tooling: true
       configure: true
   build:
-    needs: [plan, quality]
+    needs: [plan, quality, dependencies]
     if: needs.plan.outputs.has-build == 'true'
     uses: ./.github/workflows/reusable_build.yml
     with:
       matrix: ${{ needs.plan.outputs.matrix }}
+  dependencies:
+    needs: [plan, quality]
+    if: needs.plan.outputs.has-build == 'true'
+    uses: ./.github/workflows/reusable_dependencies.yml
   package:
     needs: [gate, plan, quality, build]
     if: >-

@@ -84,4 +84,6 @@ The local test preset writes `build/windows-coverage/%m-%p.profraw`. Component C
 
 The native suites cover jobs, streamer memory/file ranges and lifecycle, generated protocol, linked dependencies and entry points. A media integration test decodes streamer-provided Opus bytes on a CPU job. D3D12 uses WARP; XAudio2 initialization does not claim audible playback. Application smoke paths are headless. CI tooling has separate pytest regression tests for impact selection, release gating and assets. These checks do not validate complete UI/media playback or bundle loading.
 
+Hosted CI prepares dependencies in an explicit job and requires binary-cache restoration in component/package jobs. This differs from the normal local configure, which may build missing packages. See [cold-build cost and recovery](12_ci_and_delivery.md#cold-build-cost-and-cache-recovery) for budgets, heartbeat output and partial-cache preservation.
+
 See [CI and delivery](12_ci_and_delivery.md) for selective builds, packages and release rules.

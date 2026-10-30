@@ -20,11 +20,14 @@ jobs:
       - uses: ./.github/actions/setup_ci
         with:
           toolchain: 'true'
+          dependencies: 'true'
       - name: Build named targets and run labeled tests
         env:
           COMPONENTS: ${{ join(matrix.components, ' ') }}
           CONFIGURE_PRESET: ${{ matrix.configure }}
           BUILD_CONFIGURATION: ${{ matrix.configuration }}
+          ATLAS_VCPKG_INSTALLED_DIR: ${{ github.workspace }}/build/dependencies/vcpkg_installed
+          ATLAS_REQUIRE_BINARY_CACHE: '1'
         shell: pwsh
         run: |
           $task_components = $env:COMPONENTS.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
