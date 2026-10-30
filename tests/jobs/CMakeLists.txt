@@ -1,4 +1,6 @@
-add_executable(atlas_jobs_tests execution_tests.cpp failure_tests.cpp lifecycle_tests.cpp)
+add_executable(atlas_jobs_tests execution_tests.cpp failure_tests.cpp lifecycle_tests.cpp
+    graph_execution_tests.cpp graph_failure_tests.cpp graph_validation_tests.cpp
+    graph_lifecycle_tests.cpp graph_concurrency_tests.cpp)
 target_link_libraries(atlas_jobs_tests PRIVATE atlas::jobs GTest::gtest_main)
 atlas_configure_test(atlas_jobs_tests)
 include(GoogleTest)

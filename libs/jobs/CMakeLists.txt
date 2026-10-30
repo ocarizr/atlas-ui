@@ -1,4 +1,4 @@
-add_library(atlas_jobs STATIC src/job_system.cpp)
+add_library(atlas_jobs STATIC src/job_system.cpp src/job_graph.cpp src/graph_state.cpp)
 add_library(atlas::jobs ALIAS atlas_jobs)
 target_include_directories(atlas_jobs PUBLIC include)
 target_compile_features(atlas_jobs PUBLIC cxx_std_20)

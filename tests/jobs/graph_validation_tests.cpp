@@ -1,0 +1,74 @@
+#include "job_system_fixture.hpp"
+
+#include <atomic>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+namespace atlas::jobs::tests
+{
+class cyclic_graph_tests : public testing::TestWithParam<std::size_t>
+{
+};
+
+TEST_P(cyclic_graph_tests, rejects_cycles_before_any_callback_is_published)
+{
+    job_system scheduler{2};
+    job_graph graph;
+    std::atomic<int> executed{0};
+    graph.add("independent root", [&] { ++executed; });
+    std::vector<job_id> cycle;
+    cycle.reserve(GetParam());
+    for (std::size_t index = 0; index < GetParam(); ++index)
+    {
+        cycle.push_back(graph.add("cycle node", [&] { ++executed; }));
+    }
+    for (std::size_t index = 0; index < cycle.size(); ++index)
+    {
+        graph.precedes(cycle[index], cycle[(index + 1) % cycle.size()]);
+    }
+    try
+    {
+        scheduler.submit_graph(graph);
+        FAIL() << "Expected cycle rejection";
+    }
+    catch (const std::invalid_argument& error)
+    {
+        EXPECT_NE(std::string{error.what()}.find("cycle"), std::string::npos);
+    }
+    scheduler.wait_idle();
+    EXPECT_EQ(executed.load(), 0);
+    EXPECT_EQ(scheduler.statistics().submitted, 0U);
+}
+
+INSTANTIATE_TEST_SUITE_P(cycle_lengths, cyclic_graph_tests, testing::Values(1U, 2U, 7U));
+
+TEST_F(job_system_fixture, callback_copy_failure_cannot_publish_a_partial_graph)
+{
+    struct throwing_callback
+    {
+        explicit throwing_callback(std::shared_ptr<bool> control) : fail{std::move(control)} {}
+        throwing_callback(const throwing_callback& other) : fail{other.fail}
+        {
+            if (*fail)
+            {
+                throw std::bad_alloc{};
+            }
+        }
+        void operator()() const {}
+        std::shared_ptr<bool> fail;
+    };
+    job_graph graph;
+    std::atomic<int> executed{0};
+    graph.add("first", [&] { ++executed; });
+    auto fail = std::make_shared<bool>(false);
+    graph.add("copy throws", throwing_callback{fail});
+    *fail = true;
+    EXPECT_THROW(system.submit_graph(graph), std::bad_alloc);
+    EXPECT_EQ(system.statistics().submitted, 0U);
+    EXPECT_EQ(executed.load(), 0);
+    *fail = false;
+    system.wait(system.submit_graph(graph));
+    EXPECT_EQ(executed.load(), 1);
+}
+} // namespace atlas::jobs::tests

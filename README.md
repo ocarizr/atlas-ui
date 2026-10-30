@@ -2,7 +2,7 @@
 
 A retained-mode UI platform with a cross-platform C++20 architecture. Windows Desktop x64 is currently the only supported and validated platform. Atlas UI combines reusable runtime libraries, a visual editor, a dependency-driven job system, asynchronous asset streaming, and event-driven MVVM bindings.
 
-The job system and asset streamer are implementation prerequisites. Validate job frame graphs and stream-backed resource loading before implementing production UI systems. A manually authored UI follows, then the editor, using the same libraries and Direct3D 12 renderer.
+The job system and asset streamer are implementation prerequisites. Validate generic phased job workloads and stream-backed resource loading before implementing production UI systems. The scheduler remains client-agnostic; integrations belong to its consumers. A manually authored UI follows, then the editor, using the same libraries and Direct3D 12 renderer.
 
 ## Technology
 
@@ -43,7 +43,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-**Current status:** persistent-worker independent jobs, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Dependency DAGs and the synthetic frame-graph gate precede production UI.
+**Current status:** persistent-worker independent jobs and validated dependency DAGs with named outcomes and failure propagation, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Job groups, parallel ranges and phased-workload validation remain ahead of production UI.
 
 ## Documentation
 
@@ -65,5 +65,6 @@ ctest --preset windows-debug
 | [Job-system implementation plan](docs/14_job_system_implementation_plan.md) | Foundation, maturity milestones and the gate before UI |
 | [Streamer and media jobs](docs/15_streamer_and_media_jobs.md) | Exclusive storage boundary, memory/loose sources, bundle plan and decode scheduling |
 | [Portability and naming](docs/16_portability_and_naming.md) | Platform boundaries, snake_case, exceptions and validation |
+| [Job graph usage](docs/17_job_graph_usage.md) | Generic examples, dependencies, errors, ownership and diagnostics |
 
 The integration branch is `main`. Pull requests run relevant validation; pushes to `main` also package the current deliverables. Releases require a `vMAJOR.MINOR.PATCH` or `VMAJOR.MINOR.PATCH` tag pointing to a commit in `main` history.
