@@ -10,6 +10,7 @@
 
 namespace atlas::jobs::detail
 {
+struct task_state;
 struct scheduled_job
 {
     std::function<void()> callback;
@@ -17,6 +18,7 @@ struct scheduled_job
     // Pending entries do not own their graph. Ready/running entries do.
     std::shared_ptr<graph_state> graph;
     std::size_t index{0};
+    std::shared_ptr<task_state> task;
 };
 
 using ready_queue = std::list<scheduled_job>;

@@ -20,7 +20,7 @@ The streamer is the next foundation alongside independent jobs, before productio
 
 This implementation deliberately uses standard-library synchronization, `std::function`, promises and shared futures. It is a correctness baseline, not a lock-free/zero-allocation scheduler or a finished frame graph.
 
-`wait(handle)` makes the callback's effects visible and rethrows its exception. `wait_idle()` observes an empty queue and no running callbacks; independent concurrent producers can submit again afterward. `shutdown()` rejects all new submissions, including nested submissions, drains accepted work and joins workers. It is idempotent and serialized for concurrent coordinator calls. Destruction must happen outside workers and after external users stop accessing the scheduler.
+`wait(handle)` makes the callback's effects visible and rethrows its exception. `wait_idle()` observes an empty queue and no running callbacks; independent concurrent producers can submit again afterward. For this legacy independent API, `shutdown()` rejects new submissions, including nested submissions, drains accepted work and joins workers. Active scoped contexts introduced below can still admit children during draining. It is idempotent and serialized for concurrent coordinator calls. Destruction must happen outside workers and after external users stop accessing the scheduler.
 
 Observe a failed independent callback through its handle: idle waiting and shutdown do not aggregate or rethrow job failures. Submitted graphs now provide aggregate failure reporting and per-node diagnostics.
 
@@ -35,14 +35,32 @@ prerequisite counters and successor lists publish only ready jobs. Failure skips
 transitive dependents while independent branches finish. The execution handle
 exposes status/original exceptions; its aggregate wait reports a stable named
 failure. Preparation is all-or-nothing, and successor publication reuses prepared
-queue nodes and traversal storage. Parent/child completion remains a separate,
-unimplemented contract. See [examples and lifecycle rules](17_job_graph_usage.md).
+queue nodes and traversal storage. The sealed graph API retains its original callback contract; scoped parent/child
+completion is provided by direct dispatch below. See [examples and lifecycle rules](17_job_graph_usage.md).
 
 Acceptance: chains, fan-in/fan-out, zero/many dependencies, invalid/foreign references, cycle rejection, exact-once publication, prerequisite failure propagation and non-execution of blocked/failed successors. Test counter publication under concurrent completion. Allocation and submission failures must not leave an unfinishable graph.
 
-## Milestone 2: ranges, lifetimes and synchronization
+## Milestone 2: ranges, lifetimes and synchronization (dispatch increment implemented)
 
-Add chunked ParallelFor, child groups, coordinator fences/barriers, graph-local scratch lifetime and explicit error/cancellation policy. Choose grain sizes by measurement, with a sequential path for small ranges. Introduce category/name metadata and queue/execution/barrier timing.
+Direct dispatch supplies `run`, `after` and named fan-in fences through an injected
+client of one application-owned pool. Executor-created contexts spawn scoped
+children; parent completion joins descendants and releases owned input before
+publishing completion. Capture-free callbacks receive explicit, move-capable data.
+Range operations use caller-selected grains, a small-range path and disjoint
+chunks. Handles expose names, status, original failures and completion timings.
+The context distinguishes independent roots, scoped children and continuations.
+An optional declared-access sanitizer checks live scopes and callback lifetimes;
+its portable library and CMake package can be built independently. See the
+[safety and packaging contract](../libs/jobs/README.md).
+See the [usage and ownership contract](18_job_dispatch_usage.md).
+
+The current error policy drains admitted work, joins children after a parent
+failure, skips failed dependents and selects stable failures by registration order.
+Shutdown permits active contexts to finish spawning while rejecting new roots.
+No cancellation API, arena/scratch allocator, task category policy, automatic grain
+tuning or measured optimization is claimed. Parent-owned data supplies scoped
+storage today. Evaluate the remaining allocation/diagnostic needs and grain sizes
+with milestone 3 measurements; richer cancellation belongs to milestone 4.
 
 Acceptance: empty and uneven ranges, every index exactly once, child completion before parent/group completion, deterministic reductions where required, safe shutdown/cancellation and no dangling captures. Compare single-worker and multi-worker outputs. Keep memory ownership and access declarations explicit.
 

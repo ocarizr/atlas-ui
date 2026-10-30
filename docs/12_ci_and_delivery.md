@@ -166,3 +166,15 @@ Local CMake/pytest/actionlint checks cannot prove artifact-service permissions,
 retention settings, hosted concurrency or hosted timing. Verify those in the first
 run after this workflow revision is pushed. No hosted performance result is implied
 by editing these workflow definitions.
+
+
+## Job contract instrumentation
+
+`atlas::jobs` exports its job-sanitizer configuration to linked consumers.
+The default AUTO mode enables live declared-access checking in all Debug component
+profiles, including imported same-run jobs products; Release disables that tracking.
+No source scan or IDE plugin is required. Tests execute the instrumented runtime.
+Ranges declare chunk accesses automatically; arbitrary shared pointers/storage need
+explicit scopes. Review reported errors/warnings in consumer tests; false-sharing
+warnings are heuristic and do not fail jobs automatically. The
+[jobs package guide](../libs/jobs/README.md) describes ON/OFF overrides and limits.

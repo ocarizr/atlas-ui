@@ -1,0 +1,142 @@
+# Atlas Jobs
+
+A reusable C++20 CPU-job library with persistent workers, dependency handles,
+scoped children, parallel ranges and an optional declared-access sanitizer.
+Windows x64 is currently validated. Public APIs and scheduling code are platform
+agnostic; there are no Windows SDK, UI, ECS, codec or application dependencies.
+
+## Three explicit dispatch relationships
+
+The application creates one `job_system` and injects copyable `job_dispatcher`
+views into consumers. A dispatcher does not create workers. Inside a callback:
+
+```cpp
+jobs.run("discover", [](atlas::jobs::job_context& context)
+{
+    context.dispatcher().run("independent", [](atlas::jobs::job_context&) {});
+    context.spawn("child", [](atlas::jobs::job_context&) {});
+    context.continue_with("after discover", [](atlas::jobs::job_context&) {});
+});
+```
+
+- `dispatcher().run`: an independent root; the current job does not join it or
+  inherit its failures. Keep its own handle when its result matters.
+- `spawn`: an attached child, admitted from the executing parent's callback.
+  The parent joins all descendants and retains its input until they finish.
+- `continue_with`: a separate root depending on completion of the current job,
+  including descendants and input cleanup. It is not joined by that current job.
+  If the current job fails, the continuation is skipped.
+
+Only attached children inherit the parent's input lifetime. Independent roots
+and continuations must own their data or share storage with sufficient lifetime.
+A continuation starts after the prior input has been released: a raw pointer or
+span into that input would already dangle. Guards do not repair such ownership.
+
+`context.after(handle, ...)` creates a child with an additional prerequisite;
+`dispatcher.after(handle, ...)` creates a separate dependent root. A child cannot
+wait for its own parent's completion: that would form a cycle. Context methods
+require the originating callback on its executing thread. A saved dispatcher may
+be used by other producers while the runtime is alive; a saved context is not a
+cross-thread scheduling client. Shutdown rejects new roots, including independent
+jobs and continuations, while accepted callback contexts may still spawn children.
+
+## Safety layers
+
+| Layer | Contract |
+| --- | --- |
+| Compilation, always | Direct callbacks return void and carry no captures/state; input is explicit. `write_access` rejects const spans. Access guards cannot be copied; discarding them produces a nodiscard diagnostic. |
+| Runtime, always | Validate handles, runtime ownership, cycles, contexts, names and functions. Reject worker waits/shutdown. Own task inputs and join children before releasing them. Validate declared region descriptors. |
+| Job sanitizer | Check simultaneously live declared access scopes; reject overlapping read/write or write/write scopes across jobs. Allow read/read scopes. Retire and report guards escaping the callback. Warn about disjoint scopes sharing an assumed cache line. |
+| Compiler tools | Use ASan for instrumented memory errors and static analysis for additional findings. These are separate from the job sanitizer. |
+
+The job sanitizer is enabled when building the library, not by an IDE or a source
+scan. CMake's public usage requirements propagate its configuration through every
+link to `atlas::jobs`, including imported packages and transitive consumers.
+Instrumentation runs on exercised jobs during tests/application execution; it does
+not run user workloads at compilation time. Normal C++ constraints are compile-time
+checks. Existing independent `submit` and sealed graph callbacks keep their earlier
+contracts and have no injected context for declared memory scopes.
+
+## Declare accesses before touching shared memory
+
+```cpp
+auto done = jobs.run("update", std::span<int>{values},
+    [](atlas::jobs::job_context& context, std::span<int>& data)
+    {
+        auto access = context.access(atlas::jobs::write_access(data));
+        for (auto& value : data) { ++value; }
+    });
+done.wait();
+```
+
+`read_access(span)` permits const or mutable spans. `write_access(span)` requires
+mutable elements. `context.access({read_access(a), write_access(b)})` registers a
+batch of scopes atomically with respect to other access registrations. Keep the
+move-only guard until the last access, and destroy it inside the callback. Guard
+moves transfer registration; exceptions release scoped guards through RAII.
+An empty span is valid. A guard borrows memory; it does not own or pin storage.
+
+`parallel_for` automatically declares each chunk for the duration of its callback:
+const element spans are reads, mutable element spans are conservatively writes.
+Use const spans for read-only ranges. Arbitrary payload pointers and globals need
+explicit declarations; their targets cannot be inferred from the C++ type.
+
+A detected conflict throws `job_sanitizer_error` before granting the second scope;
+normal task failure/skip propagation applies unless the callback catches it.
+An escaped guard is invalidated at callback return and fails an otherwise successful
+job. If the body already failed, preserve that original exception and still report
+the misuse. The checker does not silently serialize conflicting jobs or add edges.
+
+`runtime.sanitizer_report()` returns enabled status and bounded diagnostics with
+job names, kind and severity. Conflicts and escaped guards are errors. Possible
+false sharing is a warning; it does not fail or delay a job. Review warnings in
+integration tests/profiling; they are collected, not printed automatically.
+`job_sanitizer_options` configures the assumed cache-line size (default 64 bytes,
+a positive power of two) and diagnostic limit (default 128). Extra events increase
+`dropped`; reaching the limit does not disable conflict rejection. In validation,
+assert that unexpected errors and dropped diagnostics are absent.
+
+These are conservative checks of **declared scopes in one runtime on exercised
+paths**, not instrumentation of every C++ load/store. They cannot prove arbitrary
+race freedom, ownership, pointer lifetime, determinism or performance. Guards that
+are too short, missing declarations, aliasing beyond a span, multiple pools and
+unexecuted paths leave gaps. Atomic accesses/external locks are not modeled;
+place declarations inside an actual lock's scope or use an appropriate analysis.
+False-sharing warnings are cache-line heuristics, not hardware contention samples.
+Do not use their absence as proof or insert padding without measurement.
+
+## Build, install and reuse
+
+The complete library and checker live in this directory. Copy it or add it as a
+subdirectory; no repository-specific CMake helpers or vendor packages are required.
+
+```powershell
+cmake -S libs/jobs -B build/jobs -G "Ninja Multi-Config" -DATLAS_JOB_SANITIZER=ON
+cmake --build build/jobs --config Debug
+cmake --install build/jobs --config Debug --prefix build/jobs-install
+```
+
+In the consuming project's CMake:
+
+```cmake
+find_package(atlas_jobs CONFIG REQUIRED)
+target_link_libraries(my_application PRIVATE atlas::jobs)
+```
+
+Set `CMAKE_PREFIX_PATH` to the installed prefix. C++20, the toolchain Threads target
+and the checker definition propagate through `atlas::jobs`. Configure/build the
+matching library variants before installing Debug and Release into one prefix.
+The same install/export works from the complete Atlas project. The package includes
+this guide, public headers, the compiled library and CMake metadata.
+
+`ATLAS_JOB_SANITIZER=AUTO` (default) enables access tracking in Debug only. `ON`
+enables it for every configuration; `OFF` disables tracking. Rebuild the library
+to change this; overriding its exported macro in a consumer is unsupported.
+Release/AUTO and OFF keep contract/descriptor checks but skip active-access tracking
+and its per-access allocations. Sanitized measurements include checker locking and
+allocation overhead: use OFF when measuring scheduler performance.
+
+Run the complete repository's jobs tests under Debug, Release, ASan and static
+analysis. Native Windows ThreadSanitizer is currently unavailable; ASan and the
+job checker do not replace it. See the upstream [LLVM sanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
+and [ThreadSanitizer platform list](https://clang.llvm.org/docs/ThreadSanitizer.html).

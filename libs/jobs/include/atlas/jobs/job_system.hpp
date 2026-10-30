@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atlas/jobs/job_dispatcher.hpp>
 #include <atlas/jobs/job_graph.hpp>
 
 #include <cstddef>
@@ -31,8 +32,8 @@ struct job_statistics
     std::size_t running;
     std::size_t submitted;
     std::size_t completed; // Terminal jobs, including failed and skipped jobs.
-    std::size_t waiting;   // Accepted graph jobs with unfinished prerequisites.
-    std::size_t failed;    // Callbacks that threw; a subset of completed.
+    std::size_t waiting;   // Jobs awaiting prerequisites, children, or cleanup.
+    std::size_t failed;    // Failed outcomes, including parents with failed children.
     std::size_t skipped;   // Callbacks suppressed by failed prerequisites.
 };
 
@@ -40,7 +41,7 @@ struct job_statistics
 class job_system
 {
   public:
-    explicit job_system(std::size_t worker_count);
+    explicit job_system(std::size_t worker_count, job_sanitizer_options sanitizer = {});
     ~job_system();
     job_system(const job_system&) = delete;
     job_system& operator=(const job_system&) = delete;
@@ -48,6 +49,7 @@ class job_system
     job_system& operator=(job_system&&) = delete;
 
     job_handle submit(std::function<void()> job);
+    [[nodiscard]] job_dispatcher dispatcher() const;
     // Validates and snapshots the entire graph before publishing any work.
     graph_handle submit_graph(const job_graph& graph);
     void wait(const job_handle& job) const;
@@ -55,9 +57,9 @@ class job_system
     void wait_idle() const;
     void shutdown();
     [[nodiscard]] job_statistics statistics() const;
+    [[nodiscard]] job_sanitizer_report sanitizer_report() const;
 
   private:
-    struct impl;
-    std::unique_ptr<impl> impl_;
+    std::shared_ptr<detail::scheduler> impl_;
 };
 } // namespace atlas::jobs

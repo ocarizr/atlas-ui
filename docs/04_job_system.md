@@ -2,7 +2,12 @@
 
 ## Implementation status
 
-The current library implements independent jobs and validated dependency DAGs over persistent workers. Graph submissions snapshot named callbacks and edges, publish only ready nodes, propagate prerequisite failures without running blocked successors, and expose per-node outcomes. Handles, idle observation, statistics and draining shutdown cover both submission modes. Child groups, ParallelFor and frame barriers remain planned. Start with the [graph usage guide](17_job_graph_usage.md) and see the [implementation plan](14_job_system_implementation_plan.md).
+The library provides direct dispatch through injected clients of one application-owned
+persistent pool, dependency handles, executor-created child contexts, joined ranges
+and coordinator fences. Sealed DAG submission remains available. Both modes share
+workers, statistics and draining shutdown. Start with the [direct dispatch guide](18_job_dispatch_usage.md);
+see [sealed graphs](17_job_graph_usage.md) and the [implementation plan](14_job_system_implementation_plan.md).
+Generic phased-workload validation remains pending.
 
 The scheduler is a reusable, client-agnostic library. UI, streaming, video and audio may use it, but their domain concepts and integration code do not belong inside `jobs`. This milestone adds scheduler behavior and generic tests only.
 
@@ -20,7 +25,7 @@ Idle workers may park and wake. Scheduler synchronization is acceptable; long bl
 
 Start with a persistent pool, short runnable jobs, and dependency counters. Work stealing can be added if profiling shows queue contention or imbalance. Fibers and C++20 coroutines are not required just to represent A -> B.
 
-Thread count, affinity, main-thread participation, priorities, fairness, cancellation, allocation policy and shutdown behavior remain open. The original 16-worker configuration was an example, not a fixed hardware requirement. Worker configuration uses YAML.
+Worker count is configured by the composition root; shutdown drains admitted work. Affinity, main-thread participation, priorities, fairness, cancellation and allocation optimization remain open. The original 16-worker configuration was an example, not a fixed hardware requirement. Worker configuration uses YAML.
 
 ## Frame boundaries
 
@@ -58,11 +63,11 @@ Measure, Arrange, Geometry, and RenderData have deterministic synchronization bo
 | Area | Open decisions |
 | --- | --- |
 | Queues | Local/global queues, work stealing, priorities and starvation prevention |
-| Memory | Payload/capture lifetime, handles, allocators, publication ordering |
-| Completion | Parent/child completion, continuations, fences and nested waits |
-| Failure | Error/cancellation propagation and dependent-job outcomes |
-| Lifecycle | Startup, shutdown, drain/cancel policy |
+| Memory | Explicit owned inputs and borrowed ranges established; allocator/scratch optimization pending |
+| Completion | Scoped joins and fences implemented; worker waits rejected; richer continuations pending |
+| Failure | Stable error propagation and skipped dependents implemented; cancellation pending |
+| Lifecycle | Fixed pool and draining implemented; cancellation pending |
 | Safety | Read/write access rules and structural ECS mutation |
-| Diagnostics | Identity, queue/execution times, graph links and critical paths |
+| Diagnostics | Task names/status/timings implemented; traces and critical-path measurement pending |
 
 Test exact-once execution, dependencies, children, barriers, failures and shutdown. Stress with controlled schedules/seeds and compare against sequential execution. Measure wall time, overhead, worker utilization and critical paths; the goal is shorter activities through better CPU use, not necessarily less total CPU work.

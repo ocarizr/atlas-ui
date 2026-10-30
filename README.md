@@ -43,7 +43,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-**Current status:** persistent-worker independent jobs and validated dependency DAGs with named outcomes and failure propagation, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Job groups, parallel ranges and phased-workload validation remain ahead of production UI.
+**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Generic phased-workload validation remains ahead of production UI. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
 
 ## Component validation
 
@@ -89,6 +89,8 @@ the distinction between internal build artifacts and deliverable packaging.
 | [Job-system implementation plan](docs/14_job_system_implementation_plan.md) | Foundation, maturity milestones and the gate before UI |
 | [Streamer and media jobs](docs/15_streamer_and_media_jobs.md) | Exclusive storage boundary, memory/loose sources, bundle plan and decode scheduling |
 | [Portability and naming](docs/16_portability_and_naming.md) | Platform boundaries, snake_case, exceptions and validation |
+| [Direct job dispatch](docs/18_job_dispatch_usage.md) | Injected clients, child lifetimes, ranges, sequencing and outcomes |
+| [Job safety and reuse](libs/jobs/README.md) | Declared-access sanitizer, limitations, standalone build and package |
 | [Job graph usage](docs/17_job_graph_usage.md) | Generic examples, dependencies, errors, ownership and diagnostics |
 
 The integration branch is `main`. Pull requests run relevant validation; pushes to `main` also package the current deliverables. Releases require a `vMAJOR.MINOR.PATCH` or `VMAJOR.MINOR.PATCH` tag pointing to a commit in `main` history.
