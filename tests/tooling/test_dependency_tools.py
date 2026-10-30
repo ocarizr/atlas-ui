@@ -19,6 +19,21 @@ def test_local_configuration_keeps_normal_dependency_installation():
     assert configure_command("windows-msvc", environment={}) == ["cmake", "--preset", "windows-msvc"]
 
 
+def test_artifact_consumers_cannot_be_redirected_to_legacy_installation(tmp_path):
+    installed = tmp_path / 'installed'
+    command = configure_command('windows-msvc', components=['jobs'], environment={
+        'ATLAS_CI_ARTIFACTS': '1', 'ATLAS_CI_INSTALLED_DIR': str(installed),
+        'ATLAS_CI_TOOLCHAIN': str(tmp_path / 'vcpkg.cmake'),
+        'ATLAS_BUILD_CONFIGURATION': 'Debug', 'ATLAS_OWNED_ROOT': str(tmp_path / 'owned'),
+        'ATLAS_VCPKG_INSTALLED_DIR': 'legacy', 'ATLAS_REQUIRE_BINARY_CACHE': '1',
+    })
+    assert [arg for arg in command if arg.startswith('-DVCPKG_INSTALLED_DIR=')] == [
+        '-DVCPKG_INSTALLED_DIR=' + installed.resolve().as_posix()]
+    assert '-DVCPKG_MANIFEST_INSTALL=OFF' in command
+    assert '--fresh' in command
+    assert '-DCMAKE_CONFIGURATION_TYPES=Debug' in command
+
+
 @pytest.mark.parametrize("version", [
     pytest.param("", id="empty"), pytest.param("01.2.3", id="leading-zero"),
     pytest.param("v1.2.3", id="tag-prefix"), pytest.param("1.2", id="incomplete"),

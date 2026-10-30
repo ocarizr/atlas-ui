@@ -1,10 +1,14 @@
 name: Main packaging and tagged releases
-on:
+'on':
   push:
-    branches: [main]
-    tags: ['v*', 'V*']
+    branches:
+    - main
+    tags:
+    - v*
+    - V*
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: delivery-${{ github.ref }}
   cancel-in-progress: false
@@ -17,68 +21,52 @@ jobs:
       version: ${{ steps.policy.outputs.version }}
       tag: ${{ steps.policy.outputs.tag }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: ./.github/actions/setup_ci
-      - name: Validate delivery ref and main ancestry
-        id: policy
-        env:
-          DELIVERY_REF: ${{ github.ref }}
-        run: python -m scripts.ci.release_policy --ref $env:DELIVERY_REF --github-output $env:GITHUB_OUTPUT
-  plan:
-    needs: gate
-    uses: ./.github/workflows/reusable_plan.yml
-    with:
-      full: true
-  quality:
-    needs: plan
-    uses: ./.github/workflows/reusable_quality.yml
-    with:
-      tooling: true
-      configure: true
-  build:
-    needs: [plan, quality, dependencies]
-    if: needs.plan.outputs.has-build == 'true'
-    uses: ./.github/workflows/reusable_build.yml
-    with:
-      matrix: ${{ needs.plan.outputs.matrix }}
-  dependencies:
-    needs: [plan, quality]
-    if: needs.plan.outputs.has-build == 'true'
-    uses: ./.github/workflows/reusable_dependencies.yml
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - uses: ./.github/actions/setup_ci
+    - name: Validate delivery ref and main ancestry
+      id: policy
+      env:
+        DELIVERY_REF: ${{ github.ref }}
+      run: python -m scripts.ci.release_policy --ref $env:DELIVERY_REF --github-output $env:GITHUB_OUTPUT
   package:
-    needs: [gate, plan, quality, build]
-    if: >-
-      always() && !cancelled() && needs.gate.result == 'success' && needs.plan.result == 'success' &&
-      needs.quality.result == 'success' &&
-      ((needs.plan.outputs.has-build == 'true' && needs.build.result == 'success') ||
-       (needs.plan.outputs.has-build == 'false' && needs.build.result == 'skipped'))
+    needs:
+    - gate
+    - validation
+    if: needs.gate.result == 'success' && needs.validation.result == 'success'
     uses: ./.github/workflows/reusable_package.yml
     with:
       version: ${{ needs.gate.outputs.version }}
   publish:
-    needs: [gate, package]
-    if: >-
-      always() && !cancelled() && needs.gate.result == 'success' &&
-      needs.package.result == 'success' && needs.gate.outputs.publish == 'true'
+    needs:
+    - gate
+    - package
+    if: always() && !cancelled() && needs.gate.result == 'success' && needs.package.result == 'success' && needs.gate.outputs.publish
+      == 'true'
     permissions:
       contents: write
     runs-on: windows-2022
     timeout-minutes: 10
     steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          name: atlas-windows-${{ github.sha }}
-          path: release-assets
-      - name: Publish the validated tag and package
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.gate.outputs.tag }}
-        run: |
-          $task_assets = @(Get-ChildItem -LiteralPath release-assets -File | ForEach-Object { $_.FullName })
-          if ($task_assets.Count -eq 0) { throw 'No release artifacts were downloaded.' }
-          gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --verify-tag --title $env:RELEASE_TAG --generate-notes @task_assets
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        name: atlas-windows-${{ github.sha }}
+        path: release-assets
+    - name: Publish the validated tag and package
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TAG: ${{ needs.gate.outputs.tag }}
+      run: |
+        $task_assets = @(Get-ChildItem -LiteralPath release-assets -File | ForEach-Object { $_.FullName })
+        if ($task_assets.Count -eq 0) { throw 'No release artifacts were downloaded.' }
+        gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --verify-tag --title $env:RELEASE_TAG --generate-notes @task_assets
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  validation:
+    needs: gate
+    uses: ./.github/workflows/reusable_validation.yml
+    with:
+      full: true
+      version: ${{ needs.gate.outputs.version }}

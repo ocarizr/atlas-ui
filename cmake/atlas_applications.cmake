@@ -1,4 +1,7 @@
 function(atlas_add_application target source output label argument)
+    if(NOT label IN_LIST atlas_requested_components)
+        return()
+    endif()
     add_executable(${target} "${PROJECT_SOURCE_DIR}/${source}")
     target_link_libraries(${target} PRIVATE atlas::application)
     set_target_properties(${target} PROPERTIES OUTPUT_NAME "${output}")

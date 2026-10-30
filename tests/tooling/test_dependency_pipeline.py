@@ -20,14 +20,15 @@ def test_dependency_timeout_leaves_time_to_save_partial_cache():
     assert "always()" in save["if"]
 
 
-def test_pr_builds_wait_for_dependency_preparation():
+def test_pr_requires_the_parallel_validation_pipeline():
     workflow = read_yaml(ROOT / ".github/workflows/pr.yml")
-    assert "dependencies" in workflow["jobs"]["build"]["needs"]
-    assert "dependencies" in workflow["jobs"]["required"]["needs"]
+    assert workflow['jobs']['validation']['uses'].endswith('/reusable_validation.yml')
+    assert workflow['jobs']['required']['needs'] == 'validation'
 
 
 def test_cache_restores_previous_compatible_snapshots():
-    action = read_yaml(ROOT / ".github/actions/setup_ci/action.yml")
-    restores = [step for step in action["runs"]["steps"] if "/restore@" in step.get("uses", "")]
+    action = read_yaml(ROOT / ".github/workflows/reusable_dependencies.yml")
+    restores = [step for step in action['jobs']['dependencies']['steps']
+                if "/restore@" in step.get("uses", "")]
     assert len(restores) == 1
     assert restores[0]["with"]["restore-keys"].strip()

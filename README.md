@@ -45,6 +45,30 @@ ctest --preset windows-debug
 
 **Current status:** persistent-worker independent jobs and validated dependency DAGs with named outcomes and failure propagation, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Job groups, parallel ranges and phased-workload validation remain ahead of production UI.
 
+## Component validation
+
+Each row has independently named CI checks and uses compiled prerequisite artifacts.
+The marks below describe configured checks, not live results; actual outcomes appear
+on each PR/main workflow run. Formatting and asset validation run globally.
+
+| Component | Debug/tests | Release/tests | ASan | MSVC analysis | clang-tidy | Coverage | SDK-free |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [Jobs](libs/jobs/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Streaming](libs/streaming/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Protocol / IPC](libs/ipc/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Application host](libs/application/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Game](apps/game/main.cpp) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Editor](apps/editor/main.cpp) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Content tools](tools/cook/main.cpp) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Dependency integration](tests/dependencies/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Windows SDK](tests/platform/windows/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | — |
+
+Third-party products are built in five independent groups: testing, content/logging,
+media, IPC and graphics. They include Debug and Release variants and are retained
+for 14 days; vendor binaries themselves are not sanitizer-instrumented. The
+[CI design](docs/12_ci_and_delivery.md) describes reuse, provenance, scheduling and
+the distinction between internal build artifacts and deliverable packaging.
+
 ## Documentation
 
 | Document | Topics |

@@ -1,85 +1,168 @@
 # Continuous integration and delivery
 
-## Workflow structure
+## Independent component pipelines
+
+PRs and main/tag delivery share `reusable_validation.yml`. It starts quality checks,
+five dependency-product producers and independently named component pipelines.
+There is no global dependency-preparation or quality barrier before native builds.
+Each component waits only for its own external groups and compiled Atlas prerequisites.
+
+```mermaid
+flowchart LR
+  plan --> quality
+  plan --> testing[GoogleTest product]
+  plan --> media[Media product]
+  plan --> transport[gRPC / Protobuf product]
+  plan --> content[Content / logging product]
+  testing --> jobs
+  jobs --> streaming
+  media --> streaming
+  testing --> ipc
+  transport --> ipc
+  jobs --> application
+  ipc --> application
+  content --> application
+  application --> game
+  application --> editor
+  application --> tools
+```
+
+The diagram highlights the independent paths; the declarative workflow also wires
+testing/content/media integration and Windows SDK checks. All jobs currently run
+on Windows. Runner concurrency limits can still queue runnable work. A component's
+profile matrix finishes before its downstream component pipeline starts; profiles
+within each matrix run independently. This removes the global gRPC barrier without
+claiming unlimited runner capacity or a completely asynchronous scheduling graph.
 
 | File | Responsibility |
 | --- | --- |
-| `.github/workflows/pr.yml` | PR orchestration and stable final status |
-| `.github/workflows/delivery.yml` | Main-branch packaging and version-tag publishing |
-| `reusable_plan.yml` | Change impact and dependency-aware build matrix |
-| `reusable_quality.yml` | Repository checks, assets, tooling tests, workflow lint, style/configuration |
-| `reusable_dependencies.yml` | Explicit dependency preparation, progress, cache snapshots and failure diagnostics |
-| `reusable_build.yml` | Named component targets and labeled tests across Windows profiles |
-| `reusable_package.yml` | Release build, CPack ZIP and SHA256 checksums |
-| `.github/actions/setup_ci/action.yml` | Shared Python/toolchain initialization |
+| `pr.yml` | PR entry point and stable required `PR validation` status |
+| `delivery.yml` | Main validation/packaging and strict version-tag publishing |
+| `reusable_plan.yml` | Change impact, component prerequisites and vendor identities |
+| `reusable_validation.yml` | Explicit component/vendor dependency graph and final gate |
+| `reusable_quality.yml` | Global formatting, assets, repository/tooling checks and workflow lint |
+| `reusable_dependencies.yml` | Recover or prepare one compiled third-party product |
+| `reusable_build.yml` | Build/test/export exactly one component per profile |
+| `reusable_package.yml` | Assemble validated Release applications; no compilation |
+| `setup_ci` / `restore_inputs` actions | Shared tooling and exact compiled-input recovery |
 
-All jobs use Windows runners. Workflows remain small; scripts own testable policies. External actions are pinned to verified commit SHAs. Validation uses a read-only token; only publishing receives `contents: write`. PRs run with `pull_request`, not a privileged PR trigger.
+Actions are pinned to commit SHAs. Validation tokens have `contents: read` and
+`actions: read`; only tagged publishing receives `contents: write`. PRs use
+`pull_request`, never a privileged PR trigger. Keep `PR validation` required in
+branch protection; CODEOWNERS alone does not enable protection or approvals.
 
-## Pull requests
+## Change impact and build contracts
 
-Every PR targeting `main` gets planning and a final `PR validation` status. Documentation-only changes validate links/configuration/assets without starting C++ builds. Infrastructure changes additionally test the CI tools, lint workflows with pinned actionlint, check style/analyzer configuration, and configure CMake.
+`.ci/components.yaml` declares paths, change-consumer edges (`depends_on`), real
+compiled prerequisites (`build_requires`), vendor groups, targets and CTest labels.
+The planner selects changed components and transitive consumers, then includes
+the libraries needed to link them. Editor-only changes do not select atlas_game.
+Required shared libraries still need producer jobs to provide link inputs.
 
-`.ci/components.yaml` maps paths to components, build targets, CTest labels and dependencies. The planner uses a merge-base diff and disables rename detection so both old and new locations participate. It selects changed components plus transitive consumers.
+Documentation-only changes start no native compilation. Shared build/tool changes
+are conservatively global. Unmapped C++/Protobuf sources fail planning. Contexts
+with no implemented targets produce no pretend builds. `windows-portable` omits
+the Windows component and disables native SDK integration. Zero discovered tests
+is an error. Every component gets Debug, Release, ASan, analysis, clang-tidy and
+coverage checks, plus the portable profile where applicable.
 
-- Editor application changes select editor validation; game application changes select game validation.
-- Shared UI, jobs, content or protocol changes also select their consuming applications.
-- Shared build/tooling changes are conservatively global.
-- Assets run content validation, not unrelated application compilation.
-- New unmapped C++/Protobuf source fails instead of disappearing from checks.
+CMake's `ATLAS_COMPONENTS` configures only the requested component and its actual
+prerequisites. Only requested components register tests. The CI runner imports
+prerequisites from `ATLAS_PREBUILT_ROOT`; missing products fail instead of silently
+rebuilding their sources. Local full builds remain the default when no component
+selection is specified. Update both the CMake prerequisite declarations and the
+CI mapping when adding a real library/application; regression tests compare them.
 
-Selected builds compile explicit targets rather than the default all target. Their dependencies may still compile when necessary. Building an editor's required runtime libraries is different from unnecessarily building the atlas_game executable.
+## Compiled dependency products
 
-Affected components share one build job per compiler/configuration profile. Targets and labels are deduplicated. Fast repository quality runs first; a separate dependency job then prepares the binary cache before component builds start. Documentation-only PRs skip dependency preparation and native builds. Quality checks never trigger dependency compilation through CMake configuration.
+`.ci/dependencies.yaml` partitions the pinned vcpkg manifest:
 
-The `windows-portable` profile disables Windows SDK integration and excludes the `windows` component through declarative `exclude_components`. Portable changes validate without native SDK targets; changes confined to Windows adapters do not create an empty portable build job. The runner rejects excluded components before configuring/building.
+| Product | Direct packages | Consumers |
+| --- | --- | --- |
+| testing | GoogleTest | Library and native integration tests |
+| content | EnTT, pugixml, yaml-cpp, spdlog | Dependency tests and application logging |
+| media | dav1d, libwebm, Opus | Streamer media tests and dependency tests |
+| ipc | gRPC, Protobuf | Protocol and application consumers |
+| graphics | DirectX Shader Compiler | Windows SDK integration tests |
 
-## Registered targets and dependency setup
+A product contains installed Debug/Release libraries, runtime DLLs, headers,
+code-generation tools, CMake metadata, notices and the pinned vcpkg CMake helpers.
+It is named `vendor-<group>-<identity>` and retained for **14 days**. This is Actions
+storage, not a release or public package feed; access follows repository/Actions
+visibility and is not a separate private storage service.
+See GitHub's [artifact storage documentation](https://docs.github.com/en/actions/tutorials/store-and-share-data)
+and [download access rules](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts).
+
+The identity covers the selected manifest entries, registry baseline/configuration,
+applicable overlay patches, artifact schema, MSVC toolset, Windows SDK, LLVM and
+triplet. Unchanged versions can still require new binaries after a toolchain or ABI
+policy change. Bump the schema/identity policy when changing producer build flags.
+Application source changes do not invalidate vendor products.
+
+Each producer looks up an exact, unexpired product from a successful producer job
+in a **main push** of `delivery.yml` in this repository. It never trusts products
+from another PR/fork. A main producer can be reused while unrelated validation is
+still running. Lookup paginates artifacts; unavailable/expired products are rebuilt
+only for that group. Cross-run downloads use the read-only workflow token and run ID.
+A hit is consumed directly from its source run, without uploading another large copy.
 
 ### Cold-build cost and cache recovery
 
-The first hosted-runner build must compile both Debug and Release dependencies. In the initial PR run, the cache restored zero packages; Protobuf took approximately 17 minutes and OpenSSL 7 minutes, and the old 45-minute quality job timed out during gRPC. The native Atlas tests had not started. A cold dependency build remains expensive; warm cache restoration avoids repeating that compiler work.
+Cold gRPC compilation remains expensive: the observed first successful hosted run
+spent approximately 54 minutes on gRPC, 12 on Protobuf and 5 on OpenSSL. Artifact
+reuse avoids repeating that work while compatible products remain available.
+Jobs, streaming and native checks can proceed while a cold IPC group is compiling.
+No fixed end-to-end speedup is claimed before measuring the new hosted workflow.
 
-Dependency preparation now has its own 120-minute job with a 90-minute install-step limit. The remaining budget permits cache/log preservation after a step failure. `scripts.ci.prepare_dependencies` forwards output and emits native-build progress heartbeats every 30 seconds of silence. Completed build/package intermediates are cleaned to limit runner disk use. Failure diagnostics retain the captured install output and remaining native build logs.
+Producer jobs have 140 minutes, with a 110-minute install-step limit and time left
+for saving diagnostics/partial binary archives. Output includes native-build
+heartbeats. Binary archives are a secondary recovery layer for cold/expired
+products; vcpkg checks their package ABI. Hard cancellation may prevent final saves.
 
-The shared setup action restores content-addressed vcpkg archives using same-manifest and compatible prior-snapshot fallbacks, including the previous cache-key scheme. vcpkg validates package ABI identities before reusing archives. New archive inventories are saved explicitly with an immutable run/attempt key even after preparation failure; unchanged inventories are not uploaded again. A hard cancellation of the entire job may still prevent cleanup, unlike a bounded install-step timeout with cleanup time remaining.
+Consumers compose only their required installed products, rejecting conflicting
+files and using hard links where supported. The bundled toolchain selects the
+correct Debug/Release imports; **`VCPKG_MANIFEST_INSTALL=OFF`** prevents package
+installation or source compilation in component jobs. Temporary composed trees
+live through configuration, compilation, tests and export, then are cleaned up.
 
-CI uses only the persisted project archive provider, so successful preparation cannot depend on an unshared machine-local cache. Local development may continue reading its existing user cache.
+## Atlas products inside a run
 
-Component and packaging jobs restore these archives and configure with `--only-binarycaching`. A missing/incompatible cache fails rather than silently rebuilding dependencies in every validation job. Within a job, configure profiles share `build/dependencies/vcpkg_installed`. Local development retains normal source installation unless the explicit CI environment policy is set. No new credentials, package-feed secrets or write repository permissions are required.
+Library producers export relocatable CMake targets, archives and public/generated
+headers. Consumers import these targets instead of recompiling prerequisites.
+Owned artifact names include component, profile, configuration and revision;
+downloads use the current workflow run, and provenance records verify all of these
+fields plus the run ID. Debug/Release, sanitizer and compiler-profile products never
+mix. Source products are retained for one day and are not looked up across runs.
+If these short-lived products expire, rerun the full validation rather than only
+a downstream failed job, so its producers generate fresh same-run link inputs.
 
-Jobs, streaming, protocol, dependency integration, application-host contracts and all four executable entry points have actual targets and CTest labels. Streaming registers `atlas_streaming`, `atlas_streaming_tests` and the `streaming` label; changes to its scheduler or tested media dependencies select its validation. Planned contexts still have empty target lists; adding source without targets fails CI. Dependency setup bootstraps pinned vcpkg and caches compiled archives. Initial uncached builds may take substantially longer.
+Each component retains its own coverage report. Reports contain fresh profiles
+and may include exercised imported library code. Formatting is global, not repeated
+as a separate badge per component. Coverage and ASan do not establish race freedom;
+vendor binaries retain their normal non-ASan ABI. Native Windows TSan is unavailable.
 
-When implementing a component, add its actual library/application and test target names to `build_targets`, its CTest labels to `test_labels`, and any missing paths/dependencies. CTest labels scope test execution, and zero discovered tests is an error. Profiles cover Debug, Release, ASan, MSVC analysis, clang-tidy and LLVM coverage. Coverage jobs merge fresh profiles and retain a text report; no percentage threshold has been set.
+## Assets and delivery
 
-Set the stable `PR validation` check as required in branch protection. CODEOWNERS assigns ownership but does not, by itself, enable required approvals or branch protection; these are repository settings.
+Assets require `assets/manifest.xml` when files exist. Validation checks XML syntax,
+unique IDs/paths, mapped existing files, containment and declared dependencies.
+DTD/entity declarations are rejected. Empty assets need no invented inventory.
+Full UI/ViewModel schemas remain future work.
 
-## Asset inventory
+PRs validate and export internal build products; they do not create deliverable
+packages or publish. Main pushes run full validation and assemble the four already
+compiled **MSVC Release** applications, runtime DLLs, docs, an XML version manifest
+and notices. Duplicate package paths must have identical contents. Packaging
+verifies run/revision/configuration provenance and creates ZIP/SHA256 artifacts
+without another native build. The applications remain headless bootstrap programs.
 
-Once `assets/` contains files, it must include `assets/manifest.xml`:
+Only `vMAJOR.MINOR.PATCH` or `VMAJOR.MINOR.PATCH` tags qualify for publishing; no
+leading zeros, suffixes or partial versions. The gate peels annotated tags, verifies
+the checkout and membership in `origin/main` history, and rejects side-branch tags.
+The tag run validates its exact commit and packages its own Release products.
+Publishing downloads that run's package and uses `gh release create --verify-tag`;
+it does not create tags or overwrite releases. Standard SemVer applies.
 
-```xml
-<Assets schemaVersion="1">
-  <Asset id="menu" type="ui" path="UI/menu.xml">
-    <DependsOn id="logo" />
-  </Asset>
-  <Asset id="logo" type="texture" path="Textures/logo.png" />
-</Assets>
-```
-
-Inventory paths use forward slashes relative to `assets/`. Validation checks XML well-formedness, required fields, unique IDs/paths, existing files, directory containment, mapped files, and declared dependencies. XML is UTF-8 and does not use DTD/entity declarations. An empty foundation needs no invented assets. Full UI/ViewModel semantic schemas will be added with their implementations.
-
-## Main packaging
-
-Pushes to `main` run full applicable validation and then packaging. A normal branch push never creates a GitHub Release. CPack uses explicit install rules; it does not archive the whole checkout or local tools. ZIP files and SHA256 checksums are retained as workflow artifacts.
-
-The current **application bootstrap** package contains atlas_game, atlas_editor, atlas_cook and atlas_package, non-system runtime DLLs, design documents, an XML manifest and dependency notices. The applications perform startup smoke checks; content tools only expose help/reject unimplemented commands. No rendered UI, active preview service or cooked-content pipeline is claimed.
-
-## Version-tag publishing
-
-Only tags matching `vMAJOR.MINOR.PATCH` or `VMAJOR.MINOR.PATCH` qualify, for example `v1.2.3`. No leading zeros, suffixes or incomplete versions are accepted. Standard semantics are major for incompatible changes, minor for compatible features, and patch for compatible fixes.
-
-The release gate peels annotated tags to their commit, verifies that the checkout is that commit, and checks that it belongs to `origin/main` history. Tags on unmerged side branches fail. The tag triggers full applicable validation, rebuilding and packaging at its exact commit, even if tagged after the main-branch run.
-
-The package version is taken from the tag. Publishing downloads the package artifact from that run and invokes GitHub CLI with `--verify-tag`; it does not create tags or overwrite existing releases. Normal main builds use the CMake development version.
-
-The workflows are ready for review and local validation; their first hosted run requires committing and pushing them. No workflow, release, tag, or branch-protection change is performed merely by editing these files.
+Local CMake/pytest/actionlint checks cannot prove artifact-service permissions,
+retention settings, hosted concurrency or hosted timing. Verify those in the first
+run after this workflow revision is pushed. No hosted performance result is implied
+by editing these workflow definitions.

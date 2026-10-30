@@ -1,0 +1,80 @@
+name: Restore compiled inputs
+description: Restore exact vendor identities and current-run Atlas library products.
+inputs:
+  component:
+    description: component
+    required: true
+  configure:
+    description: configure
+    required: true
+  configuration:
+    description: configuration
+    required: true
+  keys:
+    description: keys
+    required: true
+  upstream:
+    description: upstream
+    required: true
+runs:
+  using: composite
+  steps:
+  - name: Plan required compiled inputs
+    id: plan
+    shell: pwsh
+    env:
+      COMPONENT: ${{ inputs.component }}
+    run: python -m scripts.ci.verify_vendor_inputs --plan
+  - name: Restore testing dependency product
+    if: ${{ contains(fromJSON(steps.plan.outputs.groups), 'testing') }}
+    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+    with:
+      name: vendor-testing-${{ fromJSON(inputs.keys).testing }}
+      path: build/vendor/testing
+      github-token: ${{ github.token }}
+      run-id: ${{ fromJSON(inputs.upstream)['vendor-testing'].outputs.run-id }}
+  - name: Restore content dependency product
+    if: ${{ contains(fromJSON(steps.plan.outputs.groups), 'content') }}
+    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+    with:
+      name: vendor-content-${{ fromJSON(inputs.keys).content }}
+      path: build/vendor/content
+      github-token: ${{ github.token }}
+      run-id: ${{ fromJSON(inputs.upstream)['vendor-content'].outputs.run-id }}
+  - name: Restore media dependency product
+    if: ${{ contains(fromJSON(steps.plan.outputs.groups), 'media') }}
+    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+    with:
+      name: vendor-media-${{ fromJSON(inputs.keys).media }}
+      path: build/vendor/media
+      github-token: ${{ github.token }}
+      run-id: ${{ fromJSON(inputs.upstream)['vendor-media'].outputs.run-id }}
+  - name: Restore ipc dependency product
+    if: ${{ contains(fromJSON(steps.plan.outputs.groups), 'ipc') }}
+    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+    with:
+      name: vendor-ipc-${{ fromJSON(inputs.keys).ipc }}
+      path: build/vendor/ipc
+      github-token: ${{ github.token }}
+      run-id: ${{ fromJSON(inputs.upstream)['vendor-ipc'].outputs.run-id }}
+  - name: Restore graphics dependency product
+    if: ${{ contains(fromJSON(steps.plan.outputs.groups), 'graphics') }}
+    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+    with:
+      name: vendor-graphics-${{ fromJSON(inputs.keys).graphics }}
+      path: build/vendor/graphics
+      github-token: ${{ github.token }}
+      run-id: ${{ fromJSON(inputs.upstream)['vendor-graphics'].outputs.run-id }}
+  - name: Restore same-run compiled libraries
+    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+    with:
+      pattern: owned-${{ steps.plan.outputs.owned-pattern }}-${{ inputs.configure }}-${{ inputs.configuration }}-${{ github.sha }}
+      path: build/owned
+      merge-multiple: true
+    if: steps.plan.outputs.has-owned == 'true'
+  - name: Verify restored dependency identities
+    shell: pwsh
+    env:
+      KEYS: ${{ inputs.keys }}
+      COMPONENT: ${{ inputs.component }}
+    run: python -m scripts.ci.verify_vendor_inputs

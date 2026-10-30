@@ -1,5 +1,8 @@
 add_library(atlas_jobs STATIC src/job_system.cpp src/job_graph.cpp src/graph_state.cpp)
 add_library(atlas::jobs ALIAS atlas_jobs)
-target_include_directories(atlas_jobs PUBLIC include)
+target_include_directories(atlas_jobs PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 target_compile_features(atlas_jobs PUBLIC cxx_std_20)
 atlas_configure_target(atlas_jobs)
+
+atlas_export_library(atlas_jobs jobs jobs)
