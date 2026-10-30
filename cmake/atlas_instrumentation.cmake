@@ -1,0 +1,48 @@
+include_guard(GLOBAL)
+
+if(ATLAS_ENABLE_TSAN)
+    message(FATAL_ERROR "No validated ThreadSanitizer profile is provided; native Windows does not support TSan.")
+endif()
+if(ATLAS_ENABLE_ASAN AND ATLAS_ENABLE_COVERAGE)
+    message(FATAL_ERROR "Use separate ASan and coverage builds.")
+endif()
+if(ATLAS_ENABLE_COVERAGE AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(FATAL_ERROR "LLVM coverage requires Clang; use the validated windows-coverage preset on Windows.")
+endif()
+if(ATLAS_ENABLE_MSVC_ANALYSIS AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    message(FATAL_ERROR "MSVC /analyze requires cl.exe.")
+endif()
+if(ATLAS_ENABLE_CLANG_TIDY AND NOT CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
+    message(FATAL_ERROR "CMake clang-tidy integration requires Ninja or Makefiles.")
+endif()
+if(ATLAS_ENABLE_CLANG_TIDY)
+    find_program(ATLAS_CLANG_TIDY_EXECUTABLE NAMES clang-tidy REQUIRED)
+endif()
+
+add_library(atlas_instrumentation INTERFACE)
+add_library(atlas::instrumentation ALIAS atlas_instrumentation)
+
+if(ATLAS_ENABLE_ASAN)
+    if(MSVC)
+        # The pinned vendor archives are not ASan-instrumented. MSVC requires a
+        # consistent STL annotation ABI across linked objects; retain ASan memory
+        # instrumentation but disable vector/string container annotations here.
+        target_compile_definitions(atlas_instrumentation INTERFACE
+            _DISABLE_VECTOR_ANNOTATION _DISABLE_STRING_ANNOTATION)
+        target_compile_options(atlas_instrumentation INTERFACE /fsanitize=address /Zi)
+        target_link_options(atlas_instrumentation INTERFACE /INCREMENTAL:NO /DEBUG)
+    else()
+        target_compile_options(atlas_instrumentation INTERFACE -fsanitize=address -fno-omit-frame-pointer)
+        target_link_options(atlas_instrumentation INTERFACE -fsanitize=address)
+    endif()
+endif()
+if(ATLAS_ENABLE_COVERAGE)
+    if(MSVC)
+        target_compile_options(atlas_instrumentation INTERFACE
+            /clang:-fprofile-instr-generate /clang:-fcoverage-mapping)
+        target_link_options(atlas_instrumentation INTERFACE /INCREMENTAL:NO)
+    else()
+        target_compile_options(atlas_instrumentation INTERFACE -fprofile-instr-generate -fcoverage-mapping)
+        target_link_options(atlas_instrumentation INTERFACE -fprofile-instr-generate)
+    endif()
+endif()

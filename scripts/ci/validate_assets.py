@@ -18,7 +18,7 @@ def read_xml(path):
 
 
 def validate_assets(root):
-    asset_root = (Path(root) / "Assets").resolve()
+    asset_root = (Path(root) / "assets").resolve()
     if not asset_root.exists():
         return 0
     files = [path for path in asset_root.rglob("*") if path.is_file()]
@@ -26,7 +26,7 @@ def validate_assets(root):
         return 0
     manifest = asset_root / "manifest.xml"
     if not manifest.is_file():
-        raise ValueError("Assets/manifest.xml is required when assets exist")
+        raise ValueError("assets/manifest.xml is required when assets exist")
     for path in files:
         if path.suffix.lower() == ".xml":
             read_xml(path)

@@ -1,0 +1,11 @@
+syntax = "proto3";
+package atlas.preview;
+
+message SessionInfo {
+  uint32 protocol_version = 1;
+  string session_id = 2;
+}
+
+service PreviewControl {
+  rpc Handshake(SessionInfo) returns (SessionInfo);
+}

@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<AtlasPackage schemaVersion="1" version="@PROJECT_VERSION@" platform="windows-x64" kind="development-foundation">
-  <Description>Design documentation and development guidance; no runtime application is included yet.</Description>
-</AtlasPackage>

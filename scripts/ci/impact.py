@@ -46,7 +46,7 @@ def select_components(config, paths, full=False):
     for path in paths:
         owners = {name for name, item in components.items() if matches(path, item["paths"])}
         if (Path(path).suffix.lower() in SOURCE_SUFFIXES and not owners
-                and not path.startswith(("ThirdParty/", "Tests/Support/"))):
+                and not path.startswith(("third_party/", "tests/support/"))):
             raise ValueError(f"Unmapped source file: {path}")
         if matches(path, config.get("global_paths", [])):
             selected.update(components)
@@ -69,7 +69,7 @@ def select_components(config, paths, full=False):
 
 
 def build_matrix(config, selected, source_files):
-    entries = []
+    components_to_build = []
     for name in sorted(selected):
         item = config["components"][name]
         targets, labels = item.get("build_targets", []), item.get("test_labels", [])
@@ -85,8 +85,16 @@ def build_matrix(config, selected, source_files):
             raise ValueError(f"Component {name} needs test_labels")
         if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.:+-]*", target) for target in targets):
             raise ValueError(f"Invalid build target for {name}")
-        for profile in config["profiles"]:
-            entries.append({"component": name, **profile})
+        components_to_build.append(name)
+    entries = []
+    for profile in config["profiles"]:
+        excluded = set(profile.get("exclude_components", []))
+        if excluded - config["components"].keys():
+            raise ValueError("Profile excludes an unknown component")
+        names = [name for name in components_to_build if name not in excluded]
+        if names:
+            entries.append({"components": names, "configure": profile["configure"],
+                            "configuration": profile["configuration"]})
     return {"include": entries}
 
 

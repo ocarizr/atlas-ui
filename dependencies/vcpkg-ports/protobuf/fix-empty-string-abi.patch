@@ -1,0 +1,17 @@
+diff --git a/src/google/protobuf/port.h b/src/google/protobuf/port.h
+--- a/src/google/protobuf/port.h
++++ b/src/google/protobuf/port.h
+@@ -907,9 +907,10 @@ class alignas(8) GlobalEmptyStringDynamicInit {
+   alignas(std::string) char buffer_[sizeof(std::string)];
+ };
+ 
+-using GlobalEmptyString = std::conditional_t<
+-    GlobalEmptyStringConstexpr::HasConstexprDefaultConstructor(0),
+-    const GlobalEmptyStringConstexpr, GlobalEmptyStringDynamicInit>;
++// Keep the exported type identical for the C++17 runtime and C++20 consumers.
++// MSVC Release otherwise selects constexpr std::string only in the consumer,
++// producing a different mangled name for this exported data symbol.
++using GlobalEmptyString = GlobalEmptyStringDynamicInit;
+ 
+ PROTOBUF_EXPORT extern GlobalEmptyString fixed_address_empty_string;
+ 

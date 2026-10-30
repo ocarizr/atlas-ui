@@ -1,0 +1,46 @@
+name: Prepare compiled dependencies
+on:
+  workflow_call:
+jobs:
+  dependencies:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_ci
+        id: tools
+        with:
+          toolchain: 'true'
+          dependencies: 'true'
+      - name: Inspect restored cache
+        id: before
+        run: python -m scripts.ci.dependency_cache --github-output $env:GITHUB_OUTPUT
+      - name: Build or restore pinned dependencies (Debug and Release)
+        id: install
+        timeout-minutes: 90
+        run: python -m scripts.ci.prepare_dependencies
+      - name: Inspect completed binary archives even after failure
+        id: after
+        if: always()
+        run: python -m scripts.ci.dependency_cache --github-output $env:GITHUB_OUTPUT
+      - name: Preserve new compiled packages even after failure
+        if: >-
+          always() && steps.after.outputs.has-archives == 'true' &&
+          steps.after.outputs.fingerprint != steps.before.outputs.fingerprint
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: .tools/vcpkg-cache
+          key: ${{ steps.tools.outputs.cache-key }}
+      - name: Retain dependency diagnostics
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: dependency-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/dependencies/**
+            .tools/vcpkg/buildtrees/**/*.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7

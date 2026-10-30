@@ -1,0 +1,46 @@
+name: Package Windows deliverables
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+jobs:
+  package:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_ci
+        with:
+          toolchain: 'true'
+          dependencies: 'true'
+      - name: Validate source assets
+        run: python -m scripts.ci.validate_assets
+      - name: Build and package
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ inputs.version }}
+          ATLAS_VCPKG_INSTALLED_DIR: ${{ github.workspace }}/build/dependencies/vcpkg_installed
+          ATLAS_REQUIRE_BINARY_CACHE: '1'
+        run: |
+          python -m scripts.ci.configure --preset windows-msvc --version $env:PACKAGE_VERSION
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build --preset windows-release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cpack --config build/windows-msvc/CPackConfig.cmake -C Release -B build/packages
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem -LiteralPath build/packages -Filter '*.zip' | ForEach-Object {
+            $task_hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$task_hash  $($_.Name)" | Set-Content -LiteralPath ($_.FullName + '.sha256') -Encoding utf8
+          }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: atlas-windows-${{ github.sha }}
+          path: |
+            build/packages/*.zip
+            build/packages/*.sha256
+          if-no-files-found: error
+          retention-days: 14

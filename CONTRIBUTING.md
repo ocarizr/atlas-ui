@@ -2,7 +2,11 @@
 
 ## Architecture
 
-Atlas UI targets Windows Desktop and C++20. Use Direct3D 12 exclusively, EnTT for ECS infrastructure, XML for serialized application content, YAML for configuration, and gRPC/Protocol Buffers for IPC.
+Atlas UI has a cross-platform C++20 architecture. Windows Desktop x64 is currently the only supported and validated target; Direct3D 12 is its graphics backend. Keep platform-agnostic libraries separate from native implementations. Use EnTT for ECS, XML for serialized content, YAML for configuration and gRPC/Protocol Buffers for IPC.
+
+Follow [portability and naming](docs/16_portability_and_naming.md): owned directories/files and C++ identifiers use snake_case, with explicit tool/API exceptions. Public library headers must not expose Windows SDK types. Native SDK dependencies belong under `libs/platform/windows/`; native integration tests belong under `tests/platform/windows/`. Compiler/toolchain policies are conditional, not global Windows requirements for every library.
+
+External libraries use the pinned vcpkg manifest. AV1/Opus use dav1d, libopus and libwebm; XAudio2 2.9 plays decoded PCM. The streamer is the sole application-managed storage boundary. Media consumers receive buffers and use ready jobs without blocking CPU workers on I/O. Establish the streamer foundation and complete the job-system UI-readiness gate before production UI.
 
 Apply Domain-Driven Design through explicit vocabulary, invariants, and context boundaries. Shared systems are reusable CMake libraries with small public APIs and declared dependencies. Applications are composition roots; libraries must not depend on application or editor implementation details.
 
@@ -13,7 +17,7 @@ The editor and runtime share UI and rendering code. Keep the editor's authoring 
 For new or corrected production behavior, first write a test that fails for the intended reason. Implement the behavior, then refactor with the tests passing.
 
 - Use GoogleTest `TEST`/`TEST_F` for individual facts and fixtures; use `TEST_P`, `ValuesIn`, and typed tests for variations.
-- Reuse builders and parameter tables. Move large serialized scenarios and datasets into `Tests/<Context>/Data/` as XML application data.
+- Reuse builders and parameter tables. Move large serialized scenarios and datasets into `tests/<context>/data/` as XML application data.
 - Generated test data must be reproducible, with explicit seeds. Do not introduce a data-generation framework without a concrete need.
 - Use per-test `SetUp`/`TearDown` and RAII. Cleanup must run after failed assertions and early exits.
 - Stop and join workers/processes before releasing their resources. Use isolated temporary directories and avoid mutable state shared across tests.
@@ -29,7 +33,7 @@ Split code by responsibility and tests by behavioral context, including successf
 
 Follow `.editorconfig`, `.clang-format`, and `.clang-tidy`. Build outside the source tree. Apply project warnings and instrumentation to owned targets, not third-party libraries.
 
-Run the relevant [Windows checks](docs/10-windows-development.md). Report actual results; no discovered tests must never be described as a passing suite. Coverage includes lines and branches but does not prove correctness or absence of races.
+Run the relevant [Windows checks](docs/10_windows_development.md). Report actual results; no discovered tests must never be described as a passing suite. Coverage includes lines and branches but does not prove correctness or absence of races.
 
 ASan is available on the Windows toolchain. Native LLVM ThreadSanitizer is unavailable; retain explicit ownership, static analysis, dependency tests, and stress coverage without presenting these as equivalent race detection.
 
