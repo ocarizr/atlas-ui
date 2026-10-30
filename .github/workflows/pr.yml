@@ -1,57 +1,26 @@
 name: Pull request validation
-on:
+'on':
   pull_request:
-    branches: [main]
+    branches:
+    - main
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  plan:
-    uses: ./.github/workflows/reusable_plan.yml
-  quality:
-    needs: plan
-    uses: ./.github/workflows/reusable_quality.yml
-    with:
-      tooling: ${{ needs.plan.outputs.tooling == 'true' }}
-      configure: ${{ needs.plan.outputs.configure == 'true' }}
-  build:
-    needs: [plan, quality, dependencies]
-    if: needs.plan.outputs.has-build == 'true'
-    uses: ./.github/workflows/reusable_build.yml
-    with:
-      matrix: ${{ needs.plan.outputs.matrix }}
-  dependencies:
-    needs: [plan, quality]
-    if: needs.plan.outputs.has-build == 'true'
-    uses: ./.github/workflows/reusable_dependencies.yml
+  validation:
+    uses: ./.github/workflows/reusable_validation.yml
   required:
     name: PR validation
     if: always()
-    needs: [plan, quality, dependencies, build]
+    needs: validation
     runs-on: windows-2022
     timeout-minutes: 5
     steps:
-      - name: Require successful applicable checks
-        shell: pwsh
-        env:
-          PLAN_RESULT: ${{ needs.plan.result }}
-          QUALITY_RESULT: ${{ needs.quality.result }}
-          BUILD_RESULT: ${{ needs.build.result }}
-          BUILD_REQUIRED: ${{ needs.plan.outputs.has-build }}
-          DEPENDENCIES_RESULT: ${{ needs.dependencies.result }}
-        run: |
-          if ($env:PLAN_RESULT -ne 'success' -or $env:QUALITY_RESULT -ne 'success') {
-            throw 'Planning or repository validation failed.'
-          }
-          if ($env:BUILD_REQUIRED -eq 'true' -and $env:DEPENDENCIES_RESULT -ne 'success') {
-            throw 'Required dependency preparation did not succeed.'
-          }
-          if ($env:BUILD_REQUIRED -eq 'true' -and $env:BUILD_RESULT -ne 'success') {
-            throw 'Required component validation did not succeed.'
-          }
-          if ($env:BUILD_REQUIRED -ne 'true' -and $env:BUILD_RESULT -ne 'skipped') {
-            throw 'Unexpected component validation result.'
-          }
-          Write-Host 'All applicable PR validations passed.'
+    - name: Require successful component pipelines
+      shell: pwsh
+      env:
+        RESULT: ${{ needs.validation.result }}
+      run: if ($env:RESULT -ne 'success') { throw 'Required validation failed.' }

@@ -4,38 +4,16 @@ inputs:
   toolchain:
     description: Initialize Visual Studio, CMake, Ninja and LLVM.
     default: 'false'
-  dependencies:
-    description: Restore binary archives and bootstrap pinned vcpkg.
-    default: 'false'
-outputs:
-  cache-key:
-    description: Immutable binary-cache snapshot key for this run attempt.
-    value: ${{ steps.restore.outputs.cache-primary-key }}
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-      with:
-        python-version: '3.12'
-    - name: Install validation dependencies
-      shell: pwsh
-      run: python -m pip install -r scripts/ci/requirements.txt
-    - name: Initialize Windows toolchain
-      if: inputs.toolchain == 'true'
-      shell: pwsh
-      run: . ./scripts/initialize_toolchain.ps1 -ExportForGitHub
-    - name: Restore compiled dependency cache
-      if: inputs.dependencies == 'true'
-      id: restore
-      uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
-      with:
-        path: .tools/vcpkg-cache
-        key: vcpkg-v2-windows-msvc17-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'dependencies/vcpkg-ports/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
-        restore-keys: |
-          vcpkg-v2-windows-msvc17-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'dependencies/vcpkg-ports/**') }}-
-          vcpkg-v2-windows-msvc17-
-          vcpkg-windows-msvc17-
-    - name: Bootstrap pinned dependencies
-      if: inputs.dependencies == 'true'
-      shell: pwsh
-      run: ./scripts/bootstrap_dependencies.ps1
+  - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+    with:
+      python-version: '3.12'
+  - name: Install validation dependencies
+    shell: pwsh
+    run: python -m pip install -r scripts/ci/requirements.txt
+  - name: Initialize Windows toolchain
+    if: inputs.toolchain == 'true'
+    shell: pwsh
+    run: . ./scripts/initialize_toolchain.ps1 -ExportForGitHub

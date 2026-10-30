@@ -2,7 +2,9 @@
 
 ## Implementation status
 
-The current library implements independent jobs, persistent workers, completion handles, error propagation, idle observation, statistics and draining shutdown. Dependency counters, DAGs, child groups, ParallelFor and frame barriers below describe the target contract, not features already implemented. See the [implementation plan and UI-readiness gate](14_job_system_implementation_plan.md).
+The current library implements independent jobs and validated dependency DAGs over persistent workers. Graph submissions snapshot named callbacks and edges, publish only ready nodes, propagate prerequisite failures without running blocked successors, and expose per-node outcomes. Handles, idle observation, statistics and draining shutdown cover both submission modes. Child groups, ParallelFor and frame barriers remain planned. Start with the [graph usage guide](17_job_graph_usage.md) and see the [implementation plan](14_job_system_implementation_plan.md).
+
+The scheduler is a reusable, client-agnostic library. UI, streaming, video and audio may use it, but their domain concepts and integration code do not belong inside `jobs`. This milestone adds scheduler behavior and generic tests only.
 
 ## Execution contract
 

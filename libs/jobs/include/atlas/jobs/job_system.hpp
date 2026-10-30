@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atlas/jobs/job_graph.hpp>
+
 #include <cstddef>
 #include <functional>
 #include <future>
@@ -28,10 +30,12 @@ struct job_statistics
     std::size_t queued;
     std::size_t running;
     std::size_t submitted;
-    std::size_t completed;
+    std::size_t completed; // Terminal jobs, including failed and skipped jobs.
+    std::size_t waiting;   // Accepted graph jobs with unfinished prerequisites.
+    std::size_t failed;    // Callbacks that threw; a subset of completed.
+    std::size_t skipped;   // Callbacks suppressed by failed prerequisites.
 };
 
-// Independent jobs only in this foundation. Dependency graphs are a later stage.
 // Jobs must not call wait, wait_idle, shutdown, or destroy a scheduler.
 class job_system
 {
@@ -44,7 +48,10 @@ class job_system
     job_system& operator=(job_system&&) = delete;
 
     job_handle submit(std::function<void()> job);
+    // Validates and snapshots the entire graph before publishing any work.
+    graph_handle submit_graph(const job_graph& graph);
     void wait(const job_handle& job) const;
+    void wait(const graph_handle& graph) const;
     void wait_idle() const;
     void shutdown();
     [[nodiscard]] job_statistics statistics() const;

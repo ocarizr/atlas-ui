@@ -2,11 +2,13 @@
 
 ## Priority and UI-readiness gate
 
-The scheduler is foundational. Do not begin production UI systems against a sequential placeholder and retrofit jobs later. Complete milestones 0-3 below before building jobified UI layout; use synthetic UI-shaped data to validate the scheduler first.
+The scheduler is foundational and client-agnostic. Complete milestones 0-3 with
+generic synthetic workloads before implementing client integrations. UI, streaming,
+video and audio consumers compose the library without adding domain concepts to it.
 
 The streamer is the next foundation alongside independent jobs, before production UI/media. Its memory/loose backend dispatches completions as jobs and isolates disk reads on a persistent I/O thread. Establish this exclusive boundary now and evolve scheduling with the graph milestones. See the [streamer/media plan](15_streamer_and_media_jobs.md).
 
-## Milestone 0: independent-job foundation (this delivery)
+## Milestone 0: independent-job foundation (implemented)
 
 - A fixed set of persistent workers and a synchronized ready queue.
 - Independent `submit` operations with completion handles and repeatable coordinator-side waits.
@@ -16,17 +18,25 @@ The streamer is the next foundation alongside independent jobs, before productio
 - Worker-side scheduler waits/shutdown rejected rather than silently deadlocking.
 - Tests for exact-once execution, worker reuse, concurrent producers, nested submission, failures and lifecycle.
 
-This implementation deliberately uses standard-library synchronization, `std::function`, packaged tasks and shared futures. It is a correctness baseline, not a lock-free/zero-allocation scheduler or a finished frame graph.
+This implementation deliberately uses standard-library synchronization, `std::function`, promises and shared futures. It is a correctness baseline, not a lock-free/zero-allocation scheduler or a finished frame graph.
 
 `wait(handle)` makes the callback's effects visible and rethrows its exception. `wait_idle()` observes an empty queue and no running callbacks; independent concurrent producers can submit again afterward. `shutdown()` rejects all new submissions, including nested submissions, drains accepted work and joins workers. It is idempotent and serialized for concurrent coordinator calls. Destruction must happen outside workers and after external users stop accessing the scheduler.
 
-Observe a failed callback through its handle: idle waiting and shutdown do not aggregate or rethrow all job failures. Diagnostics and graph-wide failure propagation belong to the following milestones.
+Observe a failed independent callback through its handle: idle waiting and shutdown do not aggregate or rethrow job failures. Submitted graphs now provide aggregate failure reporting and per-node diagnostics.
 
 User callbacks must finish and must not block on scheduler dependencies or long I/O. A scheduler cannot make arbitrary C++ callbacks nonblocking. Controlled gates in tests exercise concurrency and teardown; they are not a recommended production scheduling pattern.
 
-## Milestone 1: dependencies and sealed DAGs
+## Milestone 1: dependencies and sealed DAGs (implemented)
 
-Build dependency graphs before dispatch. Add job IDs/handles and immutable graph submission, pending-prerequisite counters and successor lists. Only ready jobs enter worker queues. Define parent/child completion separately from dependencies.
+Build dependency graphs before dispatch with `job_graph::add()` and `precedes()`.
+`job_system::submit_graph()` validates cycles and snapshots callbacks and topology;
+the accepted execution is immutable even if its builder is later edited. Pending
+prerequisite counters and successor lists publish only ready jobs. Failure skips
+transitive dependents while independent branches finish. The execution handle
+exposes status/original exceptions; its aggregate wait reports a stable named
+failure. Preparation is all-or-nothing, and successor publication reuses prepared
+queue nodes and traversal storage. Parent/child completion remains a separate,
+unimplemented contract. See [examples and lifecycle rules](17_job_graph_usage.md).
 
 Acceptance: chains, fan-in/fan-out, zero/many dependencies, invalid/foreign references, cycle rejection, exact-once publication, prerequisite failure propagation and non-execution of blocked/failed successors. Test counter publication under concurrent completion. Allocation and submission failures must not leave an unfinishable graph.
 
@@ -36,17 +46,33 @@ Add chunked ParallelFor, child groups, coordinator fences/barriers, graph-local 
 
 Acceptance: empty and uneven ranges, every index exactly once, child completion before parent/group completion, deterministic reductions where required, safe shutdown/cancellation and no dangling captures. Compare single-worker and multi-worker outputs. Keep memory ownership and access declarations explicit.
 
-## Milestone 3: frame-graph proof before UI
+## Milestone 3: generic phased-workload proof before client integrations
 
-Build synthetic Measure/Arrange/Geometry/RenderData stages over dirty subtrees with parent/child dependencies. Capture input/model snapshots and merge event/property writes deterministically at phase boundaries. Separate background resource publication from current-frame work.
+Exercise generic phased dependency workloads, snapshots and deterministic merges
+using scheduler-owned synthetic tests. Keep client concepts out of `jobs`.
+Measure/Arrange/Geometry/RenderData and streamer/media integration are separate
+consumer tasks, rather than requirements to implement those domains inside the
+scheduler. A later UI integration will establish its actual frame boundaries.
 
-Acceptance: no visual-stage work leaks into later frames; dirty-only execution equals a full sequential reference; stable ordered outputs across worker counts/seeds; no worker blocks on prerequisites; no event cycle silently reopens an earlier phase. Record reference hardware, task counts, critical path, allocations, wall time and overhead. Demonstrate benefit on independent subtrees without hiding regressions on small workloads.
+Acceptance: phase work completes within its owning batch; incremental execution
+equals a full sequential reference; outputs remain stable across worker counts and
+seeds; no worker waits for prerequisites; cycles cannot silently reopen an earlier
+phase. Record reference hardware, task counts, critical path, allocations, wall time
+and overhead. Demonstrate benefit on independent work without hiding regressions
+on small workloads.
 
-**UI-ready means milestones 0-3 and the streamer foundation have tests, Windows sanitizer/static-analysis evidence, traceable ownership and a measured synthetic frame graph.** Resource consumers must already use streamer-fed jobs. Work stealing, fibers, bundles and full playback are not prerequisites.
+**Scheduler readiness means milestones 0-3 have tests, Windows sanitizer/static-analysis
+evidence, traceable ownership and measured generic phased workloads.** Actual UI
+frame boundaries, resource acquisition and codec scheduling remain separate
+integration tasks. Work stealing, fibers, bundles and full playback are not
+prerequisites for the scheduler's dependency API.
 
-## Milestone 4: advanced streaming workloads
+## Milestone 4: background-work scheduling
 
-Extend the early streamer's bounded reads and dedicated I/O worker with priority/QoS, cancellation, global budgets and overlapped Windows I/O. Integrate storage completions, demux and decoding through ready jobs without blocking CPU workers. Background work may span frames; publish usable generations at controlled boundaries. Prevent streaming/decode from starving frame-critical or audio work.
+Evaluate generic priorities/QoS, cancellation and fairness for mixed foreground and
+background CPU work. Measure starvation and admission behavior without teaching
+the scheduler about particular consumers. Overlapped I/O, storage completions,
+demux and codec integration belong to the separate [streamer/media plan](15_streamer_and_media_jobs.md).
 
 ## Milestone 5: measured scheduler optimization
 

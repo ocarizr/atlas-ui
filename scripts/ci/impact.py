@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 
 from scripts.ci.config import read_yaml, write_outputs
+from scripts.ci.parallel_plan import plan_components
+from scripts.ci.vendor_products import fingerprint, toolchain_identity
 
 SOURCE_SUFFIXES = {".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hxx", ".inl", ".ixx", ".proto"}
 
@@ -92,8 +94,8 @@ def build_matrix(config, selected, source_files):
         if excluded - config["components"].keys():
             raise ValueError("Profile excludes an unknown component")
         names = [name for name in components_to_build if name not in excluded]
-        if names:
-            entries.append({"components": names, "configure": profile["configure"],
+        for name in names:
+            entries.append({"components": [name], "configure": profile["configure"],
                             "configuration": profile["configuration"]})
     return {"include": entries}
 
@@ -129,11 +131,16 @@ def main():
     # Detect newly introduced source outside every registered context as well.
     select_components(config, [path for path in files if Path(path).suffix.lower() in SOURCE_SUFFIXES])
     matrix = build_matrix(config, selected, files)
+    plan = plan_components(config, selected)
+    keys = {group: fingerprint(root, group, toolchain_identity()) for group in plan['groups']}
     outputs = {
-        "matrix": json.dumps(matrix, separators=(",", ":")),
         "has-build": bool(matrix["include"]),
         "configure": bool(selected) or args.all,
         "tooling": args.all or any(matches(path, config["global_paths"]) for path in paths),
+        "components": json.dumps(plan['components']),
+        "matrices": json.dumps(plan['matrices']),
+        "groups": json.dumps(plan['groups']),
+        "keys": json.dumps(keys),
     }
     write_outputs(outputs, args.github_output)
     print(json.dumps({"selected": sorted(selected), **outputs}, indent=2))

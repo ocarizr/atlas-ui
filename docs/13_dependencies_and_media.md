@@ -2,7 +2,7 @@
 
 ## Reproducible integration
 
-`vcpkg.json` pins the public registry and tool checkout to a specific baseline. Run `scripts/bootstrap_dependencies.ps1` once, then configure CMake. Packages are installed automatically into each build tree; compiled package archives can be reused through the binary cache. No machine-specific paths or downloaded SDK sources belong in Git.
+`vcpkg.json` pins the public registry and tool checkout to a specific baseline. For normal local builds, run `scripts/bootstrap_dependencies.ps1` once, then configure CMake; installed packages and binary archives are reused. Hosted CI instead restores version/ABI-keyed compiled products, partitioned by `.ci/dependencies.yaml`. Component consumers use their bundled CMake helpers with manifest installation disabled. See the [CI product contracts](12_ci_and_delivery.md). No machine-specific paths or downloaded SDK sources belong in Git.
 
 The manifest uses vcpkg's required JSON format, an exception for tool-owned configuration. Application content remains XML and application configuration remains YAML.
 

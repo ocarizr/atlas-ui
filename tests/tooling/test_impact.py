@@ -73,14 +73,14 @@ def test_matrix_uses_named_targets_and_test_labels(component_config):
     }
 
 
-def test_shared_consumers_share_one_build_per_profile(component_config):
+def test_shared_consumers_have_independent_profile_jobs(component_config):
     for name in ("game", "editor"):
         component_config["components"][name].update(
             build_targets=[f"atlas_{name}"], test_labels=[name]
         )
     assert build_matrix(component_config, {"game", "editor"}, []) == {
-        "include": [{"components": ["editor", "game"],
-                     "configure": "windows-msvc", "configuration": "Debug"}]
+        "include": [{"components": [name], "configure": "windows-msvc", "configuration": "Debug"}
+                    for name in ('editor', 'game')]
     }
 
 
@@ -93,8 +93,8 @@ def test_portable_profile_omits_native_components(component_config):
         "configure": "windows-portable", "configuration": "Debug", "exclude_components": ["editor"],
     })
     matrix = build_matrix(component_config, {"game", "editor"}, [])["include"]
-    assert matrix[0]["components"] == ["editor", "game"]
-    assert matrix[1] == {
+    assert [row['components'] for row in matrix[:2]] == [['editor'], ['game']]
+    assert matrix[2] == {
         "components": ["game"], "configure": "windows-portable", "configuration": "Debug",
     }
 

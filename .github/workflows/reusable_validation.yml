@@ -1,0 +1,222 @@
+name: Parallel component validation
+'on':
+  workflow_call:
+    inputs:
+      full:
+        type: boolean
+        default: false
+      version:
+        type: string
+        default: development
+jobs:
+  plan:
+    uses: ./.github/workflows/reusable_plan.yml
+    with:
+      full: ${{ inputs.full }}
+  quality:
+    needs: plan
+    uses: ./.github/workflows/reusable_quality.yml
+    with:
+      tooling: ${{ needs.plan.outputs.tooling == 'true' }}
+      configure: ${{ needs.plan.outputs.configure == 'true' }}
+  vendor-testing:
+    needs:
+    - plan
+    if: ${{ contains(fromJSON(needs.plan.outputs.groups), 'testing') }}
+    uses: ./.github/workflows/reusable_dependencies.yml
+    with:
+      group: testing
+      key: ${{ fromJSON(needs.plan.outputs.keys).testing }}
+  vendor-content:
+    needs:
+    - plan
+    if: ${{ contains(fromJSON(needs.plan.outputs.groups), 'content') }}
+    uses: ./.github/workflows/reusable_dependencies.yml
+    with:
+      group: content
+      key: ${{ fromJSON(needs.plan.outputs.keys).content }}
+  vendor-media:
+    needs:
+    - plan
+    if: ${{ contains(fromJSON(needs.plan.outputs.groups), 'media') }}
+    uses: ./.github/workflows/reusable_dependencies.yml
+    with:
+      group: media
+      key: ${{ fromJSON(needs.plan.outputs.keys).media }}
+  vendor-ipc:
+    needs:
+    - plan
+    if: ${{ contains(fromJSON(needs.plan.outputs.groups), 'ipc') }}
+    uses: ./.github/workflows/reusable_dependencies.yml
+    with:
+      group: ipc
+      key: ${{ fromJSON(needs.plan.outputs.keys).ipc }}
+  vendor-graphics:
+    needs:
+    - plan
+    if: ${{ contains(fromJSON(needs.plan.outputs.groups), 'graphics') }}
+    uses: ./.github/workflows/reusable_dependencies.yml
+    with:
+      group: graphics
+      key: ${{ fromJSON(needs.plan.outputs.keys).graphics }}
+  jobs:
+    needs:
+    - plan
+    - vendor-testing
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'jobs') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: jobs
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).jobs) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  streaming:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-media
+    - jobs
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'streaming') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: streaming
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).streaming) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  ipc:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-ipc
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'ipc') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: ipc
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).ipc) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  application:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-ipc
+    - vendor-content
+    - jobs
+    - ipc
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'application') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: application
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).application) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  dependencies:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - vendor-media
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'dependencies') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: dependencies
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).dependencies) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  windows:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-graphics
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'windows') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: windows
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).windows) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  game:
+    needs:
+    - plan
+    - vendor-ipc
+    - vendor-content
+    - application
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'game') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: game
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).game) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  editor:
+    needs:
+    - plan
+    - vendor-ipc
+    - vendor-content
+    - application
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'editor') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: editor
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).editor) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  tools:
+    needs:
+    - plan
+    - vendor-ipc
+    - vendor-content
+    - application
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'tools') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: tools
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).tools) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  required:
+    name: Component validation
+    if: always()
+    needs:
+    - plan
+    - quality
+    - vendor-testing
+    - vendor-content
+    - vendor-media
+    - vendor-ipc
+    - vendor-graphics
+    - jobs
+    - streaming
+    - ipc
+    - application
+    - dependencies
+    - windows
+    - game
+    - editor
+    - tools
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+    - name: Require all selected checks
+      shell: pwsh
+      env:
+        RESULTS: ${{ toJSON(needs) }}
+      run: |
+        $task_results = $env:RESULTS | ConvertFrom-Json -AsHashtable
+        foreach ($task_entry in $task_results.GetEnumerator()) {
+          if ($task_entry.Value.result -notin @('success', 'skipped')) { throw "Failed check: $($task_entry.Key)" }
+        }
+        if ($task_results.plan.result -ne 'success' -or $task_results.quality.result -ne 'success') { throw 'Planning or quality failed.' }
+        $task_selected = $task_results.plan.outputs.components | ConvertFrom-Json
+        foreach ($task_name in $task_selected) {
+          if ($task_results[$task_name].result -ne 'success') { throw "Required component did not pass: $task_name" }
+        }

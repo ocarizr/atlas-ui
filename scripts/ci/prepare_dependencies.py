@@ -4,10 +4,16 @@ import argparse
 import os
 import queue
 import re
+import shutil
 import subprocess
 import threading
 import time
 from pathlib import Path
+
+import yaml
+
+from scripts.ci.config import read_yaml
+from scripts.ci.vendor_products import fingerprint, prepare_manifest, toolchain_identity
 
 
 def native_progress(buildtrees):
@@ -69,13 +75,40 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--triplet", default="x64-windows")
     parser.add_argument("--install-root", default="build/dependencies/vcpkg_installed")
+    parser.add_argument('--group')
+    parser.add_argument('--key')
+    parser.add_argument('--verify', action='store_true')
     args = parser.parse_args()
+    if args.group:
+        product = Path('build/vendor') / args.group
+        expected = fingerprint(Path.cwd(), args.group, toolchain_identity())
+        if args.key != expected:
+            raise ValueError('Dependency identity differs from the planned versions/toolchain')
+        if args.verify:
+            metadata = read_yaml(product / 'product.yaml')
+            if metadata != {'group': args.group, 'key': expected}:
+                raise ValueError('Dependency product identity mismatch')
+            return
+        manifest = Path('build/vendor_manifests') / args.group
+        prepare_manifest(Path.cwd(), args.group, manifest)
+        args.install_root = str(product / 'installed')
     executable = Path(".tools/vcpkg") / ("vcpkg.exe" if os.name == "nt" else "vcpkg")
     command = [str(executable.resolve()), "install", f"--triplet={args.triplet}",
                f"--x-install-root={Path(args.install_root).resolve()}", "--no-print-usage",
                "--clean-buildtrees-after-build", "--clean-packages-after-build"]
+    if args.group:
+        command.append(f'--x-manifest-root={manifest.resolve()}')
     print("Preparing manifest dependencies (Debug and Release); first uncached builds can be lengthy.", flush=True)
-    raise SystemExit(run_logged(command, "reports/dependencies/install.log", ".tools/vcpkg/buildtrees"))
+    result = run_logged(command, 'reports/dependencies/install.log', '.tools/vcpkg/buildtrees')
+    if result == 0 and args.group:
+        tooling = product / 'toolchain'
+        for directory in ('scripts', 'triplets'):
+            shutil.copytree(Path('.tools/vcpkg') / directory, tooling / directory, dirs_exist_ok=True)
+        for name in ('.vcpkg-root', 'vcpkg.exe', 'LICENSE.txt'):
+            shutil.copy2(Path('.tools/vcpkg') / name, tooling / name)
+        (product / 'product.yaml').write_text(yaml.safe_dump({'group': args.group, 'key': expected}),
+                                             encoding='utf-8')
+    raise SystemExit(result)
 
 
 if __name__ == "__main__":

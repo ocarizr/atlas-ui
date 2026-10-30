@@ -48,6 +48,10 @@ components:
     - atlas_protocol_tests
     test_labels:
     - ipc
+    build_requires: []
+    vendors:
+    - testing
+    - ipc
   game:
     paths:
     - apps/game/**
@@ -59,6 +63,11 @@ components:
     - atlas_game
     test_labels:
     - game
+    build_requires:
+    - application
+    vendors:
+    - ipc
+    - content
   editor:
     paths:
     - apps/editor/**
@@ -70,6 +79,11 @@ components:
     - atlas_editor
     test_labels:
     - editor
+    build_requires:
+    - application
+    vendors:
+    - ipc
+    - content
   tools:
     paths:
     - tools/**
@@ -82,6 +96,11 @@ components:
     - atlas_package
     test_labels:
     - tools
+    build_requires:
+    - application
+    vendors:
+    - ipc
+    - content
   jobs:
     paths:
     - libs/jobs/**
@@ -92,6 +111,9 @@ components:
     - atlas_jobs_tests
     test_labels:
     - jobs
+    build_requires: []
+    vendors:
+    - testing
   streaming:
     paths:
     - libs/streaming/**
@@ -104,6 +126,11 @@ components:
     - atlas_streaming_tests
     test_labels:
     - streaming
+    build_requires:
+    - jobs
+    vendors:
+    - testing
+    - media
   dependencies:
     paths:
     - libs/audio/**
@@ -113,6 +140,11 @@ components:
     - atlas_dependency_tests
     test_labels:
     - dependencies
+    build_requires: []
+    vendors:
+    - testing
+    - content
+    - media
   windows:
     paths:
     - libs/platform/windows/**
@@ -122,6 +154,10 @@ components:
     - atlas_windows_tests
     test_labels:
     - windows
+    build_requires: []
+    vendors:
+    - testing
+    - graphics
   application:
     paths:
     - libs/application/**
@@ -135,6 +171,13 @@ components:
     - atlas_application_tests
     test_labels:
     - application
+    build_requires:
+    - jobs
+    - ipc
+    vendors:
+    - testing
+    - ipc
+    - content
 global_paths:
 - CMakeLists.txt
 - CMakePresets.json

@@ -9,7 +9,7 @@ function(atlas_configure_target target)
     else()
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
     endif()
-    target_link_libraries(${target} PRIVATE atlas::instrumentation)
+    target_link_libraries(${target} PRIVATE $<BUILD_INTERFACE:atlas::instrumentation>)
 
     if(ATLAS_ENABLE_MSVC_ANALYSIS)
         target_compile_options(${target} PRIVATE /analyze /analyze:external-)

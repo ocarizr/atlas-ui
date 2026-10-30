@@ -46,3 +46,16 @@ def test_profile_rejects_excluded_components_before_building(selected_build):
     with pytest.raises(ValueError, match="excluded by this profile"):
         build_component.main()
     assert selected_build == []
+
+
+def test_export_rejects_multiple_components_before_any_build(selected_build, monkeypatch):
+    monkeypatch.setattr(sys, 'argv', [*sys.argv, '--export-products'])
+    with pytest.raises(ValueError, match='exactly one component'):
+        build_component.main()
+    assert selected_build == []
+
+
+def test_delivery_version_reaches_component_configuration(selected_build, monkeypatch):
+    monkeypatch.setenv('ATLAS_BUILD_VERSION', '1.2.3')
+    build_component.main()
+    assert '-DATLAS_VERSION=1.2.3' in selected_build[0]
