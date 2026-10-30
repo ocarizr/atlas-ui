@@ -4,6 +4,9 @@ The `atlas::jobs` library schedules generic CPU callbacks. Its graph API has no 
 streaming, codec, frame, ECS or platform-specific concepts. Link `atlas::jobs` and
 include `<atlas/jobs/job_system.hpp>`.
 
+For incremental submission without a graph builder, start with the
+[direct dispatch API](18_job_dispatch_usage.md). Both APIs use the same pool.
+
 ## First graph
 
 ```cpp
@@ -96,7 +99,7 @@ dependency mechanism. Waiting on the same execution again repeats its outcome.
   a live originating scheduler; diagnostic reads do not.
 - Workers may submit independent jobs or entire graphs. They must not wait,
   shut down or destroy a scheduler. A graph does not implicitly wait for jobs
-  created by its callbacks; child/group completion is a later feature.
+  created by its callbacks; injected child contexts belong to the direct API.
 - `wait_idle()` observes all currently accepted jobs, including pending graph
   nodes, but does not report callback failures. Concurrent producers can submit
   again afterward. Use execution handles to observe failures.
@@ -116,15 +119,15 @@ code, exception machinery and diagnostic exception construction may allocate.
 ## Statistics and limits
 
 Statistics are snapshots under the scheduler lock. `queued` counts ready jobs;
-`waiting` counts graph nodes with unfinished prerequisites. `completed` counts all
-terminal jobs, including `failed` and `skipped`. At each snapshot:
+`waiting` counts unfinished prerequisites and, for direct tasks, descendant joins
+and cleanup. `completed` counts all terminal jobs, including `failed` and `skipped`. At each snapshot:
 
 ```text
 submitted = queued + running + waiting + completed
 ```
 
 The queue remains shared and mutex-protected. There are no priorities, cancellation,
-dynamic dependency edits, cross-graph edges, child groups, ParallelFor, work stealing
-or timing traces in this milestone. Graph results are deterministic only when the
-application's data access and callbacks are deterministic; worker execution order
+dynamic dependency edits, cross-graph edges, work stealing or timing traces.
+Direct dispatch supplies child joins, parallel ranges and per-task timings. Graph
+results are deterministic only when the application's data access and callbacks are deterministic; worker execution order
 is deliberately unspecified. See the [implementation plan](14_job_system_implementation_plan.md).

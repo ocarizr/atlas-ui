@@ -1,6 +1,7 @@
 #include <atlas/jobs/job_system.hpp>
 
-#include "graph_state.hpp"
+#include "execution_context.hpp"
+#include "scheduler_state.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -12,149 +13,15 @@
 
 namespace atlas::jobs
 {
-namespace
-{
-thread_local bool is_worker = false;
-
-void require_coordinator()
-{
-    if (is_worker)
-    {
-        throw std::logic_error{"Jobs must not block a worker with scheduler waits or shutdown"};
-    }
-}
-} // namespace
-
-struct job_system::impl
-{
-    explicit impl(std::size_t count) : worker_count{count}, worker_scratch(count)
-    {
-        if (count == 0)
-        {
-            throw std::invalid_argument{"A job system needs at least one worker"};
-        }
-        workers.reserve(count);
-        for (std::size_t index = 0; index < count; ++index)
-        {
-            workers.emplace_back([this, index](const std::stop_token& stop)
-                                 { run(stop, worker_scratch[index]); });
-        }
-    }
-
-    void run(const std::stop_token& stop, detail::ready_queue& work)
-    {
-        is_worker = true;
-        while (true)
-        {
-            {
-                std::unique_lock lock{mutex};
-                if (!available.wait(lock, stop, [this] { return !queue.empty(); }))
-                {
-                    break;
-                }
-                work.splice(work.end(), queue, queue.begin());
-                ++running;
-                if (const auto& entry = work.front(); entry.graph)
-                {
-                    const std::lock_guard graph_lock{entry.graph->mutex};
-                    entry.graph->nodes[entry.index].status = job_status::running;
-                }
-            }
-            std::exception_ptr error;
-            try
-            {
-                work.front().callback();
-            }
-            catch (...)
-            {
-                error = std::current_exception();
-            }
-            finish(work, error);
-            work.clear(); // User captures are destroyed with no scheduler/graph lock held.
-        }
-        is_worker = false;
-    }
-
-    void finish(detail::ready_queue& retired, const std::exception_ptr& error)
-    {
-        auto& work = retired.front();
-        const std::lock_guard lock{mutex};
-        --running;
-        ++completed;
-        failed += error ? 1U : 0U;
-        if (work.graph)
-        {
-            const auto result = work.graph->finish(work.graph, work.index, error,
-                                                   {.ready = queue, .retired = retired});
-            waiting -= result.released;
-            completed += result.skipped;
-            skipped += result.skipped;
-            if (result.finished)
-            {
-                work.graph->completion.set_value();
-            }
-            available.notify_all();
-        }
-        else if (work.completion)
-        {
-            if (error)
-            {
-                work.completion->set_exception(error);
-            }
-            else
-            {
-                work.completion->set_value();
-            }
-        }
-        else
-        {
-            std::terminate(); // Every accepted independent job has a completion promise.
-        }
-        if (queue.empty() && running == 0 && waiting == 0)
-        {
-            idle.notify_all();
-        }
-    }
-
-    void drain_and_stop()
-    {
-        const std::lock_guard lifecycle_lock{lifecycle_mutex};
-        {
-            std::unique_lock lock{mutex};
-            accepting = false;
-            idle.wait(lock, [this] { return queue.empty() && running == 0 && waiting == 0; });
-        }
-        // jthread requests stop and joins. Stop-aware waits wake parked workers.
-        workers.clear();
-    }
-
-    const std::size_t worker_count;
-    std::shared_ptr<const void> identity{std::make_shared<const int>(0)};
-    mutable std::mutex mutex;
-    std::mutex lifecycle_mutex;
-    std::condition_variable_any available;
-    mutable std::condition_variable idle;
-    detail::ready_queue queue;
-    // std::list may allocate its sentinel. Prepare worker scratch before starting
-    // threads, rather than constructing a temporary list for every accepted job.
-    std::vector<detail::ready_queue> worker_scratch;
-    std::size_t running{0};
-    std::size_t submitted{0};
-    std::size_t completed{0};
-    std::size_t waiting{0};
-    std::size_t failed{0};
-    std::size_t skipped{0};
-    bool accepting{true};
-    // Declared last: partially constructed workers stop before shared state dies.
-    std::vector<std::jthread> workers;
-};
-
 job_handle::job_handle(std::shared_future<void> completion, std::weak_ptr<const void> owner)
     : completion_{std::move(completion)}, owner_{std::move(owner)}
 {
 }
 
-job_system::job_system(std::size_t worker_count) : impl_{std::make_unique<impl>(worker_count)} {}
+job_system::job_system(std::size_t worker_count)
+    : impl_{std::make_shared<detail::scheduler>(worker_count)}
+{
+}
 
 job_system::~job_system()
 {
@@ -166,6 +33,11 @@ job_system::~job_system()
     {
         std::terminate();
     }
+}
+
+job_dispatcher job_system::dispatcher() const
+{
+    return job_dispatcher{impl_};
 }
 
 job_handle job_system::submit(std::function<void()> job)
@@ -217,7 +89,7 @@ graph_handle job_system::submit_graph(const job_graph& graph)
 
 void job_system::wait(const job_handle& job) const
 {
-    require_coordinator();
+    detail::require_coordinator();
     if (!job.completion_.valid() || job.owner_.lock() != impl_->identity)
     {
         throw std::invalid_argument{"Invalid handle or handle owned by another job system"};
@@ -227,7 +99,7 @@ void job_system::wait(const job_handle& job) const
 
 void job_system::wait_idle() const
 {
-    require_coordinator();
+    detail::require_coordinator();
     std::unique_lock lock{impl_->mutex};
     impl_->idle.wait(
         lock,
@@ -236,7 +108,7 @@ void job_system::wait_idle() const
 
 void job_system::wait(const graph_handle& graph) const
 {
-    require_coordinator();
+    detail::require_coordinator();
     if (!graph.state_ || graph.state_->scheduler.lock() != impl_->identity)
     {
         throw std::invalid_argument{"Invalid graph handle or handle owned by another job system"};
@@ -255,7 +127,7 @@ void job_system::wait(const graph_handle& graph) const
 
 void job_system::shutdown()
 {
-    require_coordinator();
+    detail::require_coordinator();
     impl_->drain_and_stop();
 }
 

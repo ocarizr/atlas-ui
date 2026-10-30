@@ -18,7 +18,7 @@ Opus/libopus is the compressed audio choice; XAudio2 receives decoded PCM. Strea
 
 ## Runtime and content
 
-- Scheduler queue policy, worker count, affinity, parent/child completion, cancellation, allocation and shutdown.
+- Scheduler queue optimization, affinity, cancellation, allocation tuning and measured grain sizes. Direct dispatch now defines scoped child completion and draining shutdown.
 - EnTT component access ownership, structural changes and stable references across phases.
 - Layout units/DPI, anchors, clipping/scroll, focus/navigation, drag/drop, virtualization and accessibility.
 - XML schemas for UI, ViewModels, animation/localization and metadata; names/IDs, migrations and generated-code compatibility.
