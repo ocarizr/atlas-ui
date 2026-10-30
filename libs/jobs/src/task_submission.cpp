@@ -37,17 +37,18 @@ bool reaches(const std::shared_ptr<task_state>& start, const task_state* target)
 }
 } // namespace
 
-void scheduler::prepare_task(task_submission& prepared, std::string name, task_body body,
+void scheduler::prepare_task(task_submission& prepared, job_label label, task_body body,
                              std::span<const task_handle> prerequisites)
 {
-    if (name.empty() || !body)
+    if (label.name.empty() || !body)
     {
         throw std::invalid_argument{"A task needs a nonempty name and function"};
     }
     prepared.task = std::make_shared<task_state>();
     auto& task = prepared.task;
     task->marker->task = task;
-    task->name = std::move(name);
+    task->name = std::move(label.name);
+    task->category = std::move(label.category);
     task->body = std::move(body);
     task->owner = identity;
     task->entry.emplace_back();
@@ -67,12 +68,13 @@ void scheduler::prepare_task(task_submission& prepared, std::string name, task_b
     }
 }
 
-task_handle scheduler::submit_task(std::string name, task_body body,
+task_handle scheduler::submit_task(job_label label, task_body body,
                                    std::span<const task_handle> prerequisites,
                                    const std::shared_ptr<task_state>& parent)
 {
     task_submission prepared;
-    prepare_task(prepared, std::move(name), std::move(body), prerequisites);
+    prepare_task(prepared, std::move(label), std::move(body), prerequisites);
+    prepare_trace(prepared, parent);
     if (parent)
     {
         prepared.parent_edge.push_back(prepared.task->marker);
@@ -97,6 +99,10 @@ task_handle scheduler::submit_task(std::string name, task_body body,
         {
             throw std::logic_error{"The job system is shutting down"};
         }
+        if (next_task_id == std::numeric_limits<std::uint64_t>::max())
+        {
+            throw std::overflow_error{"Task identities exhausted"};
+        }
         publish_task(prepared, parent);
     }
     available.notify_all();
@@ -107,6 +113,19 @@ void scheduler::publish_task(task_submission& prepared, const std::shared_ptr<ta
 {
     // Storage and cycle checks are complete: publication cannot allocate.
     const auto& task = prepared.task;
+    task->id = next_task_id++;
+    if (task->trace)
+    {
+        if (trace_admitted < trace_capacity)
+        {
+            ++trace_admitted;
+        }
+        else
+        {
+            ++trace_dropped;
+            task->trace.reset();
+        }
+    }
     if (parent)
     {
         task->parent = parent;

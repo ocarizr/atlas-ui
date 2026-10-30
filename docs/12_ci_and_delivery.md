@@ -178,3 +178,13 @@ Ranges declare chunk accesses automatically; arbitrary shared pointers/storage n
 explicit scopes. Review reported errors/warnings in consumer tests; false-sharing
 warnings are heuristic and do not fail jobs automatically. The
 [jobs package guide](../libs/jobs/README.md) describes ON/OFF overrides and limits.
+
+
+## Scheduler reference benchmark
+
+The `jobs-benchmark` component imports compiled jobs and uses the small testing
+vendor product for the pinned build toolchain. It validates smoke/empty/error/help
+paths on each configured profile, without timing assertions. Its executable is
+retained as a development product and does not enter application release packaging.
+Phased reference sources are also owned by jobs because the native jobs suite uses
+them. See [benchmark methodology](19_job_workloads_and_profiling.md).

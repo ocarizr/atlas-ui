@@ -40,7 +40,7 @@ completion is provided by direct dispatch below. See [examples and lifecycle rul
 
 Acceptance: chains, fan-in/fan-out, zero/many dependencies, invalid/foreign references, cycle rejection, exact-once publication, prerequisite failure propagation and non-execution of blocked/failed successors. Test counter publication under concurrent completion. Allocation and submission failures must not leave an unfinishable graph.
 
-## Milestone 2: ranges, lifetimes and synchronization (dispatch increment implemented)
+## Milestone 2: ranges, lifetimes and synchronization (foundation implemented)
 
 Direct dispatch supplies `run`, `after` and named fan-in fences through an injected
 client of one application-owned pool. Executor-created contexts spawn scoped
@@ -57,14 +57,19 @@ See the [usage and ownership contract](18_job_dispatch_usage.md).
 The current error policy drains admitted work, joins children after a parent
 failure, skips failed dependents and selects stable failures by registration order.
 Shutdown permits active contexts to finish spawning while rejecting new roots.
-No cancellation API, arena/scratch allocator, task category policy, automatic grain
-tuning or measured optimization is claimed. Parent-owned data supplies scoped
-storage today. Evaluate the remaining allocation/diagnostic needs and grain sizes
-with milestone 3 measurements; richer cancellation belongs to milestone 4.
+Lazy per-task scratch resources now provide thread-safe monotonic allocation,
+configurable block/budget/upstream policy and bulk release after descendants and
+payload cleanup. Labels/categories, runtime-local identities and bounded incremental
+task traces expose worker intervals, prerequisites, joins and scratch statistics.
+See the [memory and tracing contract](../libs/jobs/README.md).
 
-Acceptance: empty and uneven ranges, every index exactly once, child completion before parent/group completion, deterministic reductions where required, safe shutdown/cancellation and no dangling captures. Compare single-worker and multi-worker outputs. Keep memory ownership and access declarations explicit.
+Acceptance covers empty/uneven ranges, exact-once visits, child/parent lifetime,
+failures, cleanup, stable reductions and comparison across worker counts. The
+phased reference below closes combined/incremental validation. Categories do not
+set priority. Grain choices are measured rather than automatically tuned. Richer
+cancellation belongs to milestone 4; draining is the current shutdown policy.
 
-## Milestone 3: generic phased-workload proof before client integrations
+## Milestone 3: generic phased-workload proof before client integrations (reference implemented)
 
 Exercise generic phased dependency workloads, snapshots and deterministic merges
 using scheduler-owned synthetic tests. Keep client concepts out of `jobs`.
@@ -78,6 +83,15 @@ seeds; no worker waits for prerequisites; cycles cannot silently reopen an earli
 phase. Record reference hardware, task counts, critical path, allocations, wall time
 and overhead. Demonstrate benefit on independent work without hiding regressions
 on small workloads.
+
+The implemented reference composes map, scratch-backed partial hashes and ordered
+merge through the incremental API. It tests failure/cleanup, immutable snapshots,
+sparse/clean cached updates, seeds, grains and 1/2/4 workers against a sequential
+reference. An independent benchmark exports XML samples, allocation census and
+worker/dependency traces. Its work-only critical-path lower bound is not a full
+causal profiler. See [methodology and limits](19_job_workloads_and_profiling.md).
+The [baseline report](20_job_workload_baseline.md) records actual local measurements;
+consumer frame budgets and real integration performance remain separate gates.
 
 **Scheduler readiness means milestones 0-3 have tests, Windows sanitizer/static-analysis
 evidence, traceable ownership and measured generic phased workloads.** Actual UI
@@ -94,7 +108,7 @@ demux and codec integration belong to the separate [streamer/media plan](15_stre
 
 ## Milestone 5: measured scheduler optimization
 
-Evaluate local queues, work stealing, allocation pools, affinity and optional continuations/coroutines only when traces justify them. Preserve the reference semantics/tests. Optimize wall time and critical paths rather than maximizing job count or imposing lock-free machinery without evidence.
+Evaluate local queues, work stealing, allocation pools, affinity and optional fibers/coroutines only when traces justify them. Preserve the reference semantics/tests. Optimize wall time and critical paths rather than maximizing job count or imposing lock-free machinery without evidence.
 
 ## Validation strategy
 

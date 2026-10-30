@@ -70,79 +70,79 @@ template <context_function Function> task_body bind_context(Function function)
 class job_dispatcher
 {
   public:
-    template <context_function Function> task_handle run(std::string name, Function function) const
+    template <context_function Function> task_handle run(job_label label, Function function) const
     {
-        return submit(std::move(name), detail::bind_context(std::move(function)), {});
+        return submit(std::move(label), detail::bind_context(std::move(function)), {});
     }
 
     template <context_function Function>
-    task_handle after(const task_handle& prerequisite, std::string name, Function function) const
+    task_handle after(const task_handle& prerequisite, job_label label, Function function) const
     {
-        return after(std::span{&prerequisite, 1}, std::move(name), std::move(function));
+        return after(std::span{&prerequisite, 1}, std::move(label), std::move(function));
     }
 
     template <context_function Function>
-    task_handle after(std::span<const task_handle> prerequisites, std::string name,
+    task_handle after(std::span<const task_handle> prerequisites, job_label label,
                       Function function) const
     {
-        return submit(std::move(name), detail::bind_context(std::move(function)), prerequisites);
+        return submit(std::move(label), detail::bind_context(std::move(function)), prerequisites);
     }
 
     template <context_function Function>
-    task_handle after(std::initializer_list<task_handle> prerequisites, std::string name,
+    task_handle after(std::initializer_list<task_handle> prerequisites, job_label label,
                       Function function) const
     {
-        return after(std::span{prerequisites.begin(), prerequisites.size()}, std::move(name),
+        return after(std::span{prerequisites.begin(), prerequisites.size()}, std::move(label),
                      std::move(function));
     }
 
     template <typename Data, typename Function>
         requires job_function<Function, Data>
-    task_handle run(std::string name, Data data, Function function) const
+    task_handle run(job_label label, Data data, Function function) const
     {
-        return submit(std::move(name), detail::bind_job(std::move(data), std::move(function)), {});
+        return submit(std::move(label), detail::bind_job(std::move(data), std::move(function)), {});
     }
 
     template <typename Data, typename Function>
         requires job_function<Function, Data>
-    task_handle after(const task_handle& prerequisite, std::string name, Data data,
+    task_handle after(const task_handle& prerequisite, job_label label, Data data,
                       Function function) const
     {
-        return after(std::span{&prerequisite, 1}, std::move(name), std::move(data),
+        return after(std::span{&prerequisite, 1}, std::move(label), std::move(data),
                      std::move(function));
     }
 
     template <typename Data, typename Function>
         requires job_function<Function, Data>
-    task_handle after(std::span<const task_handle> prerequisites, std::string name, Data data,
+    task_handle after(std::span<const task_handle> prerequisites, job_label label, Data data,
                       Function function) const
     {
-        return submit(std::move(name), detail::bind_job(std::move(data), std::move(function)),
+        return submit(std::move(label), detail::bind_job(std::move(data), std::move(function)),
                       prerequisites);
     }
 
     template <typename Data, typename Function>
         requires job_function<Function, Data>
-    task_handle after(std::initializer_list<task_handle> prerequisites, std::string name, Data data,
+    task_handle after(std::initializer_list<task_handle> prerequisites, job_label label, Data data,
                       Function function) const
     {
-        return after(std::span{prerequisites.begin(), prerequisites.size()}, std::move(name),
+        return after(std::span{prerequisites.begin(), prerequisites.size()}, std::move(label),
                      std::move(data), std::move(function));
     }
 
-    task_handle fence(std::string name, std::span<const task_handle> prerequisites) const;
-    task_handle fence(std::string name, std::initializer_list<task_handle> prerequisites) const;
+    task_handle fence(job_label label, std::span<const task_handle> prerequisites) const;
+    task_handle fence(job_label label, std::initializer_list<task_handle> prerequisites) const;
 
     template <typename T, typename Function>
         requires job_function<Function, std::span<T>>
-    task_handle parallel_for(std::string name, std::span<T> values, std::size_t grain,
+    task_handle parallel_for(job_label label, std::span<T> values, std::size_t grain,
                              Function function) const;
 
   private:
     friend class job_system;
     friend class job_context;
     explicit job_dispatcher(std::weak_ptr<detail::scheduler> scheduler);
-    task_handle submit(std::string name, detail::task_body body,
+    task_handle submit(job_label label, detail::task_body body,
                        std::span<const task_handle> prerequisites,
                        const std::shared_ptr<detail::task_state>& parent = {}) const;
     std::weak_ptr<detail::scheduler> scheduler_;
@@ -153,89 +153,89 @@ class job_dispatcher
 class job_context
 {
   public:
+    [[nodiscard]] std::pmr::memory_resource& scratch() const;
     [[nodiscard]] access_guard access(std::span<const memory_access> regions) const;
     [[nodiscard]] access_guard access(std::initializer_list<memory_access> regions) const;
     [[nodiscard]] access_guard access(memory_access region) const;
     [[nodiscard]] job_dispatcher dispatcher() const;
 
     template <context_function Function>
-    task_handle continue_with(std::string name, Function function) const
+    task_handle continue_with(job_label label, Function function) const
     {
-        return continue_task(std::move(name), detail::bind_context(std::move(function)));
+        return continue_task(std::move(label), detail::bind_context(std::move(function)));
     }
 
     template <typename Data, typename Function>
         requires job_function<Function, Data>
-    task_handle continue_with(std::string name, Data data, Function function) const
+    task_handle continue_with(job_label label, Data data, Function function) const
     {
-        return continue_task(std::move(name),
+        return continue_task(std::move(label),
                              detail::bind_job(std::move(data), std::move(function)));
     }
 
-    template <context_function Function>
-    task_handle spawn(std::string name, Function function) const
+    template <context_function Function> task_handle spawn(job_label label, Function function) const
     {
-        return submit(std::move(name), detail::bind_context(std::move(function)), {});
+        return submit(std::move(label), detail::bind_context(std::move(function)), {});
     }
 
     template <context_function Function>
-    task_handle after(const task_handle& prerequisite, std::string name, Function function) const
+    task_handle after(const task_handle& prerequisite, job_label label, Function function) const
     {
-        return after(std::span{&prerequisite, 1}, std::move(name), std::move(function));
+        return after(std::span{&prerequisite, 1}, std::move(label), std::move(function));
     }
 
     template <context_function Function>
-    task_handle after(std::span<const task_handle> prerequisites, std::string name,
+    task_handle after(std::span<const task_handle> prerequisites, job_label label,
                       Function function) const
     {
-        return submit(std::move(name), detail::bind_context(std::move(function)), prerequisites);
+        return submit(std::move(label), detail::bind_context(std::move(function)), prerequisites);
     }
 
     template <context_function Function>
-    task_handle after(std::initializer_list<task_handle> prerequisites, std::string name,
+    task_handle after(std::initializer_list<task_handle> prerequisites, job_label label,
                       Function function) const
     {
-        return after(std::span{prerequisites.begin(), prerequisites.size()}, std::move(name),
+        return after(std::span{prerequisites.begin(), prerequisites.size()}, std::move(label),
                      std::move(function));
     }
 
     template <typename Data, typename Function>
         requires job_function<Function, Data>
-    task_handle spawn(std::string name, Data data, Function function) const
+    task_handle spawn(job_label label, Data data, Function function) const
     {
-        return submit(std::move(name), detail::bind_job(std::move(data), std::move(function)), {});
+        return submit(std::move(label), detail::bind_job(std::move(data), std::move(function)), {});
     }
 
     template <typename Data, typename Function>
         requires job_function<Function, Data>
-    task_handle after(const task_handle& prerequisite, std::string name, Data data,
+    task_handle after(const task_handle& prerequisite, job_label label, Data data,
                       Function function) const
     {
-        return after(std::span{&prerequisite, 1}, std::move(name), std::move(data),
+        return after(std::span{&prerequisite, 1}, std::move(label), std::move(data),
                      std::move(function));
     }
 
     template <typename Data, typename Function>
         requires job_function<Function, Data>
-    task_handle after(std::span<const task_handle> prerequisites, std::string name, Data data,
+    task_handle after(std::span<const task_handle> prerequisites, job_label label, Data data,
                       Function function) const
     {
-        return submit(std::move(name), detail::bind_job(std::move(data), std::move(function)),
+        return submit(std::move(label), detail::bind_job(std::move(data), std::move(function)),
                       prerequisites);
     }
 
     template <typename Data, typename Function>
         requires job_function<Function, Data>
-    task_handle after(std::initializer_list<task_handle> prerequisites, std::string name, Data data,
+    task_handle after(std::initializer_list<task_handle> prerequisites, job_label label, Data data,
                       Function function) const
     {
-        return after(std::span{prerequisites.begin(), prerequisites.size()}, std::move(name),
+        return after(std::span{prerequisites.begin(), prerequisites.size()}, std::move(label),
                      std::move(data), std::move(function));
     }
 
     template <typename T, typename Function>
         requires job_function<Function, std::span<T>>
-    task_handle parallel_for(std::string name, std::span<T> values, std::size_t grain,
+    task_handle parallel_for(job_label label, std::span<T> values, std::size_t grain,
                              Function function) const;
 
   private:
@@ -243,8 +243,8 @@ class job_context
     job_context(std::weak_ptr<detail::scheduler> scheduler,
                 std::weak_ptr<detail::task_state> parent);
     std::shared_ptr<detail::task_state> active_task() const;
-    task_handle continue_task(std::string name, detail::task_body body) const;
-    task_handle submit(std::string name, detail::task_body body,
+    task_handle continue_task(job_label label, detail::task_body body) const;
+    task_handle submit(job_label label, detail::task_body body,
                        std::span<const task_handle> prerequisites) const;
     std::weak_ptr<detail::scheduler> scheduler_;
     std::weak_ptr<detail::task_state> parent_;

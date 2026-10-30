@@ -19,8 +19,20 @@ job_handle::job_handle(std::shared_future<void> completion, std::weak_ptr<const 
 }
 
 job_system::job_system(std::size_t worker_count, job_sanitizer_options sanitizer)
-    : impl_{std::make_shared<detail::scheduler>(worker_count, sanitizer)}
+    : job_system{job_system_options{worker_count, sanitizer, {}, 0}}
 {
+}
+
+job_system::job_system(job_system_options options)
+    : impl_{std::make_shared<detail::scheduler>(options)}
+{
+}
+
+job_trace_report job_system::trace_report() const
+{
+    const std::lock_guard lock{impl_->mutex};
+    return {impl_->trace_capacity != 0, impl_->worker_count, impl_->trace_dropped,
+            impl_->trace_admitted - impl_->trace_records.size(), impl_->trace_records};
 }
 
 job_system::~job_system()

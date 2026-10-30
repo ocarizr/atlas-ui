@@ -62,6 +62,11 @@ void scheduler::complete_task(std::shared_ptr<task_state> task)
         task_body retired;
         retired.swap(current->body);
         retired = {};
+        if (current->scratch)
+        {
+            current->scratch_usage = current->scratch->statistics();
+            current->scratch.reset();
+        }
         {
             const std::lock_guard lock{mutex};
             task = finalize_task(current);
@@ -115,6 +120,7 @@ std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_
     const auto outcome = task->skipped   ? job_status::skipped
                          : task->outcome ? job_status::failed
                                          : job_status::succeeded;
+    finish_trace(*task, outcome, now);
     --waiting;
     ++completed;
     failed += outcome == job_status::failed ? 1U : 0U;

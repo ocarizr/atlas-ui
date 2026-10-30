@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atlas/jobs/job_graph.hpp>
+#include <atlas/jobs/job_trace.hpp>
 
 #include <chrono>
 #include <memory>
@@ -34,6 +35,9 @@ class task_handle
     [[nodiscard]] std::string_view name() const;
     [[nodiscard]] std::exception_ptr exception() const;
     [[nodiscard]] task_timing timing() const;
+    [[nodiscard]] std::uint64_t id() const;
+    [[nodiscard]] std::string_view category() const;
+    [[nodiscard]] scratch_statistics scratch_usage() const;
 
   private:
     friend struct detail::scheduler;

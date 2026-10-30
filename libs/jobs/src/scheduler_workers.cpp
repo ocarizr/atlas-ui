@@ -3,23 +3,27 @@
 
 namespace atlas::jobs::detail
 {
-scheduler::scheduler(std::size_t count, job_sanitizer_options options)
-    : worker_count{count}, sanitizer{std::make_shared<access_registry>(options)},
-      worker_scratch(count)
+scheduler::scheduler(job_system_options options)
+    : worker_count{options.worker_count}, scratch_config{options.scratch},
+      trace_capacity{options.trace_capacity},
+      sanitizer{std::make_shared<access_registry>(options.sanitizer)}, worker_scratch(worker_count)
 {
+    const auto count = worker_count;
     if (count == 0)
     {
         throw std::invalid_argument{"A job system needs at least one worker"};
     }
     workers.reserve(count);
+    scratch_resource validate_scratch{scratch_config};
+    trace_records.reserve(trace_capacity);
     for (std::size_t index = 0; index < count; ++index)
     {
         workers.emplace_back([this, index](const std::stop_token& stop)
-                             { run(stop, worker_scratch[index]); });
+                             { run(stop, worker_scratch[index], index); });
     }
 }
 
-void scheduler::run(const std::stop_token& stop, ready_queue& work)
+void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t worker_index)
 {
     worker_thread = true;
     while (true)
@@ -40,6 +44,7 @@ void scheduler::run(const std::stop_token& stop, ready_queue& work)
             }
             if (entry.task)
             {
+                entry.task->worker_index = worker_index;
                 entry.task->started = task_clock::now();
                 entry.task->body_open = !entry.task->skipped;
                 entry.task->status.store(entry.task->skipped ? job_status::joining

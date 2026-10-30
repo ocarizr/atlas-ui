@@ -43,7 +43,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Generic phased-workload validation remains ahead of production UI. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
+**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Generic phased workloads now have sequential-reference and sparse-update tests; a separate benchmark records scheduling/grain overhead and worker traces. Consumer-specific frame budgets remain to be established. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
 
 ## Component validation
 
@@ -90,6 +90,8 @@ the distinction between internal build artifacts and deliverable packaging.
 | [Streamer and media jobs](docs/15_streamer_and_media_jobs.md) | Exclusive storage boundary, memory/loose sources, bundle plan and decode scheduling |
 | [Portability and naming](docs/16_portability_and_naming.md) | Platform boundaries, snake_case, exceptions and validation |
 | [Direct job dispatch](docs/18_job_dispatch_usage.md) | Injected clients, child lifetimes, ranges, sequencing and outcomes |
+| [Job workloads and profiling](docs/19_job_workloads_and_profiling.md) | Phased proof, scratch memory, benchmark methodology and XML traces |
+| [Job baseline measurements](docs/20_job_workload_baseline.md) | Reference hardware, observed speedups and small-workload overhead |
 | [Job safety and reuse](libs/jobs/README.md) | Declared-access sanitizer, limitations, standalone build and package |
 | [Job graph usage](docs/17_job_graph_usage.md) | Generic examples, dependencies, errors, ownership and diagnostics |
 
