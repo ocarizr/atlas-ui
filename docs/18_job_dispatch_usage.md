@@ -69,9 +69,15 @@ auto parent = jobs.run("parent", [](atlas::jobs::job_context& context)
 parent.wait(); // Both children and their cleanup have finished.
 ```
 
-A retained context cannot submit after its originating callback body closes.
+A context can be used only by its originating callback on its executing thread.
+Retaining or copying one does not grant another thread a child-submission capability.
 Child dependencies that would create a completion cycle are rejected, including
-cycles through another parent's children. Root dispatch through a dispatcher
+cycles through another parent's children. Use `context.dispatcher().run(...)` for independent work and
+`context.continue_with(...)` for a separate job after the current job and descendants
+finish. Both return normal handles; neither is joined by the current job or inherits its
+input lifetime. Pass owned/shared data rather than borrowing the current job's
+input, which is released before a continuation begins. A failed
+current job skips its continuation. Root dispatch through a dispatcher
 from inside a callback is independent work: use the supplied context when the
 work must participate in the parent's lifetime and outcome.
 
@@ -148,3 +154,12 @@ with `after`; keep blocking storage access off this CPU pool. The legacy indepen
 and sealed graph APIs share the same pool but retain their earlier contracts:
 their callbacks have no injected child context, and their waits need not release
 all callback captures. No UI, streaming or media integration is added here.
+
+
+## Optional job sanitizer and reuse
+
+Debug builds automatically enable the declared-access checker; `ATLAS_JOB_SANITIZER`
+selects AUTO/ON/OFF. Parallel ranges declare chunk access automatically. Other jobs
+can use `context.access` with read/write spans. See the library's standalone
+[safety, diagnostics and packaging guide](../libs/jobs/README.md) for checks,
+limitations, false-sharing warnings and CMake package consumption.

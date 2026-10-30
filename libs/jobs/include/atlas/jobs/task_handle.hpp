@@ -37,6 +37,7 @@ class task_handle
 
   private:
     friend struct detail::scheduler;
+    friend class job_context;
     explicit task_handle(std::shared_ptr<detail::task_state> state);
     void validate() const;
     std::shared_ptr<detail::task_state> state_;

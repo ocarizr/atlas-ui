@@ -18,8 +18,8 @@ job_handle::job_handle(std::shared_future<void> completion, std::weak_ptr<const 
 {
 }
 
-job_system::job_system(std::size_t worker_count)
-    : impl_{std::make_shared<detail::scheduler>(worker_count)}
+job_system::job_system(std::size_t worker_count, job_sanitizer_options sanitizer)
+    : impl_{std::make_shared<detail::scheduler>(worker_count, sanitizer)}
 {
 }
 
@@ -38,6 +38,11 @@ job_system::~job_system()
 job_dispatcher job_system::dispatcher() const
 {
     return job_dispatcher{impl_};
+}
+
+job_sanitizer_report job_system::sanitizer_report() const
+{
+    return impl_->sanitizer->report();
 }
 
 job_handle job_system::submit(std::function<void()> job)

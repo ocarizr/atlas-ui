@@ -90,6 +90,7 @@ the distinction between internal build artifacts and deliverable packaging.
 | [Streamer and media jobs](docs/15_streamer_and_media_jobs.md) | Exclusive storage boundary, memory/loose sources, bundle plan and decode scheduling |
 | [Portability and naming](docs/16_portability_and_naming.md) | Platform boundaries, snake_case, exceptions and validation |
 | [Direct job dispatch](docs/18_job_dispatch_usage.md) | Injected clients, child lifetimes, ranges, sequencing and outcomes |
+| [Job safety and reuse](libs/jobs/README.md) | Declared-access sanitizer, limitations, standalone build and package |
 | [Job graph usage](docs/17_job_graph_usage.md) | Generic examples, dependencies, errors, ownership and diagnostics |
 
 The integration branch is `main`. Pull requests run relevant validation; pushes to `main` also package the current deliverables. Releases require a `vMAJOR.MINOR.PATCH` or `VMAJOR.MINOR.PATCH` tag pointing to a commit in `main` history.

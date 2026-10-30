@@ -48,6 +48,10 @@ children; parent completion joins descendants and releases owned input before
 publishing completion. Capture-free callbacks receive explicit, move-capable data.
 Range operations use caller-selected grains, a small-range path and disjoint
 chunks. Handles expose names, status, original failures and completion timings.
+The context distinguishes independent roots, scoped children and continuations.
+An optional declared-access sanitizer checks live scopes and callback lifetimes;
+its portable library and CMake package can be built independently. See the
+[safety and packaging contract](../libs/jobs/README.md).
 See the [usage and ownership contract](18_job_dispatch_usage.md).
 
 The current error policy drains admitted work, joins children after a parent

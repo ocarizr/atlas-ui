@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atlas/jobs/job_sanitizer.hpp>
 #include <atlas/jobs/task_handle.hpp>
 
 #include <algorithm>
@@ -148,10 +149,29 @@ class job_dispatcher
 };
 
 // Executor-created capability: children join this job, including grandchildren.
-// Copies are safe to retain but cannot spawn after the originating body closes.
+// Context operations require the originating callback on its executing thread.
 class job_context
 {
   public:
+    [[nodiscard]] access_guard access(std::span<const memory_access> regions) const;
+    [[nodiscard]] access_guard access(std::initializer_list<memory_access> regions) const;
+    [[nodiscard]] access_guard access(memory_access region) const;
+    [[nodiscard]] job_dispatcher dispatcher() const;
+
+    template <context_function Function>
+    task_handle continue_with(std::string name, Function function) const
+    {
+        return continue_task(std::move(name), detail::bind_context(std::move(function)));
+    }
+
+    template <typename Data, typename Function>
+        requires job_function<Function, Data>
+    task_handle continue_with(std::string name, Data data, Function function) const
+    {
+        return continue_task(std::move(name),
+                             detail::bind_job(std::move(data), std::move(function)));
+    }
+
     template <context_function Function>
     task_handle spawn(std::string name, Function function) const
     {
@@ -222,6 +242,8 @@ class job_context
     friend struct detail::scheduler;
     job_context(std::weak_ptr<detail::scheduler> scheduler,
                 std::weak_ptr<detail::task_state> parent);
+    std::shared_ptr<detail::task_state> active_task() const;
+    task_handle continue_task(std::string name, detail::task_body body) const;
     task_handle submit(std::string name, detail::task_body body,
                        std::span<const task_handle> prerequisites) const;
     std::weak_ptr<detail::scheduler> scheduler_;

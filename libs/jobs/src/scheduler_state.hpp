@@ -1,5 +1,6 @@
 #pragma once
 
+#include "access_registry.hpp"
 #include "task_state.hpp"
 
 #include <condition_variable>
@@ -10,7 +11,7 @@ namespace atlas::jobs::detail
 {
 struct scheduler : std::enable_shared_from_this<scheduler>
 {
-    explicit scheduler(std::size_t count);
+    explicit scheduler(std::size_t count, job_sanitizer_options sanitizer);
     void run(const std::stop_token& stop, ready_queue& work);
     void finish_legacy(ready_queue& retired, const std::exception_ptr& error);
     void drain_and_stop();
@@ -29,6 +30,7 @@ struct scheduler : std::enable_shared_from_this<scheduler>
                                 std::size_t order, retired_failure& retired);
 
     const std::size_t worker_count;
+    std::shared_ptr<access_registry> sanitizer;
     std::shared_ptr<const void> identity{std::make_shared<const int>(0)};
     mutable std::mutex mutex;
     std::mutex lifecycle_mutex;

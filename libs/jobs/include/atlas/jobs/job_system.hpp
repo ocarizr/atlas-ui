@@ -41,7 +41,7 @@ struct job_statistics
 class job_system
 {
   public:
-    explicit job_system(std::size_t worker_count);
+    explicit job_system(std::size_t worker_count, job_sanitizer_options sanitizer = {});
     ~job_system();
     job_system(const job_system&) = delete;
     job_system& operator=(const job_system&) = delete;
@@ -57,6 +57,7 @@ class job_system
     void wait_idle() const;
     void shutdown();
     [[nodiscard]] job_statistics statistics() const;
+    [[nodiscard]] job_sanitizer_report sanitizer_report() const;
 
   private:
     std::shared_ptr<detail::scheduler> impl_;

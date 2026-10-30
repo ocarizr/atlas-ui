@@ -2,6 +2,30 @@
 
 namespace atlas::jobs::detail
 {
+template <typename T, typename Function> struct range_chunk
+{
+    std::span<T> values;
+    Function function;
+};
+
+template <typename T, typename Function>
+void run_chunk(job_context& context, range_chunk<T, Function>& payload)
+{
+    const auto region = [&]
+    {
+        if constexpr (std::is_const_v<T>)
+        {
+            return read_access(payload.values);
+        }
+        else
+        {
+            return write_access(payload.values);
+        }
+    }();
+    auto guard = context.access(region);
+    std::invoke(payload.function, context, payload.values);
+}
+
 template <typename T, typename Function> struct range_payload
 {
     std::string name;
@@ -19,14 +43,17 @@ void run_ranges(job_context& context, range_payload<T, Function>& payload)
     }
     if (payload.values.size() <= payload.grain)
     {
-        std::invoke(payload.function, context, payload.values);
+        range_chunk<T, Function> chunk{payload.values, payload.function};
+        run_chunk(context, chunk);
         return;
     }
     for (std::size_t start = 0; start < payload.values.size();)
     {
         const auto count = std::min(payload.grain, payload.values.size() - start);
-        context.spawn(payload.name + " [" + std::to_string(start) + "]",
-                      payload.values.subspan(start, count), payload.function);
+        context.spawn(
+            payload.name + " [" + std::to_string(start) + "]",
+            range_chunk<T, Function>{payload.values.subspan(start, count), payload.function},
+            &run_chunk<T, Function>);
         start += count;
     }
 }

@@ -5,6 +5,7 @@
 namespace atlas::jobs::detail
 {
 thread_local bool worker_thread = false;
+thread_local task_state* current_task = nullptr;
 
 void require_coordinator()
 {

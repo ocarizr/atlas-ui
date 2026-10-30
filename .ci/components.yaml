@@ -197,6 +197,7 @@ global_paths:
 - vcpkg-configuration.json
 - dependencies/**
 documentation_paths:
+- libs/jobs/README.md
 - README.md
 - CONTRIBUTING.md
 - LICENSE

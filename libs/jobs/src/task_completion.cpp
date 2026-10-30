@@ -1,3 +1,4 @@
+#include "execution_context.hpp"
 #include "scheduler_state.hpp"
 
 namespace atlas::jobs::detail
@@ -8,6 +9,7 @@ void scheduler::execute_task(const std::shared_ptr<task_state>& task)
     if (!task->skipped)
     {
         job_context context{weak_from_this(), task};
+        current_task = task.get();
         try
         {
             task->body(context);
@@ -15,6 +17,22 @@ void scheduler::execute_task(const std::shared_ptr<task_state>& task)
         catch (...)
         {
             error = std::current_exception();
+        }
+        current_task = nullptr;
+        try
+        {
+            if (sanitizer->finish(*task) && !error)
+            {
+                error = std::make_exception_ptr(
+                    job_sanitizer_error{"A declared access guard escaped its job callback"});
+            }
+        }
+        catch (...)
+        {
+            if (!error)
+            {
+                error = std::current_exception();
+            }
         }
     }
     bool finish = false;

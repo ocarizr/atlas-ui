@@ -3,7 +3,9 @@
 
 namespace atlas::jobs::detail
 {
-scheduler::scheduler(std::size_t count) : worker_count{count}, worker_scratch(count)
+scheduler::scheduler(std::size_t count, job_sanitizer_options options)
+    : worker_count{count}, sanitizer{std::make_shared<access_registry>(options)},
+      worker_scratch(count)
 {
     if (count == 0)
     {
