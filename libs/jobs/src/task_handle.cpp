@@ -7,6 +7,12 @@ namespace atlas::jobs
 {
 task_handle::task_handle(std::shared_ptr<detail::task_state> state) : state_{std::move(state)} {}
 
+job_priority task_handle::priority() const
+{
+    validate();
+    return state_->options.priority;
+}
+
 void task_handle::validate() const
 {
     if (!state_)
@@ -44,9 +50,9 @@ void task_handle::wait() const
     state_->finished.get();
     if (state_->outcome)
     {
-        const auto& source = state_->own_error        ? state_
-                             : state_->failure_source ? state_->failure_source
-                                                      : state_;
+        const auto& source = state_->outcome == state_->own_error ? state_
+                             : state_->failure_source             ? state_->failure_source
+                                                                  : state_;
         throw job_error{source->name, state_->outcome};
     }
 }

@@ -38,7 +38,7 @@ bool reaches(const std::shared_ptr<task_state>& start, const task_state* target)
 } // namespace
 
 void scheduler::prepare_task(task_submission& prepared, job_label label, task_body body,
-                             std::span<const task_handle> prerequisites)
+                             std::span<const task_handle> prerequisites, job_options options)
 {
     if (label.name.empty() || !body)
     {
@@ -51,6 +51,11 @@ void scheduler::prepare_task(task_submission& prepared, job_label label, task_bo
     task->category = std::move(label.category);
     task->body = std::move(body);
     task->owner = identity;
+    task->options = std::move(options);
+    if (task->options.cancellation.stop_possible())
+    {
+        task->cancellation_error = std::make_exception_ptr(job_cancelled{});
+    }
     task->entry.emplace_back();
     std::unordered_set<const task_state*> unique;
     for (const auto& handle : prerequisites)
@@ -70,10 +75,10 @@ void scheduler::prepare_task(task_submission& prepared, job_label label, task_bo
 
 task_handle scheduler::submit_task(job_label label, task_body body,
                                    std::span<const task_handle> prerequisites,
-                                   const std::shared_ptr<task_state>& parent)
+                                   const std::shared_ptr<task_state>& parent, job_options options)
 {
     task_submission prepared;
-    prepare_task(prepared, std::move(label), std::move(body), prerequisites);
+    prepare_task(prepared, std::move(label), std::move(body), prerequisites, std::move(options));
     prepare_trace(prepared, parent);
     if (parent)
     {
@@ -166,6 +171,6 @@ void scheduler::queue_task(const std::shared_ptr<task_state>& task)
     task->queued = task_clock::now();
     task->status.store(job_status::ready);
     task->entry.front().task = task;
-    queue.splice(queue.end(), task->entry);
+    queue.push(task->entry, task->options.priority);
 }
 } // namespace atlas::jobs::detail

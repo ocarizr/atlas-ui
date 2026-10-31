@@ -208,3 +208,25 @@ Run the complete repository's jobs tests under Debug, Release, ASan and static
 analysis. Native Windows ThreadSanitizer is currently unavailable; ASan and the
 job checker do not replace it. See the upstream [LLVM sanitizer documentation](https://clang.llvm.org/docs/AddressSanitizer.html)
 and [ThreadSanitizer platform list](https://clang.llvm.org/docs/ThreadSanitizer.html).
+
+## Priorities and cooperative cancellation
+
+Configure a client with `dispatcher.with_options(job_options)` to select
+`job_priority::high`, `normal` or `background` and an optional `std::stop_token`.
+One weighted 4/2/1 ready-queue policy serves the application-owned pool; default
+clients and legacy graphs retain normal priority. Children inherit their parent's
+policy. `context.dispatcher()` creates an independent default client; explicitly
+configure it to share a token or priority with other roots.
+
+A requested token suppresses callbacks selected afterward. Running callbacks use
+`context.stop_requested()`/`throw_if_cancelled()`; normal return still commits
+success. Cancelled children join before parent payload/scratch cleanup. Dependents
+are skipped with the original cause. Real failures outrank cancellation. Handles
+expose `job_status::cancelled`, and waits keep the `job_error` wrapper with a
+`job_cancelled` cause. Cancellation never rolls back writes or forcibly terminates
+threads. Request owned stop sources before shutdown when desired; shutdown drains.
+
+Traces include priority and dispatch order; statistics expose cancelled outcomes
+and per-class queued/dispatched counts. See the complete [policy, fairness bounds,
+examples and lifetime contract](../../docs/21_job_scheduling_and_cancellation.md).
+Rebuild consumers with matching headers and libraries.

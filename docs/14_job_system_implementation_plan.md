@@ -66,8 +66,8 @@ See the [memory and tracing contract](../libs/jobs/README.md).
 Acceptance covers empty/uneven ranges, exact-once visits, child/parent lifetime,
 failures, cleanup, stable reductions and comparison across worker counts. The
 phased reference below closes combined/incremental validation. Categories do not
-set priority. Grain choices are measured rather than automatically tuned. Richer
-cancellation belongs to milestone 4; draining is the current shutdown policy.
+set priority. Grain choices are measured rather than automatically tuned. Cooperative
+cancellation is implemented in milestone 4; draining remains the default shutdown policy.
 
 ## Milestone 3: generic phased-workload proof before client integrations (reference implemented)
 
@@ -99,11 +99,16 @@ frame boundaries, resource acquisition and codec scheduling remain separate
 integration tasks. Work stealing, fibers, bundles and full playback are not
 prerequisites for the scheduler's dependency API.
 
-## Milestone 4: background-work scheduling
+## Milestone 4: background-work scheduling (implemented)
 
-Evaluate generic priorities/QoS, cancellation and fairness for mixed foreground and
-background CPU work. Measure starvation and admission behavior without teaching
-the scheduler about particular consumers. Overlapped I/O, storage completions,
+Direct clients select high/normal/background policy and standard C++ stop tokens.
+Children inherit policy; independent roots remain independent. Weighted FIFO ready
+queues provide 4/2/1 service without starving continuously ready classes. Cancellation
+suppresses unstarted callbacks and supports explicit running checkpoints; joins,
+cleanup, deterministic failures and draining remain intact. Trace dispatch identities
+and per-class counters support controlled mixed-workload and late-arrival tests.
+Admission remains unbounded; dispatch fairness does not imply real-time deadlines.
+See the [scheduling/cancellation contract](21_job_scheduling_and_cancellation.md). Overlapped I/O, storage completions,
 demux and codec integration belong to the separate [streamer/media plan](15_streamer_and_media_jobs.md).
 
 ## Milestone 5: measured scheduler optimization

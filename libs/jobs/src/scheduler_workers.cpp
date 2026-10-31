@@ -23,6 +23,18 @@ scheduler::scheduler(job_system_options options)
     }
 }
 
+void scheduler::start_task(task_state& task, std::size_t worker_index)
+{
+    task.worker_index = worker_index;
+    task.dispatch_index = queue.dispatch_count;
+    task.own_cancelled = !task.skipped && task.options.cancellation.stop_requested();
+    task.started = task_clock::now();
+    task.body_suppressed = task.own_cancelled;
+    task.body_open = !task.skipped && !task.own_cancelled;
+    task.status.store((task.skipped || task.own_cancelled) ? job_status::joining
+                                                           : job_status::running);
+}
+
 void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t worker_index)
 {
     worker_thread = true;
@@ -34,7 +46,7 @@ void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t 
             {
                 break;
             }
-            work.splice(work.end(), queue, queue.begin());
+            queue.take(work);
             ++running;
             const auto& entry = work.front();
             if (entry.graph)
@@ -44,11 +56,7 @@ void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t 
             }
             if (entry.task)
             {
-                entry.task->worker_index = worker_index;
-                entry.task->started = task_clock::now();
-                entry.task->body_open = !entry.task->skipped;
-                entry.task->status.store(entry.task->skipped ? job_status::joining
-                                                             : job_status::running);
+                start_task(*entry.task, worker_index);
             }
         }
         if (work.front().task)
@@ -82,8 +90,8 @@ void scheduler::finish_legacy(ready_queue& retired, const std::exception_ptr& er
     failed += error ? 1U : 0U;
     if (work.graph)
     {
-        const auto result =
-            work.graph->finish(work.graph, work.index, error, {.ready = queue, .retired = retired});
+        const auto result = work.graph->finish(work.graph, work.index, error,
+                                               {.ready = queue.normal(), .retired = retired});
         waiting -= result.released;
         completed += result.skipped;
         skipped += result.skipped;

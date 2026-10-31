@@ -3,55 +3,6 @@
 
 namespace atlas::jobs::detail
 {
-void scheduler::execute_task(const std::shared_ptr<task_state>& task)
-{
-    std::exception_ptr error;
-    if (!task->skipped)
-    {
-        job_context context{weak_from_this(), task};
-        current_task = task.get();
-        try
-        {
-            task->body(context);
-        }
-        catch (...)
-        {
-            error = std::current_exception();
-        }
-        current_task = nullptr;
-        try
-        {
-            if (sanitizer->finish(*task) && !error)
-            {
-                error = std::make_exception_ptr(
-                    job_sanitizer_error{"A declared access guard escaped its job callback"});
-            }
-        }
-        catch (...)
-        {
-            if (!error)
-            {
-                error = std::current_exception();
-            }
-        }
-    }
-    bool finish = false;
-    {
-        const std::lock_guard lock{mutex};
-        task->body_open = false;
-        task->own_error = error;
-        task->body_finished = task_clock::now();
-        task->status.store(job_status::joining);
-        --running;
-        ++waiting;
-        finish = --task->unfinished == 0;
-    }
-    if (finish)
-    {
-        complete_task(task);
-    }
-}
-
 void scheduler::complete_task(std::shared_ptr<task_state> task)
 {
     while (task)
@@ -79,15 +30,19 @@ void scheduler::complete_task(std::shared_ptr<task_state> task)
 void scheduler::inherit_failure(task_state& destination, const std::shared_ptr<task_state>& source,
                                 std::size_t order, retired_failure& retired)
 {
-    if (source->outcome && order < destination.error_order)
+    const bool same_kind = destination.inherited_cancelled == source->outcome_cancelled;
+    const bool prefer_failure = destination.inherited_cancelled && !source->outcome_cancelled;
+    if (source->outcome && (!destination.inherited_error || prefer_failure ||
+                            (same_kind && order < destination.error_order)))
     {
         retired.error = destination.inherited_error;
         retired.source = std::move(destination.failure_source);
         destination.error_order = order;
         destination.inherited_error = source->outcome;
-        destination.failure_source = source->own_error        ? source
-                                     : source->failure_source ? source->failure_source
-                                                              : source;
+        destination.inherited_cancelled = source->outcome_cancelled;
+        destination.failure_source = source->outcome == source->own_error ? source
+                                     : source->failure_source             ? source->failure_source
+                                                                          : source;
     }
 }
 
@@ -108,23 +63,29 @@ void scheduler::publish_successors(const std::shared_ptr<task_state>& task)
 std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_state>& task)
 {
     auto parent = std::move(task->parent);
-    task->outcome = task->own_error ? task->own_error : task->inherited_error;
+    // Real failures outrank cooperative cancellation, then registration order.
+    const bool use_own = task->own_error && (!task->own_cancelled || !task->inherited_error ||
+                                             task->inherited_cancelled);
+    task->outcome = use_own ? task->own_error : task->inherited_error;
+    task->outcome_cancelled = use_own ? task->own_cancelled : task->inherited_cancelled;
     const auto now = task_clock::now();
     const auto nanoseconds = [](task_clock::duration duration)
     { return std::chrono::duration_cast<std::chrono::nanoseconds>(duration); };
-    task->timing = {nanoseconds(task->queued - task->submitted),
-                    nanoseconds(task->started - task->queued),
-                    task->skipped ? std::chrono::nanoseconds::zero()
-                                  : nanoseconds(task->body_finished - task->started),
-                    nanoseconds(now - task->body_finished), nanoseconds(now - task->submitted)};
-    const auto outcome = task->skipped   ? job_status::skipped
-                         : task->outcome ? job_status::failed
-                                         : job_status::succeeded;
+    task->timing = {
+        nanoseconds(task->queued - task->submitted), nanoseconds(task->started - task->queued),
+        (task->skipped || task->body_suppressed) ? std::chrono::nanoseconds::zero()
+                                                 : nanoseconds(task->body_finished - task->started),
+        nanoseconds(now - task->body_finished), nanoseconds(now - task->submitted)};
+    const auto outcome = task->skipped             ? job_status::skipped
+                         : task->outcome_cancelled ? job_status::cancelled
+                         : task->outcome           ? job_status::failed
+                                                   : job_status::succeeded;
     finish_trace(*task, outcome, now);
     --waiting;
     ++completed;
     failed += outcome == job_status::failed ? 1U : 0U;
     skipped += outcome == job_status::skipped ? 1U : 0U;
+    cancelled += outcome == job_status::cancelled ? 1U : 0U;
     task->marker->terminal = true;
     task->waits_for.clear();
     task->status.store(outcome, std::memory_order_release);

@@ -2,6 +2,7 @@
 
 #include <atlas/jobs/job_graph.hpp>
 #include <atlas/jobs/job_memory.hpp>
+#include <atlas/jobs/job_policy.hpp>
 
 #include <chrono>
 #include <cstdint>
@@ -26,6 +27,8 @@ struct task_trace
 {
     std::uint64_t id{0};
     std::uint64_t parent_id{0};
+    std::uint64_t dispatch_index{0};
+    job_priority priority{job_priority::normal};
     std::string name;
     std::string category;
     std::vector<std::uint64_t> prerequisites;

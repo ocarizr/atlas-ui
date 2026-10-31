@@ -35,7 +35,8 @@ enum class job_status : std::uint8_t
     succeeded,
     failed,
     skipped,
-    joining
+    joining,
+    cancelled
 };
 
 class graph_error : public std::runtime_error

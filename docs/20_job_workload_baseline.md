@@ -1,5 +1,7 @@
 # Local scheduler reference baseline
 
+This historical Milestone 3 baseline predates weighted priority scheduling and cooperative cancellation. It is not a performance measurement of the later policy.
+
 Measured on 2026-10-30 using Intel Core Ultra 7 265KF (20 reported cores/logical
 processors), Windows x64, MSVC 19.44.35229.0, Release, job sanitizer AUTO (disabled for Release).
 No ASan, coverage or task tracing was enabled in timing runs. The machine was not

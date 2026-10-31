@@ -35,6 +35,8 @@ void scheduler::finish_trace(task_state& task, job_status status, task_clock::ti
     const auto offset = [this](task_clock::time_point time)
     { return std::chrono::duration_cast<std::chrono::nanoseconds>(time - epoch); };
     record.id = task.id;
+    record.priority = task.options.priority;
+    record.dispatch_index = task.dispatch_index;
     record.worker_index = task.worker_index;
     record.status = status;
     record.submitted = offset(task.submitted);

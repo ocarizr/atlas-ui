@@ -3,6 +3,7 @@
 #include <atlas/jobs/job_dispatcher.hpp>
 #include <atlas/jobs/job_graph.hpp>
 
+#include <array>
 #include <cstddef>
 #include <functional>
 #include <future>
@@ -42,7 +43,10 @@ struct job_statistics
     std::size_t completed; // Terminal jobs, including failed and skipped jobs.
     std::size_t waiting;   // Jobs awaiting prerequisites, children, or cleanup.
     std::size_t failed;    // Failed outcomes, including parents with failed children.
-    std::size_t skipped;   // Callbacks suppressed by failed prerequisites.
+    std::size_t skipped;   // Callbacks suppressed by failed/cancelled prerequisites.
+    std::size_t cancelled; // Cancelled outcomes, including parents joining cancelled children.
+    std::array<std::size_t, 3> queued_by_priority;
+    std::array<std::size_t, 3> dispatched_by_priority;
 };
 
 // Jobs must not call wait, wait_idle, shutdown, or destroy a scheduler.

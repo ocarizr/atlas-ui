@@ -37,6 +37,7 @@ template <typename T, typename Function> struct range_payload
 template <typename T, typename Function>
 void run_ranges(job_context& context, range_payload<T, Function>& payload)
 {
+    context.throw_if_cancelled();
     if (payload.values.empty())
     {
         return;
@@ -49,6 +50,7 @@ void run_ranges(job_context& context, range_payload<T, Function>& payload)
     }
     for (std::size_t start = 0; start < payload.values.size();)
     {
+        context.throw_if_cancelled();
         const auto count = std::min(payload.grain, payload.values.size() - start);
         context.spawn(
             job_label{payload.label.name + " [" + std::to_string(start) + "]",

@@ -74,7 +74,7 @@ job_handle job_system::submit(std::function<void()> job)
         {
             throw std::logic_error{"The job system is shutting down"};
         }
-        impl_->queue.splice(impl_->queue.end(), prepared);
+        impl_->queue.push(prepared, job_priority::normal);
         ++impl_->submitted;
     }
     impl_->available.notify_one();
@@ -92,7 +92,7 @@ graph_handle job_system::submit_graph(const job_graph& graph)
             throw std::logic_error{"The job system is shutting down"};
         }
         state->scheduler = impl_->identity;
-        const auto roots = state->publish(state, impl_->queue);
+        const auto roots = state->publish(state, impl_->queue.normal());
         impl_->submitted += state->nodes.size();
         impl_->waiting += state->nodes.size() - roots;
         if (state->nodes.empty())
@@ -151,7 +151,8 @@ void job_system::shutdown()
 job_statistics job_system::statistics() const
 {
     const std::lock_guard lock{impl_->mutex};
-    return {impl_->worker_count, impl_->queue.size(), impl_->running, impl_->submitted,
-            impl_->completed,    impl_->waiting,      impl_->failed,  impl_->skipped};
+    return {impl_->worker_count, impl_->queue.size(),  impl_->running,         impl_->submitted,
+            impl_->completed,    impl_->waiting,       impl_->failed,          impl_->skipped,
+            impl_->cancelled,    impl_->queue.sizes(), impl_->queue.dispatched};
 }
 } // namespace atlas::jobs

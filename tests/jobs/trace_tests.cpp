@@ -4,6 +4,28 @@
 
 namespace atlas::jobs::tests
 {
+TEST(trace_tests, cancelled_dispatch_records_priority_and_suppressed_execution)
+{
+    job_system_options options;
+    options.trace_capacity = 2;
+    job_system system{options};
+    std::stop_source stop;
+    stop.request_stop();
+    auto cancelled = system.dispatcher()
+                         .with_options({job_priority::background, stop.get_token()})
+                         .run("cancelled", [](job_context&) { FAIL(); });
+    auto skipped = system.dispatcher().after(cancelled, "skipped", [](job_context&) { FAIL(); });
+    EXPECT_THROW(skipped.wait(), job_error);
+    const auto report = system.trace_report();
+    ASSERT_EQ(report.tasks.size(), 2U);
+    EXPECT_EQ(report.pending, 0U);
+    EXPECT_EQ(report.tasks[0].status, job_status::cancelled);
+    EXPECT_EQ(report.tasks[0].priority, job_priority::background);
+    EXPECT_EQ(report.tasks[1].status, job_status::skipped);
+    EXPECT_LT(report.tasks[0].dispatch_index, report.tasks[1].dispatch_index);
+    EXPECT_EQ(cancelled.timing().execution.count(), 0);
+}
+
 TEST(trace_tests, disabled_tracing_retains_no_task_records)
 {
     job_system system{1};

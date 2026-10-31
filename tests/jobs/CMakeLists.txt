@@ -5,6 +5,10 @@ add_executable(atlas_jobs_tests execution_tests.cpp failure_tests.cpp lifecycle_
     task_failure_tests.cpp context_dispatch_tests.cpp access_sanitizer_tests.cpp
     range_sanitizer_tests.cpp sanitizer_lifecycle_tests.cpp scratch_tests.cpp trace_tests.cpp
     phased_workload_tests.cpp scratch_concurrency_tests.cpp incremental_workload_tests.cpp
+    priority_tests.cpp cancellation_tests.cpp
+    cancellation_scope_tests.cpp
+    mixed_priority_tests.cpp
+    cancellation_lifecycle_tests.cpp
     "${PROJECT_SOURCE_DIR}/benchmarks/jobs/phased_workload.cpp")
 target_include_directories(atlas_jobs_tests PRIVATE "${PROJECT_SOURCE_DIR}/benchmarks/jobs")
 target_link_libraries(atlas_jobs_tests PRIVATE atlas::jobs GTest::gtest_main)

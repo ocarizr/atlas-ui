@@ -69,11 +69,12 @@ void write_task(std::ostream& output, const task_trace& task)
     output << "<task id=\"" << task.id << "\" parent_id=\"" << task.parent_id << "\" name=\""
            << xml(task.name) << "\" category=\"" << xml(task.category) << "\" worker=\""
            << task.worker_index << "\" status=\"" << static_cast<unsigned>(task.status)
-           << "\" submitted_ns=\"" << task.submitted.count() << "\" started_ns=\""
-           << task.started.count() << "\" body_finished_ns=\"" << task.body_finished.count()
-           << "\" completed_ns=\"" << task.completed.count() << "\" scratch_calls=\""
-           << task.scratch.allocation_calls << "\" scratch_reserved_bytes=\""
-           << task.scratch.reserved_bytes << "\">\n";
+           << "\" priority=\"" << static_cast<unsigned>(task.priority) << "\" dispatch_index=\""
+           << task.dispatch_index << "\" submitted_ns=\"" << task.submitted.count()
+           << "\" started_ns=\"" << task.started.count() << "\" body_finished_ns=\""
+           << task.body_finished.count() << "\" completed_ns=\"" << task.completed.count()
+           << "\" scratch_calls=\"" << task.scratch.allocation_calls
+           << "\" scratch_reserved_bytes=\"" << task.scratch.reserved_bytes << "\">\n";
     for (const auto prerequisite : task.prerequisites)
     {
         output << "<prerequisite id=\"" << prerequisite << "\"/>\n";

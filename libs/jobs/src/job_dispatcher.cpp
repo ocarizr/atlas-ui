@@ -10,6 +10,36 @@ job_dispatcher::job_dispatcher(std::weak_ptr<detail::scheduler> scheduler)
 {
 }
 
+job_dispatcher job_dispatcher::with_options(job_options options) const
+{
+    if (options.priority != job_priority::high && options.priority != job_priority::normal &&
+        options.priority != job_priority::background)
+    {
+        throw std::invalid_argument{"Invalid job priority"};
+    }
+    auto result = *this;
+    result.options_ = std::move(options);
+    return result;
+}
+
+bool job_context::stop_requested() const
+{
+    return active_task()->options.cancellation.stop_requested();
+}
+
+void job_context::throw_if_cancelled() const
+{
+    if (stop_requested())
+    {
+        throw job_cancelled{};
+    }
+}
+
+job_priority job_context::priority() const
+{
+    return active_task()->options.priority;
+}
+
 task_handle job_dispatcher::submit(job_label label, detail::task_body body,
                                    std::span<const task_handle> prerequisites,
                                    const std::shared_ptr<detail::task_state>& parent) const
@@ -19,7 +49,8 @@ task_handle job_dispatcher::submit(job_label label, detail::task_body body,
     {
         throw std::logic_error{"The job runtime is no longer available"};
     }
-    return scheduler->submit_task(std::move(label), std::move(body), prerequisites, parent);
+    return scheduler->submit_task(std::move(label), std::move(body), prerequisites, parent,
+                                  parent ? parent->options : options_);
 }
 
 task_handle job_dispatcher::fence(job_label label, std::span<const task_handle> prerequisites) const
@@ -81,8 +112,9 @@ std::pmr::memory_resource& job_context::scratch() const
 task_handle job_context::continue_task(job_label label, detail::task_body body) const
 {
     const task_handle prerequisite{active_task()};
-    return job_dispatcher{scheduler_}.submit(std::move(label), std::move(body),
-                                             std::span{&prerequisite, 1});
+    return job_dispatcher{scheduler_}
+        .with_options(prerequisite.state_->options)
+        .submit(std::move(label), std::move(body), std::span{&prerequisite, 1});
 }
 
 access_guard job_context::access(std::span<const memory_access> regions) const
