@@ -7,7 +7,6 @@
 #include <limits>
 #include <memory>
 #include <new>
-#include <stdexcept>
 
 // Preserve the CRT's declared contracts when MSVC /analyze checks replacements.
 #if defined(_MSC_VER)
@@ -106,35 +105,6 @@ allocation_counts end_allocation_counting() noexcept
     return {calls.load(), requested.load()};
 }
 
-void verify_allocation_counter()
-{
-    begin_allocation_counting();
-    try
-    {
-        bool aligned = false;
-        {
-            using pointer = std::unique_ptr<void, void (*)(void*)>;
-            pointer ordinary{::operator new(17), [](void* value) { ::operator delete(value); }};
-            pointer array{::operator new[](19), [](void* value) { ::operator delete[](value); }};
-            pointer wide{::operator new(64, std::align_val_t{64}),
-                         [](void* value) { ::operator delete(value, std::align_val_t{64}); }};
-            pointer optional{::operator new(64, std::align_val_t{64}, std::nothrow),
-                             [](void* value) { ::operator delete(value, std::align_val_t{64}); }};
-            aligned = optional && reinterpret_cast<std::uintptr_t>(wide.get()) % 64 == 0 &&
-                      reinterpret_cast<std::uintptr_t>(optional.get()) % 64 == 0;
-        }
-        const auto result = end_allocation_counting();
-        if (!aligned || result.calls != 4 || result.requested_bytes != 164)
-        {
-            throw std::runtime_error{"Benchmark allocation-counter self-check failed"};
-        }
-    }
-    catch (...)
-    {
-        (void)end_allocation_counting();
-        throw;
-    }
-}
 } // namespace atlas::jobs::workloads
 
 ATLAS_BENCHMARK_ALLOCATION_CONTRACT

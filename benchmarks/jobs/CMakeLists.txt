@@ -1,5 +1,5 @@
 add_executable(atlas_jobs_benchmark main.cpp options.cpp benchmark.cpp report.cpp
-    phased_workload.cpp allocation_counter.cpp)
+    phased_workload.cpp allocation_counter.cpp allocation_counter_check.cpp)
 target_link_libraries(atlas_jobs_benchmark PRIVATE atlas::jobs)
 atlas_configure_target(atlas_jobs_benchmark)
 target_compile_definitions(atlas_jobs_benchmark PRIVATE
