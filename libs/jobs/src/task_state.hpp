@@ -64,8 +64,6 @@ struct task_state
     std::weak_ptr<const void> owner;
     task_body body;
     std::atomic<job_status> status{job_status::pending};
-    std::promise<void> completion;
-    std::shared_future<void> finished{completion.get_future().share()};
     ready_queue entry;
     std::list<dependency_link> subscribers;
     std::shared_ptr<task_marker> marker{std::make_shared<task_marker>()};

@@ -93,7 +93,6 @@ std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_
     task->marker->terminal = true;
     task->waits_for.clear();
     task->status.store(outcome, std::memory_order_release);
-    task->completion.set_value();
     publish_successors(task);
     std::shared_ptr<task_state> next;
     if (parent)

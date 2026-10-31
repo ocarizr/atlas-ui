@@ -48,11 +48,19 @@ void task_handle::wait() const
 {
     detail::require_coordinator();
     validate();
-    if (auto runtime = state_->runtime.lock())
+    // Terminal publication already releases the payload and makes result fields
+    // visible. A completed handle needs neither a pool lock nor a second signal.
+    if (!ready())
     {
-        runtime->wait_for(state_);
+        if (auto runtime = state_->runtime.lock())
+        {
+            runtime->wait_for(state_);
+        }
+        else if (!ready())
+        {
+            throw std::logic_error{"Task runtime expired before terminal publication"};
+        }
     }
-    state_->finished.get();
     if (state_->outcome)
     {
         const auto& source = state_->outcome == state_->own_error ? state_

@@ -123,9 +123,16 @@ source results; exited owners fail undelivered notifications rather than running
 them on the wrong thread.
 See the [callback contract](22_job_completion_callbacks.md).
 
-## Milestone 5: measured scheduler optimization
+## Milestone 5: measured scheduler optimization (first pass implemented)
 
 Evaluate local queues, work stealing, allocation pools, affinity and optional fibers/coroutines only when traces justify them. Preserve the reference semantics/tests. Optimize wall time and critical paths rather than maximizing job count or imposing lock-free machinery without evidence.
+
+Direct tasks now use their existing terminal publication and scheduler condition
+variable instead of allocating a second promise/future completion state. Completed
+handle waits avoid the pool mutex. Concurrent waiters, retained handles and callback
+pumping preserve the reference contracts. See the [optimization report and candidate
+decisions](23_job_scheduler_optimization.md) for measurements, limits and deferred
+options. Consumer-specific profiling remains the gate for more invasive changes.
 
 ## Validation strategy
 
