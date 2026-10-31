@@ -59,4 +59,23 @@ task_timing task_handle::timing() const
     }
     return state_->timing;
 }
+
+std::uint64_t task_handle::id() const
+{
+    validate();
+    return state_->id;
+}
+std::string_view task_handle::category() const
+{
+    validate();
+    return state_->category;
+}
+scratch_statistics task_handle::scratch_usage() const
+{
+    if (!ready())
+    {
+        throw std::logic_error{"Scratch statistics require task completion"};
+    }
+    return state_->scratch_usage;
+}
 } // namespace atlas::jobs

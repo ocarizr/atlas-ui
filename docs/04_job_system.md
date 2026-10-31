@@ -7,7 +7,8 @@ persistent pool, dependency handles, executor-created child contexts, joined ran
 and coordinator fences. Sealed DAG submission remains available. Both modes share
 workers, statistics and draining shutdown. Start with the [direct dispatch guide](18_job_dispatch_usage.md);
 see [sealed graphs](17_job_graph_usage.md) and the [implementation plan](14_job_system_implementation_plan.md).
-Generic phased-workload validation remains pending.
+A generic phased reference now validates full and sparse updates; see the
+[workload and profiling guide](19_job_workloads_and_profiling.md).
 
 The scheduler is a reusable, client-agnostic library. UI, streaming, video and audio may use it, but their domain concepts and integration code do not belong inside `jobs`. This milestone adds scheduler behavior and generic tests only.
 
@@ -63,11 +64,11 @@ Measure, Arrange, Geometry, and RenderData have deterministic synchronization bo
 | Area | Open decisions |
 | --- | --- |
 | Queues | Local/global queues, work stealing, priorities and starvation prevention |
-| Memory | Explicit owned inputs and borrowed ranges established; allocator/scratch optimization pending |
+| Memory | Explicit owned inputs and borrowed ranges established; bounded scratch implemented; allocator pooling remains measurement-driven |
 | Completion | Scoped joins and fences implemented; worker waits rejected; richer continuations pending |
 | Failure | Stable error propagation and skipped dependents implemented; cancellation pending |
 | Lifecycle | Fixed pool and draining implemented; cancellation pending |
 | Safety | Read/write access rules and structural ECS mutation |
-| Diagnostics | Task names/status/timings implemented; traces and critical-path measurement pending |
+| Diagnostics | Task names/status/timings implemented; bounded worker/dependency traces implemented; exact causal profiling remains future work |
 
 Test exact-once execution, dependencies, children, barriers, failures and shutdown. Stress with controlled schedules/seeds and compare against sequential execution. Measure wall time, overhead, worker utilization and critical paths; the goal is shorter activities through better CPU use, not necessarily less total CPU work.

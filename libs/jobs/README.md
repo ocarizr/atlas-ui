@@ -105,6 +105,74 @@ place declarations inside an actual lock's scope or use an appropriate analysis.
 False-sharing warnings are cache-line heuristics, not hardware contention samples.
 Do not use their absence as proof or insert padding without measurement.
 
+## Scoped scratch memory
+
+`context.scratch()` returns a thread-safe `std::pmr::memory_resource` owned by the
+current task. It is created lazily. Containers can use it for temporary buffers:
+
+```cpp
+std::pmr::vector<int> temporary{&context.scratch()};
+temporary.resize(256);
+```
+
+A task's scratch remains alive until its body, descendants and input cleanup
+finish. Children may borrow parent-owned buffers or the parent's resource. Keep shared
+containers in parent-owned input, not callback stack locals: backing storage
+survival does not extend the lifetime of a destroyed container or its elements. Their
+own `context.scratch()` provides a separate scope. Independent roots and
+continuations do not inherit this lifetime. Destroy nontrivial objects/containers
+normally: bulk memory release does not run their destructors. Individual
+deallocations do not reclaim capacity; blocks are freed together before completion
+is published, even if completed handles remain alive.
+
+`job_system_options.scratch` configures block size, per-task reserved-byte budget
+and upstream resource. Defaults are 4 KiB blocks and a 4 MiB budget per used task.
+Budget exhaustion throws `std::bad_alloc`, with normal task failure propagation.
+The upstream resource must outlive all work using it and support concurrent
+allocation/deallocation from different workers when shared by several scopes. The budget counts block
+storage, not allocator metadata or the sum of every task in the application.
+`handle.scratch_usage()` becomes available after completion and reports successful
+allocation calls, requested bytes, block count and the scope's reserved high-water
+mark. Memory is already released when these terminal statistics are read.
+
+## Bounded task tracing
+
+Use `job_system_options` at the composition root when collecting a trace:
+
+```cpp
+atlas::jobs::job_system_options options;
+options.worker_count = 4;
+options.trace_capacity = 4096;
+atlas::jobs::job_system runtime{options};
+auto done = runtime.dispatcher().run(atlas::jobs::job_label{"transform", "processing"},
+    [](atlas::jobs::job_context&) {});
+done.wait();
+auto report = runtime.trace_report();
+```
+
+Existing string names remain valid. Categories are diagnostic tags; they do not
+set priority. Children inherit an empty category from their parent, including
+parallel chunks. Independent roots/continuations can receive explicit labels.
+Handles expose runtime-local IDs and category views, retained as long as the handle.
+
+Tracing is disabled by default. When enabled, the runtime keeps at most the first
+`trace_capacity` admitted incremental tasks. Records include IDs, parent joins,
+prerequisite IDs, worker index, terminal outcome, scratch usage and submission,
+callback-start/end and completion timestamps relative to runtime creation.
+`pending` counts admitted records not completed yet; `dropped` exposes capacity
+exhaustion. A bounded snapshot is not a complete trace when either is nonzero.
+Task records contain no callbacks, borrowed buffers or exception objects.
+
+Collection is opt-in and changes scheduling/allocation overhead. Take snapshots
+after a batch where practical; copying live reports holds the scheduler lock.
+The legacy independent-submit and sealed-graph APIs retain their existing contracts
+and are not included in this incremental-task recorder. The repository's benchmark
+exports its own XML trace and reports callback occupancy, not OS CPU utilization.
+Scheduling order and timestamp values are observations, not deterministic outputs.
+Skipped records describe dispatch/cleanup intervals; their callbacks did not run.
+Rebuild consumers with the matching exported headers/library. String-name call
+sites remain valid, but mixing previously compiled interfaces is not supported.
+
 ## Build, install and reuse
 
 The complete library and checker live in this directory. Copy it or add it as a

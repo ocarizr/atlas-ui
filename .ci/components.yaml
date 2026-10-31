@@ -1,4 +1,17 @@
 components:
+  jobs-benchmark:
+    paths:
+    - benchmarks/jobs/**
+    depends_on:
+    - jobs
+    build_targets:
+    - atlas_jobs_benchmark
+    test_labels:
+    - jobs-benchmark
+    build_requires:
+    - jobs
+    vendors:
+    - testing
   core:
     paths:
     - libs/foundation/**
@@ -103,6 +116,7 @@ components:
     - content
   jobs:
     paths:
+    - benchmarks/jobs/phased_workload.*
     - libs/jobs/**
     - tests/jobs/**
     depends_on: []

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graph_state.hpp"
+#include "scratch_resource.hpp"
 #include <atlas/jobs/job_dispatcher.hpp>
 
 #include <atomic>
@@ -35,6 +36,12 @@ struct task_marker
 struct task_state
 {
     std::string name;
+    std::string category;
+    std::uint64_t id{0};
+    std::size_t worker_index{0};
+    std::unique_ptr<scratch_resource> scratch;
+    scratch_statistics scratch_usage;
+    std::optional<task_trace> trace;
     std::weak_ptr<const void> owner;
     task_body body;
     std::atomic<job_status> status{job_status::pending};

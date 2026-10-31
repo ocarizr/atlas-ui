@@ -10,7 +10,7 @@ job_dispatcher::job_dispatcher(std::weak_ptr<detail::scheduler> scheduler)
 {
 }
 
-task_handle job_dispatcher::submit(std::string name, detail::task_body body,
+task_handle job_dispatcher::submit(job_label label, detail::task_body body,
                                    std::span<const task_handle> prerequisites,
                                    const std::shared_ptr<detail::task_state>& parent) const
 {
@@ -19,19 +19,18 @@ task_handle job_dispatcher::submit(std::string name, detail::task_body body,
     {
         throw std::logic_error{"The job runtime is no longer available"};
     }
-    return scheduler->submit_task(std::move(name), std::move(body), prerequisites, parent);
+    return scheduler->submit_task(std::move(label), std::move(body), prerequisites, parent);
 }
 
-task_handle job_dispatcher::fence(std::string name,
-                                  std::span<const task_handle> prerequisites) const
+task_handle job_dispatcher::fence(job_label label, std::span<const task_handle> prerequisites) const
 {
-    return submit(std::move(name), [](job_context&) {}, prerequisites);
+    return submit(std::move(label), [](job_context&) {}, prerequisites);
 }
 
-task_handle job_dispatcher::fence(std::string name,
+task_handle job_dispatcher::fence(job_label label,
                                   std::initializer_list<task_handle> prerequisites) const
 {
-    return fence(std::move(name), std::span{prerequisites.begin(), prerequisites.size()});
+    return fence(std::move(label), std::span{prerequisites.begin(), prerequisites.size()});
 }
 
 job_context::job_context(std::weak_ptr<detail::scheduler> scheduler,
@@ -40,11 +39,11 @@ job_context::job_context(std::weak_ptr<detail::scheduler> scheduler,
 {
 }
 
-task_handle job_context::submit(std::string name, detail::task_body body,
+task_handle job_context::submit(job_label label, detail::task_body body,
                                 std::span<const task_handle> prerequisites) const
 {
     auto parent = active_task();
-    return job_dispatcher{scheduler_}.submit(std::move(name), std::move(body), prerequisites,
+    return job_dispatcher{scheduler_}.submit(std::move(label), std::move(body), prerequisites,
                                              parent);
 }
 
@@ -64,10 +63,25 @@ job_dispatcher job_context::dispatcher() const
     return job_dispatcher{scheduler_};
 }
 
-task_handle job_context::continue_task(std::string name, detail::task_body body) const
+std::pmr::memory_resource& job_context::scratch() const
+{
+    const auto task = active_task();
+    const auto scheduler = scheduler_.lock();
+    if (!scheduler)
+    {
+        throw std::logic_error{"The job runtime is no longer available"};
+    }
+    if (!task->scratch)
+    {
+        task->scratch = std::make_unique<detail::scratch_resource>(scheduler->scratch_config);
+    }
+    return *task->scratch;
+}
+
+task_handle job_context::continue_task(job_label label, detail::task_body body) const
 {
     const task_handle prerequisite{active_task()};
-    return job_dispatcher{scheduler_}.submit(std::move(name), std::move(body),
+    return job_dispatcher{scheduler_}.submit(std::move(label), std::move(body),
                                              std::span{&prerequisite, 1});
 }
 
