@@ -146,7 +146,9 @@ Dropping handles does not cancel tasks. Completed handles survive runtime
 destruction, but dispatchers and contexts do not keep the pool alive. Stop external
 users before destroying the runtime. `shutdown()` rejects new roots, allows active
 contexts to finish admitting children, drains accepted work and joins workers.
-Callbacks and cleanup must finish; there is no preemption or cancellation API.
+Callbacks and cleanup must finish; there is no preemption. The [scheduling and
+cancellation API](21_job_scheduling_and_cancellation.md) supports cooperative stop tokens,
+priority clients and inherited child policy.
 `wait_idle()` does not aggregate failures. Observe failures through task handles.
 
 Workers cannot call scheduler waits, handle waits or shutdown. Express dependencies

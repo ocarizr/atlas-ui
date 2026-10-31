@@ -70,6 +70,8 @@ template <context_function Function> task_body bind_context(Function function)
 class job_dispatcher
 {
   public:
+    [[nodiscard]] job_dispatcher with_options(job_options options) const;
+
     template <context_function Function> task_handle run(job_label label, Function function) const
     {
         return submit(std::move(label), detail::bind_context(std::move(function)), {});
@@ -146,6 +148,7 @@ class job_dispatcher
                        std::span<const task_handle> prerequisites,
                        const std::shared_ptr<detail::task_state>& parent = {}) const;
     std::weak_ptr<detail::scheduler> scheduler_;
+    job_options options_;
 };
 
 // Executor-created capability: children join this job, including grandchildren.
@@ -153,6 +156,9 @@ class job_dispatcher
 class job_context
 {
   public:
+    [[nodiscard]] bool stop_requested() const;
+    void throw_if_cancelled() const;
+    [[nodiscard]] job_priority priority() const;
     [[nodiscard]] std::pmr::memory_resource& scratch() const;
     [[nodiscard]] access_guard access(std::span<const memory_access> regions) const;
     [[nodiscard]] access_guard access(std::initializer_list<memory_access> regions) const;

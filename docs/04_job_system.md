@@ -63,12 +63,14 @@ Measure, Arrange, Geometry, and RenderData have deterministic synchronization bo
 
 | Area | Open decisions |
 | --- | --- |
-| Queues | Local/global queues, work stealing, priorities and starvation prevention |
+| Queues | Weighted FIFO priorities/fairness implemented; local queues and work stealing remain measurement-driven |
 | Memory | Explicit owned inputs and borrowed ranges established; bounded scratch implemented; allocator pooling remains measurement-driven |
-| Completion | Scoped joins and fences implemented; worker waits rejected; richer continuations pending |
-| Failure | Stable error propagation and skipped dependents implemented; cancellation pending |
-| Lifecycle | Fixed pool and draining implemented; cancellation pending |
+| Completion | Scoped joins and fences implemented; worker waits rejected; direct continuations implemented; suspension remains future work |
+| Failure | Stable failure/cancellation propagation and skipped dependents implemented |
+| Lifecycle | Fixed pool, cooperative token cancellation and draining implemented |
 | Safety | Read/write access rules and structural ECS mutation |
 | Diagnostics | Task names/status/timings implemented; bounded worker/dependency traces implemented; exact causal profiling remains future work |
 
 Test exact-once execution, dependencies, children, barriers, failures and shutdown. Stress with controlled schedules/seeds and compare against sequential execution. Measure wall time, overhead, worker utilization and critical paths; the goal is shorter activities through better CPU use, not necessarily less total CPU work.
+
+See the [priority, fairness and cancellation contract](21_job_scheduling_and_cancellation.md).

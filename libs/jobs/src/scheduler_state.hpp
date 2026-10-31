@@ -1,6 +1,7 @@
 #pragma once
 
 #include "access_registry.hpp"
+#include "priority_queue.hpp"
 #include "task_state.hpp"
 #include <atlas/jobs/job_system.hpp>
 
@@ -13,18 +14,20 @@ namespace atlas::jobs::detail
 struct scheduler : std::enable_shared_from_this<scheduler>
 {
     explicit scheduler(job_system_options options);
+    void start_task(task_state& task, std::size_t worker_index);
     void run(const std::stop_token& stop, ready_queue& work, std::size_t worker_index);
     void finish_legacy(ready_queue& retired, const std::exception_ptr& error);
     void drain_and_stop();
     task_handle submit_task(job_label label, task_body body,
                             std::span<const task_handle> prerequisites,
-                            const std::shared_ptr<task_state>& parent);
+                            const std::shared_ptr<task_state>& parent, job_options options);
     void queue_task(const std::shared_ptr<task_state>& task);
     void prepare_task(task_submission& prepared, job_label label, task_body body,
-                      std::span<const task_handle> prerequisites);
+                      std::span<const task_handle> prerequisites, job_options options);
     void publish_task(task_submission& prepared, const std::shared_ptr<task_state>& parent);
     void prepare_trace(task_submission& prepared, const std::shared_ptr<task_state>& parent);
     void finish_trace(task_state& task, job_status status, task_clock::time_point now);
+    std::exception_ptr invoke_task(const std::shared_ptr<task_state>& task);
     void execute_task(const std::shared_ptr<task_state>& task);
     void complete_task(std::shared_ptr<task_state> task);
     std::shared_ptr<task_state> finalize_task(const std::shared_ptr<task_state>& task);
@@ -46,7 +49,7 @@ struct scheduler : std::enable_shared_from_this<scheduler>
     std::mutex lifecycle_mutex;
     std::condition_variable_any available;
     mutable std::condition_variable idle;
-    ready_queue queue;
+    priority_queue queue;
     std::vector<ready_queue> worker_scratch;
     std::size_t running{0};
     std::size_t submitted{0};
@@ -54,6 +57,7 @@ struct scheduler : std::enable_shared_from_this<scheduler>
     std::size_t waiting{0};
     std::size_t failed{0};
     std::size_t skipped{0};
+    std::size_t cancelled{0};
     bool accepting{true};
     // Workers stop/join before shared scheduling state is destroyed.
     std::vector<std::jthread> workers;

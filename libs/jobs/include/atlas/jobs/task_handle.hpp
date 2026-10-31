@@ -36,6 +36,7 @@ class task_handle
     [[nodiscard]] std::exception_ptr exception() const;
     [[nodiscard]] task_timing timing() const;
     [[nodiscard]] std::uint64_t id() const;
+    [[nodiscard]] job_priority priority() const;
     [[nodiscard]] std::string_view category() const;
     [[nodiscard]] scratch_statistics scratch_usage() const;
 

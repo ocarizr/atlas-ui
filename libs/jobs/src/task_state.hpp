@@ -38,6 +38,13 @@ struct task_state
     std::string name;
     std::string category;
     std::uint64_t id{0};
+    std::uint64_t dispatch_index{0};
+    job_options options;
+    std::exception_ptr cancellation_error;
+    bool own_cancelled{false};
+    bool body_suppressed{false};
+    bool inherited_cancelled{false};
+    bool outcome_cancelled{false};
     std::size_t worker_index{0};
     std::unique_ptr<scratch_resource> scratch;
     scratch_statistics scratch_usage;
@@ -74,7 +81,7 @@ struct task_state
 inline bool terminal(job_status status)
 {
     return status == job_status::succeeded || status == job_status::failed ||
-           status == job_status::skipped;
+           status == job_status::skipped || status == job_status::cancelled;
 }
 
 // Prepared storage survives the publication lock, including retired user errors.
