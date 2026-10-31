@@ -1,3 +1,4 @@
+#include "callback_mailbox.hpp"
 #include "execution_context.hpp"
 #include "scheduler_state.hpp"
 
@@ -14,6 +15,12 @@ scheduler::scheduler(job_system_options options)
         throw std::invalid_argument{"A job system needs at least one worker"};
     }
     workers.reserve(count);
+    callback_turn.resize(count, 1);
+    worker_mailboxes.reserve(count);
+    for (std::size_t index = 0; index < count; ++index)
+    {
+        worker_mailboxes.push_back(std::make_shared<callback_mailbox>());
+    }
     scratch_resource validate_scratch{scratch_config};
     trace_records.reserve(trace_capacity);
     for (std::size_t index = 0; index < count; ++index)
@@ -23,10 +30,12 @@ scheduler::scheduler(job_system_options options)
     }
 }
 
-void scheduler::start_task(task_state& task, std::size_t worker_index)
+void scheduler::start_task(task_state& task, std::size_t worker_index, bool caller)
 {
     task.worker_index = worker_index;
-    task.dispatch_index = queue.dispatch_count;
+    task.caller_thread = caller;
+    task.dispatch_index =
+        (caller || (task.target && !task.delivery_abandoned)) ? 0 : queue.dispatch_count;
     task.own_cancelled = !task.skipped && task.options.cancellation.stop_requested();
     task.started = task_clock::now();
     task.body_suppressed = task.own_cancelled;
@@ -38,26 +47,19 @@ void scheduler::start_task(task_state& task, std::size_t worker_index)
 void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t worker_index)
 {
     worker_thread = true;
+    current_scheduler = this;
+    current_worker_index = worker_index;
+    const auto& mailbox = worker_mailboxes[worker_index];
     while (true)
     {
         {
             std::unique_lock lock{mutex};
-            if (!available.wait(lock, stop, [this] { return !queue.empty(); }))
+            if (!available.wait(lock, stop,
+                                [&] { return !queue.empty() || !mailbox->ready.empty(); }))
             {
                 break;
             }
-            queue.take(work);
-            ++running;
-            const auto& entry = work.front();
-            if (entry.graph)
-            {
-                const std::lock_guard graph_lock{entry.graph->mutex};
-                entry.graph->nodes[entry.index].status = job_status::running;
-            }
-            if (entry.task)
-            {
-                start_task(*entry.task, worker_index);
-            }
+            take_work(work, worker_index);
         }
         if (work.front().task)
         {
@@ -79,6 +81,7 @@ void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t 
         work.clear();
     }
     worker_thread = false;
+    current_scheduler = nullptr;
 }
 
 void scheduler::finish_legacy(ready_queue& retired, const std::exception_ptr& error)
@@ -116,20 +119,21 @@ void scheduler::finish_legacy(ready_queue& retired, const std::exception_ptr& er
     {
         std::terminate();
     }
-    if (queue.empty() && running == 0 && waiting == 0)
+    if (is_idle())
     {
         idle.notify_all();
     }
+    available.notify_all();
 }
 
 void scheduler::drain_and_stop()
 {
-    const std::lock_guard lifecycle_lock{lifecycle_mutex};
     {
-        std::unique_lock lock{mutex};
+        const std::lock_guard lock{mutex};
         accepting = false;
-        idle.wait(lock, [this] { return queue.empty() && running == 0 && waiting == 0; });
     }
+    wait_for_idle();
+    const std::lock_guard lifecycle_lock{lifecycle_mutex};
     workers.clear();
 }
 } // namespace atlas::jobs::detail

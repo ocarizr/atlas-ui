@@ -117,10 +117,7 @@ void job_system::wait(const job_handle& job) const
 void job_system::wait_idle() const
 {
     detail::require_coordinator();
-    std::unique_lock lock{impl_->mutex};
-    impl_->idle.wait(
-        lock,
-        [this] { return impl_->queue.empty() && impl_->running == 0 && impl_->waiting == 0; });
+    impl_->wait_for_idle();
 }
 
 void job_system::wait(const graph_handle& graph) const
@@ -142,6 +139,11 @@ void job_system::wait(const graph_handle& graph) const
     }
 }
 
+std::size_t job_system::dispatch_callbacks(std::size_t limit)
+{
+    return impl_->dispatch_callbacks(limit);
+}
+
 void job_system::shutdown()
 {
     detail::require_coordinator();
@@ -151,8 +153,23 @@ void job_system::shutdown()
 job_statistics job_system::statistics() const
 {
     const std::lock_guard lock{impl_->mutex};
-    return {impl_->worker_count, impl_->queue.size(),  impl_->running,         impl_->submitted,
-            impl_->completed,    impl_->waiting,       impl_->failed,          impl_->skipped,
-            impl_->cancelled,    impl_->queue.sizes(), impl_->queue.dispatched};
+    auto sizes = impl_->queue.sizes();
+    for (std::size_t index = 0; index < sizes.size(); ++index)
+    {
+        sizes[index] += impl_->affine_queued[index];
+    }
+    return {impl_->worker_count,
+            sizes[0] + sizes[1] + sizes[2],
+            impl_->running,
+            impl_->submitted,
+            impl_->completed,
+            impl_->waiting,
+            impl_->failed,
+            impl_->skipped,
+            impl_->callbacks_dispatched,
+            impl_->caller_dispatched,
+            impl_->cancelled,
+            sizes,
+            impl_->queue.dispatched};
 }
 } // namespace atlas::jobs

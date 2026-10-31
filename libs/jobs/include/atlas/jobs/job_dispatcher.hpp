@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atlas/jobs/completion_callbacks.hpp>
 #include <atlas/jobs/job_sanitizer.hpp>
 #include <atlas/jobs/task_handle.hpp>
 
@@ -70,6 +71,7 @@ template <context_function Function> task_body bind_context(Function function)
 class job_dispatcher
 {
   public:
+    [[nodiscard]] completion_callbacks callbacks() const;
     [[nodiscard]] job_dispatcher with_options(job_options options) const;
 
     template <context_function Function> task_handle run(job_label label, Function function) const
@@ -156,6 +158,7 @@ class job_dispatcher
 class job_context
 {
   public:
+    [[nodiscard]] completion_callbacks callbacks() const;
     [[nodiscard]] bool stop_requested() const;
     void throw_if_cancelled() const;
     [[nodiscard]] job_priority priority() const;

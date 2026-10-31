@@ -127,7 +127,7 @@ TEST_F(job_system_fixture, failed_fan_in_waits_for_all_prerequisites_and_skips_o
     const auto execution = system.submit_graph(graph);
     std::promise<void> observed;
     auto ready = observed.get_future();
-    system.submit([&] { observed.set_value(); });
+    const auto observer = system.submit([&] { observed.set_value(); });
     EXPECT_EQ(ready.wait_for(std::chrono::seconds{3}), std::future_status::ready);
     EXPECT_EQ(execution.status(join), job_status::pending);
     EXPECT_EQ(system.statistics().waiting, 1U);
@@ -135,6 +135,9 @@ TEST_F(job_system_fixture, failed_fan_in_waits_for_all_prerequisites_and_skips_o
     EXPECT_THROW(system.wait(execution), graph_error);
     EXPECT_EQ(execution.status(join), job_status::skipped);
     EXPECT_EQ(forbidden.load(), 0);
+    // Signalling from the observer body does not publish its scheduler completion.
+    // Graph completion joins only graph nodes, not this independent observer.
+    system.wait(observer);
     const auto counts = system.statistics();
     EXPECT_EQ(counts.failed, 2U);
     EXPECT_EQ(counts.skipped, 1U);

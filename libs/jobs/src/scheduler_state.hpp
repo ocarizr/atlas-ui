@@ -14,13 +14,23 @@ namespace atlas::jobs::detail
 struct scheduler : std::enable_shared_from_this<scheduler>
 {
     explicit scheduler(job_system_options options);
-    void start_task(task_state& task, std::size_t worker_index);
+    void start_task(task_state& task, std::size_t worker_index, bool caller = false);
+    std::shared_ptr<callback_mailbox> current_mailbox(bool create);
+    void close_mailbox(const std::shared_ptr<callback_mailbox>& mailbox);
+    bool dispatch_one(const std::shared_ptr<callback_mailbox>& mailbox);
+    std::size_t dispatch_callbacks(std::size_t limit);
+    void wait_for(const std::shared_ptr<task_state>& task);
+    void wait_for_idle();
+    bool is_idle() const;
+    void take_work(ready_queue& work, std::size_t worker_index);
+    void enqueue_task(const std::shared_ptr<task_state>& task);
     void run(const std::stop_token& stop, ready_queue& work, std::size_t worker_index);
     void finish_legacy(ready_queue& retired, const std::exception_ptr& error);
     void drain_and_stop();
     task_handle submit_task(job_label label, task_body body,
                             std::span<const task_handle> prerequisites,
-                            const std::shared_ptr<task_state>& parent, job_options options);
+                            const std::shared_ptr<task_state>& parent, job_options options,
+                            std::shared_ptr<callback_mailbox> target = {});
     void queue_task(const std::shared_ptr<task_state>& task);
     void prepare_task(task_submission& prepared, job_label label, task_body body,
                       std::span<const task_handle> prerequisites, job_options options);
@@ -50,6 +60,11 @@ struct scheduler : std::enable_shared_from_this<scheduler>
     std::condition_variable_any available;
     mutable std::condition_variable idle;
     priority_queue queue;
+    std::vector<std::shared_ptr<callback_mailbox>> worker_mailboxes;
+    std::array<std::size_t, 3> affine_queued{};
+    std::size_t caller_dispatched{0};
+    std::array<std::size_t, 3> callbacks_dispatched{};
+    std::vector<unsigned char> callback_turn;
     std::vector<ready_queue> worker_scratch;
     std::size_t running{0};
     std::size_t submitted{0};

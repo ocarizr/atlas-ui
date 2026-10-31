@@ -5,12 +5,19 @@ namespace atlas::jobs::detail
 {
 std::exception_ptr scheduler::invoke_task(const std::shared_ptr<task_state>& task)
 {
+    if (task->delivery_abandoned)
+    {
+        return task->delivery_error;
+    }
     if (task->skipped || task->body_suppressed)
     {
         return task->body_suppressed ? task->cancellation_error : std::exception_ptr{};
     }
     job_context context{weak_from_this(), task};
     std::exception_ptr error;
+    auto* previous_task = current_task;
+    auto* previous_scheduler = current_scheduler;
+    current_scheduler = this;
     current_task = task.get();
     try
     {
@@ -25,7 +32,8 @@ std::exception_ptr scheduler::invoke_task(const std::shared_ptr<task_state>& tas
     {
         error = std::current_exception();
     }
-    current_task = nullptr;
+    current_task = previous_task;
+    current_scheduler = previous_scheduler;
     try
     {
         if (sanitizer->finish(*task))

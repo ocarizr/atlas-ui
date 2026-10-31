@@ -68,13 +68,15 @@ void write_task(std::ostream& output, const task_trace& task)
 {
     output << "<task id=\"" << task.id << "\" parent_id=\"" << task.parent_id << "\" name=\""
            << xml(task.name) << "\" category=\"" << xml(task.category) << "\" worker=\""
-           << task.worker_index << "\" status=\"" << static_cast<unsigned>(task.status)
-           << "\" priority=\"" << static_cast<unsigned>(task.priority) << "\" dispatch_index=\""
-           << task.dispatch_index << "\" submitted_ns=\"" << task.submitted.count()
-           << "\" started_ns=\"" << task.started.count() << "\" body_finished_ns=\""
-           << task.body_finished.count() << "\" completed_ns=\"" << task.completed.count()
-           << "\" scratch_calls=\"" << task.scratch.allocation_calls
-           << "\" scratch_reserved_bytes=\"" << task.scratch.reserved_bytes << "\">\n";
+           << task.worker_index << "\" executor=\"" << (task.caller_thread ? "caller" : "worker")
+           << "\" affinity_bound=\"" << (task.affinity_bound ? "true" : "false") << "\" status=\""
+           << static_cast<unsigned>(task.status) << "\" priority=\""
+           << static_cast<unsigned>(task.priority) << "\" dispatch_index=\"" << task.dispatch_index
+           << "\" submitted_ns=\"" << task.submitted.count() << "\" started_ns=\""
+           << task.started.count() << "\" body_finished_ns=\"" << task.body_finished.count()
+           << "\" completed_ns=\"" << task.completed.count() << "\" scratch_calls=\""
+           << task.scratch.allocation_calls << "\" scratch_reserved_bytes=\""
+           << task.scratch.reserved_bytes << "\">\n";
     for (const auto prerequisite : task.prerequisites)
     {
         output << "<prerequisite id=\"" << prerequisite << "\"/>\n";
@@ -96,10 +98,13 @@ void write_trace(std::ostream& output, const job_trace_report& trace)
     {
         const auto execution =
             static_cast<std::uint64_t>((task.body_finished - task.started).count());
-        busy.at(task.worker_index) += execution;
+        if (!task.caller_thread)
+        {
+            busy.at(task.worker_index) += execution;
+        }
         first = std::min(first, task.submitted);
         last = std::max(last, task.completed);
-        if (!parents.contains(task.id))
+        if (!task.caller_thread && !parents.contains(task.id))
         {
             const auto category = task.category == "map" ? 0U : task.category == "fold" ? 1U : 2U;
             critical[category] = std::max(critical[category], execution);

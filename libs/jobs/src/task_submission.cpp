@@ -1,3 +1,5 @@
+#include "callback_mailbox.hpp"
+#include "execution_context.hpp"
 #include "scheduler_state.hpp"
 
 #include <unordered_set>
@@ -51,6 +53,8 @@ void scheduler::prepare_task(task_submission& prepared, job_label label, task_bo
     task->category = std::move(label.category);
     task->body = std::move(body);
     task->owner = identity;
+    task->runtime = weak_from_this();
+    task->creator_thread = current_thread_identity();
     task->options = std::move(options);
     if (task->options.cancellation.stop_possible())
     {
@@ -75,10 +79,20 @@ void scheduler::prepare_task(task_submission& prepared, job_label label, task_bo
 
 task_handle scheduler::submit_task(job_label label, task_body body,
                                    std::span<const task_handle> prerequisites,
-                                   const std::shared_ptr<task_state>& parent, job_options options)
+                                   const std::shared_ptr<task_state>& parent, job_options options,
+                                   std::shared_ptr<callback_mailbox> target)
 {
     task_submission prepared;
     prepare_task(prepared, std::move(label), std::move(body), prerequisites, std::move(options));
+    prepared.task->scoped_child = static_cast<bool>(parent);
+    prepared.task->creator = parent;
+    prepared.task->observes_completion = static_cast<bool>(target);
+    prepared.task->target = std::move(target);
+    if (prepared.task->target)
+    {
+        prepared.task->delivery_error = std::make_exception_ptr(
+            std::runtime_error{"Callback owner thread exited before delivery"});
+    }
     prepare_trace(prepared, parent);
     if (parent)
     {
@@ -145,7 +159,10 @@ void scheduler::publish_task(task_submission& prepared, const std::shared_ptr<ta
         auto& links = prepared.links;
         if (terminal(prerequisite->status.load()))
         {
-            inherit_failure(*task, prerequisite, index, links.front().retired);
+            if (!task->observes_completion)
+            {
+                inherit_failure(*task, prerequisite, index, links.front().retired);
+            }
             prepared.retired_links.splice(prepared.retired_links.end(), links, links.begin());
         }
         else
@@ -171,6 +188,6 @@ void scheduler::queue_task(const std::shared_ptr<task_state>& task)
     task->queued = task_clock::now();
     task->status.store(job_status::ready);
     task->entry.front().task = task;
-    queue.push(task->entry, task->options.priority);
+    enqueue_task(task);
 }
 } // namespace atlas::jobs::detail

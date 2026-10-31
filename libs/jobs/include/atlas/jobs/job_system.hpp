@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <functional>
 #include <future>
+#include <limits>
 #include <memory>
 
 namespace atlas::jobs
@@ -44,6 +45,8 @@ struct job_statistics
     std::size_t waiting;   // Jobs awaiting prerequisites, children, or cleanup.
     std::size_t failed;    // Failed outcomes, including parents with failed children.
     std::size_t skipped;   // Callbacks suppressed by failed/cancelled prerequisites.
+    std::array<std::size_t, 3> callbacks_dispatched_by_priority;
+    std::size_t caller_dispatched; // Notification tasks executed by caller threads.
     std::size_t cancelled; // Cancelled outcomes, including parents joining cancelled children.
     std::array<std::size_t, 3> queued_by_priority;
     std::array<std::size_t, 3> dispatched_by_priority;
@@ -68,6 +71,7 @@ class job_system
     void wait(const job_handle& job) const;
     void wait(const graph_handle& graph) const;
     void wait_idle() const;
+    std::size_t dispatch_callbacks(std::size_t limit = std::numeric_limits<std::size_t>::max());
     void shutdown();
     [[nodiscard]] job_statistics statistics() const;
     [[nodiscard]] job_sanitizer_report sanitizer_report() const;

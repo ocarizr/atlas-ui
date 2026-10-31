@@ -10,6 +10,16 @@ job_dispatcher::job_dispatcher(std::weak_ptr<detail::scheduler> scheduler)
 {
 }
 
+completion_callbacks job_dispatcher::callbacks() const
+{
+    return completion_callbacks{scheduler_, options_.priority};
+}
+
+completion_callbacks job_context::callbacks() const
+{
+    return completion_callbacks{scheduler_, active_task()->options.priority};
+}
+
 job_dispatcher job_dispatcher::with_options(job_options options) const
 {
     if (options.priority != job_priority::high && options.priority != job_priority::normal &&

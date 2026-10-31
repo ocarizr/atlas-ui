@@ -230,3 +230,39 @@ Traces include priority and dispatch order; statistics expose cancelled outcomes
 and per-class queued/dispatched counts. See the complete [policy, fairness bounds,
 examples and lifetime contract](../../docs/21_job_scheduling_and_cancellation.md).
 Rebuild consumers with matching headers and libraries.
+
+## Completion listeners
+
+Use `jobs.callbacks()` or `context.callbacks()` to register `on_complete`,
+`on_success`, `on_failure`, `on_cancelled` and `on_skipped` for a direct task handle,
+including ranges and fences. Each registration returns a notification handle.
+Callbacks receive a scoped context, the immutable completed source handle, and
+optional explicit data; capture-free functions follow the same input policy as jobs.
+
+Register on the source's submitting thread and, for scoped children, inside their
+submitting job. Independent-root listeners remain independent, including listeners
+for `continue_with`; they do not extend the creating job's input lifetime.
+Coordinator notifications run through `dispatch_callbacks(limit)`
+or cooperative coordinator waits/draining. Child notifications run on the parent's
+worker after its body returns, keep the parent's scope alive and join descendants.
+`on_complete` observes every terminal result. Specific filters do not run on other
+results; their notification handles complete successfully without invoking the function.
+Observer errors remain in their own handles and do not overwrite the source.
+Cancellation does not suppress delivery. Callbacks must not reenter waits/shutdown.
+
+See [the full callback contract and examples](../../docs/22_job_completion_callbacks.md)
+for pumping, affinity, owner-thread exit, payload lifetimes and trace/statistics changes.
+
+```cpp
+auto delivered = jobs.callbacks().on_complete(
+    source, "observe", [](atlas::jobs::job_context&, const atlas::jobs::task_handle& result)
+    {
+        // This observer explicitly forwards source errors through its own handle.
+        if (auto error = result.exception()) { std::rethrow_exception(error); }
+    });
+delivered.wait(); // Coordinator only; pumps its mailbox until this notification joins.
+```
+
+Keep borrowed coordinator data alive through delivery. Child listeners may borrow
+owned parent input, but not a returned function's stack. If the owner thread exits,
+undelivered notifications fail instead of running the function on another thread.

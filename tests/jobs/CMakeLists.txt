@@ -9,6 +9,11 @@ add_executable(atlas_jobs_tests execution_tests.cpp failure_tests.cpp lifecycle_
     cancellation_scope_tests.cpp
     mixed_priority_tests.cpp
     cancellation_lifecycle_tests.cpp
+    completion_callback_tests.cpp
+    callback_scope_tests.cpp callback_lifecycle_tests.cpp
+    callback_validation_tests.cpp callback_parallel_tests.cpp
+    callback_outcome_tests.cpp
+    callback_independence_tests.cpp
     "${PROJECT_SOURCE_DIR}/benchmarks/jobs/phased_workload.cpp")
 target_include_directories(atlas_jobs_tests PRIVATE "${PROJECT_SOURCE_DIR}/benchmarks/jobs")
 target_link_libraries(atlas_jobs_tests PRIVATE atlas::jobs GTest::gtest_main)

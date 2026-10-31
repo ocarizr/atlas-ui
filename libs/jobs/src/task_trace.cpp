@@ -38,6 +38,8 @@ void scheduler::finish_trace(task_state& task, job_status status, task_clock::ti
     record.priority = task.options.priority;
     record.dispatch_index = task.dispatch_index;
     record.worker_index = task.worker_index;
+    record.caller_thread = task.caller_thread;
+    record.affinity_bound = task.target && !task.delivery_abandoned;
     record.status = status;
     record.submitted = offset(task.submitted);
     record.started = offset(task.started);
