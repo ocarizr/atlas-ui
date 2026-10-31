@@ -75,12 +75,18 @@ TEST(scratch_tests, budget_failure_releases_previous_blocks_and_reports_the_orig
     auto root = system.dispatcher().run("budget",
                                         [](job_context& context)
                                         {
-                                            (void)context.scratch().allocate(64, 64);
-                                            (void)context.scratch().allocate(1);
+                                            auto& resource = context.scratch();
+                                            const auto release = [&resource](void* buffer)
+                                            { resource.deallocate(buffer, 64, 64); };
+                                            const std::unique_ptr<void, decltype(release)> first{
+                                                resource.allocate(64, 64), release};
+                                            resource.deallocate(resource.allocate(1), 1);
                                         });
     EXPECT_THROW(root.wait(), job_error);
     EXPECT_THROW(std::rethrow_exception(root.exception()), std::bad_alloc);
     EXPECT_EQ(upstream.live.load(), 0U);
+    EXPECT_EQ(root.scratch_usage().allocation_calls, 1U);
+    EXPECT_EQ(root.scratch_usage().requested_bytes, 64U);
     EXPECT_EQ(root.scratch_usage().reserved_bytes, 64U);
 }
 
