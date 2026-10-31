@@ -7,7 +7,7 @@ namespace atlas::jobs::detail
 bool scheduler::is_idle() const
 {
     return queue.empty() && affine_queued == std::array<std::size_t, 3>{} && running == 0 &&
-           waiting == 0;
+           waiting == 0 && observing == 0;
 }
 
 void scheduler::take_work(ready_queue& work, std::size_t worker_index)

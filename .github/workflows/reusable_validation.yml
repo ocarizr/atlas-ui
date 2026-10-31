@@ -71,6 +71,34 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).jobs) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  diagnostics:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'diagnostics') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: diagnostics
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).diagnostics) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  jobs-diagnostics:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - jobs
+    - diagnostics
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'jobs-diagnostics') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: jobs-diagnostics
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['jobs-diagnostics']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   jobs-benchmark:
     needs:
     - plan
@@ -117,7 +145,7 @@ jobs:
     - vendor-testing
     - vendor-ipc
     - vendor-content
-    - jobs
+    - jobs-diagnostics
     - ipc
     if: ${{ contains(fromJSON(needs.plan.outputs.components), 'application') }}
     uses: ./.github/workflows/reusable_build.yml
@@ -208,6 +236,8 @@ jobs:
     - vendor-ipc
     - vendor-graphics
     - jobs
+    - diagnostics
+    - jobs-diagnostics
     - jobs-benchmark
     - streaming
     - ipc

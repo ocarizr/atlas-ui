@@ -40,6 +40,7 @@ struct scheduler : std::enable_shared_from_this<scheduler>
     std::exception_ptr invoke_task(const std::shared_ptr<task_state>& task);
     void execute_task(const std::shared_ptr<task_state>& task);
     void complete_task(std::shared_ptr<task_state> task);
+    void observe_task(const std::shared_ptr<task_state>& task, std::uint64_t parent_id);
     std::shared_ptr<task_state> finalize_task(const std::shared_ptr<task_state>& task);
     void publish_successors(const std::shared_ptr<task_state>& task);
     static void inherit_failure(task_state& destination, const std::shared_ptr<task_state>& source,
@@ -48,6 +49,9 @@ struct scheduler : std::enable_shared_from_this<scheduler>
     const std::size_t worker_count;
     const scratch_options scratch_config;
     const std::size_t trace_capacity;
+    const std::shared_ptr<job_observer> observer;
+    std::vector<std::thread::id> execution_threads;
+    std::size_t observing{0};
     const task_clock::time_point epoch{task_clock::now()};
     std::vector<task_trace> trace_records;
     std::size_t trace_admitted{0};

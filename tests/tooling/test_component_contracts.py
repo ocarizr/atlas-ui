@@ -47,3 +47,9 @@ def test_tag_version_is_forwarded_to_each_producer():
     for name, component in COMPONENTS.items():
         if component['build_targets']:
             assert validation['jobs'][name]['with']['version'] == '${{ inputs.version }}'
+
+
+@pytest.mark.parametrize('name', [name for name, item in COMPONENTS.items() if item['build_targets']])
+def test_required_gate_waits_for_every_compilable_component(name):
+    workflow = read_yaml(ROOT / '.github/workflows/reusable_validation.yml')
+    assert name in workflow['jobs']['required']['needs']

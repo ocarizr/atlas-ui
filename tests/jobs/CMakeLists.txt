@@ -15,6 +15,7 @@ add_executable(atlas_jobs_tests execution_tests.cpp failure_tests.cpp lifecycle_
     callback_outcome_tests.cpp
     callback_independence_tests.cpp
     completion_wait_tests.cpp
+    observer_tests.cpp
     "${PROJECT_SOURCE_DIR}/benchmarks/jobs/phased_workload.cpp")
 target_include_directories(atlas_jobs_tests PRIVATE "${PROJECT_SOURCE_DIR}/benchmarks/jobs")
 target_link_libraries(atlas_jobs_tests PRIVATE atlas::jobs GTest::gtest_main)

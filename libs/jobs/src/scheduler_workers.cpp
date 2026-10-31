@@ -6,7 +6,8 @@ namespace atlas::jobs::detail
 {
 scheduler::scheduler(job_system_options options)
     : worker_count{options.worker_count}, scratch_config{options.scratch},
-      trace_capacity{options.trace_capacity},
+      trace_capacity{options.trace_capacity}, observer{std::move(options.observer)},
+      execution_threads(observer ? worker_count : 0),
       sanitizer{std::make_shared<access_registry>(options.sanitizer)}, worker_scratch(worker_count)
 {
     const auto count = worker_count;
@@ -49,6 +50,10 @@ void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t 
     worker_thread = true;
     current_scheduler = this;
     current_worker_index = worker_index;
+    if (observer)
+    {
+        execution_threads[worker_index] = std::this_thread::get_id();
+    }
     const auto& mailbox = worker_mailboxes[worker_index];
     while (true)
     {
