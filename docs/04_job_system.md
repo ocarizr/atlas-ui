@@ -76,3 +76,7 @@ Test exact-once execution, dependencies, children, barriers, failures and shutdo
 See the [priority, fairness and cancellation contract](21_job_scheduling_and_cancellation.md).
 
 See [completion callbacks](22_job_completion_callbacks.md) for unconditional and result-specific notifications.
+
+Direct task completion now reuses terminal publication and scheduler signaling,
+removing per-task future storage. See the [Milestone 5 optimization report](23_job_scheduler_optimization.md)
+for measurements and the criteria for further queue/allocator changes.

@@ -5,6 +5,11 @@ scoped children, parallel ranges and an optional declared-access sanitizer.
 Windows x64 is currently validated. Public APIs and scheduling code are platform
 agnostic; there are no Windows SDK, UI, ECS, codec or application dependencies.
 
+Direct tasks share one completion state for status, result and waits. Completed
+handle waits avoid the scheduler mutex; pending waits still cooperate with the
+caller's notification queue. See the [measured optimization report](../../docs/23_job_scheduler_optimization.md)
+for allocation/timing evidence and the limits of the current scheduler.
+
 ## Three explicit dispatch relationships
 
 The application creates one `job_system` and injects copyable `job_dispatcher`
