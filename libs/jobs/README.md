@@ -10,6 +10,9 @@ handle waits avoid the scheduler mutex; pending waits still cooperate with the
 caller's notification queue. See the [measured optimization report](../../docs/23_job_scheduler_optimization.md)
 for allocation/timing evidence and the limits of the current scheduler.
 
+The [follow-up backlog](../../docs/25_job_system_backlog.md) records outstanding
+production contracts, safety/observability limits and deferred optimization gates.
+
 Version 0.2 adds an optional `job_system_options::observer` for terminal direct-task
 events outside scheduler locks. `wait_idle()` and `shutdown()` drain these deliveries;
 source handles may become observable before delivery finishes. Observer callbacks

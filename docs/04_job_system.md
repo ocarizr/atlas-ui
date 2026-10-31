@@ -65,6 +65,9 @@ Measure, Arrange, Geometry, and RenderData have deterministic synchronization bo
 
 ## Remaining low-level contracts
 
+See the [tracked gaps and acceptance criteria](25_job_system_backlog.md) for the
+prioritized follow-up backlog, including bounded admission and diagnostics coverage.
+
 | Area | Open decisions |
 | --- | --- |
 | Queues | Weighted FIFO priorities/fairness implemented; local queues and work stealing remain measurement-driven |
