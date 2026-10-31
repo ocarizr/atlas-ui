@@ -165,3 +165,10 @@ selects AUTO/ON/OFF. Parallel ranges declare chunk access automatically. Other j
 can use `context.access` with read/write spans. See the library's standalone
 [safety, diagnostics and packaging guide](../libs/jobs/README.md) for checks,
 limitations, false-sharing warnings and CMake package consumption.
+
+## Completion callbacks
+
+`after` and `continue_with` remain success-gated jobs. For notifications on any
+terminal result or a specific failure/cancellation/skipped result, use
+`jobs.callbacks()`/`context.callbacks()`. See the [callback contract](22_job_completion_callbacks.md)
+for owner-thread delivery, pumping and notification handles.

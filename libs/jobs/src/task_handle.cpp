@@ -1,6 +1,7 @@
 #include <atlas/jobs/task_handle.hpp>
 
 #include "execution_context.hpp"
+#include "scheduler_state.hpp"
 #include "task_state.hpp"
 
 namespace atlas::jobs
@@ -47,6 +48,10 @@ void task_handle::wait() const
 {
     detail::require_coordinator();
     validate();
+    if (auto runtime = state_->runtime.lock())
+    {
+        runtime->wait_for(state_);
+    }
     state_->finished.get();
     if (state_->outcome)
     {

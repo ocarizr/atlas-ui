@@ -6,6 +6,7 @@ endif()
 add_library(atlas_jobs STATIC src/job_system.cpp src/job_graph.cpp src/graph_state.cpp
     src/scheduler_workers.cpp src/execution_context.cpp src/job_dispatcher.cpp
     src/task_handle.cpp src/task_submission.cpp src/task_completion.cpp src/task_execution.cpp
+    src/callback_registration.cpp src/callback_mailbox.cpp src/callback_dispatch.cpp
     src/access_registry.cpp src/access_guard.cpp src/scratch_resource.cpp src/task_trace.cpp)
 add_library(atlas::jobs ALIAS atlas_jobs)
 target_include_directories(atlas_jobs PUBLIC

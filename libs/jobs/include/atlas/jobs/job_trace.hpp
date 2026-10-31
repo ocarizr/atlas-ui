@@ -33,6 +33,8 @@ struct task_trace
     std::string category;
     std::vector<std::uint64_t> prerequisites;
     std::size_t worker_index{0};
+    bool caller_thread{false};
+    bool affinity_bound{false};
     job_status status{job_status::pending};
     std::chrono::nanoseconds submitted{};
     std::chrono::nanoseconds started{};

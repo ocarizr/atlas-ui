@@ -164,3 +164,7 @@ Work stealing, pools, priority donation, queue capacity limits, deadlines, autom
 grain tuning and consumer-specific QoS budgets remain separate work. The
 [Milestone 3 baseline](20_job_workload_baseline.md) predates this scheduling policy
 and is historical performance evidence, not a new performance claim.
+
+Completion notifications add separate affinity queues and delivery counters; the
+[callback contract](22_job_completion_callbacks.md) explains their interaction with
+these general-work service bounds and the origin-thread lifecycle.

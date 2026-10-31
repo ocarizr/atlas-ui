@@ -51,7 +51,10 @@ void scheduler::publish_successors(const std::shared_ptr<task_state>& task)
     for (auto& link : task->subscribers)
     {
         const auto& successor = link.successor;
-        inherit_failure(*successor, task, link.order, link.retired);
+        if (!successor->observes_completion)
+        {
+            inherit_failure(*successor, task, link.order, link.retired);
+        }
         if (--successor->remaining == 0)
         {
             --waiting;
@@ -71,11 +74,12 @@ std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_
     const auto now = task_clock::now();
     const auto nanoseconds = [](task_clock::duration duration)
     { return std::chrono::duration_cast<std::chrono::nanoseconds>(duration); };
-    task->timing = {
-        nanoseconds(task->queued - task->submitted), nanoseconds(task->started - task->queued),
-        (task->skipped || task->body_suppressed) ? std::chrono::nanoseconds::zero()
-                                                 : nanoseconds(task->body_finished - task->started),
-        nanoseconds(now - task->body_finished), nanoseconds(now - task->submitted)};
+    task->timing = {nanoseconds(task->queued - task->submitted),
+                    nanoseconds(task->started - task->queued),
+                    (task->skipped || task->body_suppressed || task->delivery_abandoned)
+                        ? std::chrono::nanoseconds::zero()
+                        : nanoseconds(task->body_finished - task->started),
+                    nanoseconds(now - task->body_finished), nanoseconds(now - task->submitted)};
     const auto outcome = task->skipped             ? job_status::skipped
                          : task->outcome_cancelled ? job_status::cancelled
                          : task->outcome           ? job_status::failed
@@ -101,7 +105,7 @@ std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_
         }
     }
     available.notify_all();
-    if (queue.empty() && running == 0 && waiting == 0)
+    if (is_idle())
     {
         idle.notify_all();
     }

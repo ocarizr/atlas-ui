@@ -10,6 +10,9 @@
 
 namespace atlas::jobs::detail
 {
+struct callback_mailbox;
+std::shared_ptr<const void> current_thread_identity();
+
 using task_clock = std::chrono::steady_clock;
 
 struct retired_failure
@@ -35,6 +38,15 @@ struct task_marker
 
 struct task_state
 {
+    std::weak_ptr<scheduler> runtime;
+    std::shared_ptr<const void> creator_thread;
+    std::weak_ptr<task_state> creator;
+    bool scoped_child{false};
+    bool observes_completion{false};
+    bool delivery_abandoned{false};
+    bool caller_thread{false};
+    std::exception_ptr delivery_error;
+    std::shared_ptr<callback_mailbox> target;
     std::string name;
     std::string category;
     std::uint64_t id{0};

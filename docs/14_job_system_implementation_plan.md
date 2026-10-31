@@ -111,6 +111,18 @@ Admission remains unbounded; dispatch fairness does not imply real-time deadline
 See the [scheduling/cancellation contract](21_job_scheduling_and_cancellation.md). Overlapped I/O, storage completions,
 demux and codec integration belong to the separate [streamer/media plan](15_streamer_and_media_jobs.md).
 
+## Completion notifications before milestone 5 (implemented)
+
+Origin-thread listeners now cover complete/success/failure/cancelled/skipped outcomes.
+Caller mailboxes are pumped explicitly or during cooperative coordinator waits and
+draining; worker submissions deliver on the submitting worker after its body returns.
+Child notification scopes join descendants and preserve parent input without
+fibers or worker waits. Independent-root listeners retain independence, including
+listeners for success-gated continuations. Observer errors remain separate from
+source results; exited owners fail undelivered notifications rather than running
+them on the wrong thread.
+See the [callback contract](22_job_completion_callbacks.md).
+
 ## Milestone 5: measured scheduler optimization
 
 Evaluate local queues, work stealing, allocation pools, affinity and optional fibers/coroutines only when traces justify them. Preserve the reference semantics/tests. Optimize wall time and critical paths rather than maximizing job count or imposing lock-free machinery without evidence.

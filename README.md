@@ -43,7 +43,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, weighted ready priorities, cooperative cancellation, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Generic phased workloads now have sequential-reference and sparse-update tests; a separate benchmark records scheduling/grain overhead and worker traces. Consumer-specific frame budgets remain to be established. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
+**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, weighted ready priorities, cooperative cancellation, origin-thread completion callbacks, bounded asynchronous range reads from memory/loose assets, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Generic phased workloads now have sequential-reference and sparse-update tests; a separate benchmark records scheduling/grain overhead and worker traces. Consumer-specific frame budgets remain to be established. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
 
 ## Component validation
 
@@ -93,6 +93,7 @@ the distinction between internal build artifacts and deliverable packaging.
 | [Job workloads and profiling](docs/19_job_workloads_and_profiling.md) | Phased proof, scratch memory, benchmark methodology and XML traces |
 | [Job baseline measurements](docs/20_job_workload_baseline.md) | Reference hardware, observed speedups and small-workload overhead |
 | [Job scheduling and cancellation](docs/21_job_scheduling_and_cancellation.md) | Priority clients, fairness bounds, cooperative stop and lifecycle |
+| [Job completion callbacks](docs/22_job_completion_callbacks.md) | Outcome filters, caller pumping, worker affinity and joined listener scopes |
 | [Job safety and reuse](libs/jobs/README.md) | Declared-access sanitizer, limitations, standalone build and package |
 | [Job graph usage](docs/17_job_graph_usage.md) | Generic examples, dependencies, errors, ownership and diagnostics |
 
