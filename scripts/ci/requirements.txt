@@ -1,2 +1,6 @@
 PyYAML==6.0.3
 pytest==9.2.0
+ruff==0.17.3
+clang-format==19.1.7
+tree-sitter==0.25.2
+tree-sitter-cpp==0.23.4

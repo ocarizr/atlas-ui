@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for file read with isolated scenario ownership and cleanup.
+ */
+
 #include <atlas/streaming/asset_streamer.hpp>
 #include <gtest/gtest.h>
 
@@ -7,13 +12,19 @@
 
 namespace atlas::streaming::tests
 {
+/// @brief Scenario state for file read tests, isolated per test and released through RAII.
 class file_read_tests : public testing::Test
 {
   protected:
+    /// @brief Scenario-owned assets used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     temporary_assets assets;
+    /// @brief Scenario-owned jobs used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     jobs::job_system jobs{2};
 };
 
+/// @brief Verify loads only the requested range from a loose asset.
 TEST_F(file_read_tests, loads_only_the_requested_range_from_a_loose_asset)
 {
     assets.write();
@@ -31,6 +42,7 @@ TEST_F(file_read_tests, loads_only_the_requested_range_from_a_loose_asset)
     EXPECT_TRUE(std::filesystem::remove(assets.path()));
 }
 
+/// @brief Verify reports missing files and keeps serving requests.
 TEST_F(file_read_tests, reports_missing_files_and_keeps_serving_requests)
 {
     asset_streamer streamer{jobs, {{"menu", loose_file_asset{assets.path()}}}};
@@ -55,6 +67,7 @@ TEST_F(file_read_tests, reports_missing_files_and_keeps_serving_requests)
         .get();
 }
 
+/// @brief Verify rejects ranges beyond the file without returning partial data.
 TEST_F(file_read_tests, rejects_ranges_beyond_the_file_without_returning_partial_data)
 {
     assets.write();
@@ -70,6 +83,7 @@ TEST_F(file_read_tests, rejects_ranges_beyond_the_file_without_returning_partial
         .get();
 }
 
+/// @brief Verify drains accepted file reads during shutdown.
 TEST_F(file_read_tests, drains_accepted_file_reads_during_shutdown)
 {
     assets.write();
@@ -85,6 +99,7 @@ TEST_F(file_read_tests, drains_accepted_file_reads_during_shutdown)
                           ++completed;
                       });
     }
+
     streamer.shutdown();
     EXPECT_EQ(completed.load(), 16);
 }

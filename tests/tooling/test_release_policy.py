@@ -1,3 +1,5 @@
+"""Validate strict semantic-version publishing against main-branch ancestry."""
+
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,28 +11,35 @@ from scripts.ci.release_policy import evaluate_ref, version_from_tag
 
 @pytest.mark.parametrize("tag", ["v0.1.0", "V1.20.300", "v10.0.1"])
 def test_valid_versions(tag):
+    """Verify valid versions."""
     assert version_from_tag(tag) == tag[1:]
 
 
 @pytest.mark.parametrize(
     "tag",
-    [pytest.param("v1", id="missing-fields"),
-     pytest.param("1.2.3", id="missing-prefix"),
-     pytest.param("v01.2.3", id="leading-zero"),
-     pytest.param("v1.2", id="missing-patch"),
-     pytest.param("v1.2.3-rc1", id="unsupported-suffix"),
-     pytest.param("v1.2.3/evil", id="invalid-path")],
+    [
+        pytest.param("v1", id="missing-fields"),
+        pytest.param("1.2.3", id="missing-prefix"),
+        pytest.param("v01.2.3", id="leading-zero"),
+        pytest.param("v1.2", id="missing-patch"),
+        pytest.param("v1.2.3-rc1", id="unsupported-suffix"),
+        pytest.param("v1.2.3/evil", id="invalid-path"),
+    ],
 )
 def test_invalid_versions(tag):
+    """Verify invalid versions."""
     with pytest.raises(ValueError, match="Expected vMAJOR"):
         version_from_tag(tag)
 
 
 @dataclass
 class GitRepository:
+    """Run isolated Git commands for release-policy tests without touching the checkout."""
+
     root: Path
 
     def run(self, *arguments):
+        """Execute a checked Git command in this fixture repository and return its trimmed output."""
         return subprocess.run(
             ["git", *arguments], cwd=self.root, check=True, capture_output=True, text=True
         ).stdout.strip()
@@ -38,6 +47,7 @@ class GitRepository:
 
 @pytest.fixture
 def release_repository(tmp_path):
+    """Create an isolated main-branch repository for tag/ancestry scenarios."""
     repository = GitRepository(tmp_path)
     repository.run("init", "-b", "main")
     repository.run("config", "user.name", "Pipeline Tests")
@@ -48,18 +58,25 @@ def release_repository(tmp_path):
 
 
 def test_main_packages_without_publishing(release_repository):
+    """Verify main packages without publishing."""
     assert evaluate_ref("refs/heads/main", "main", release_repository.root) == {
-        "publish": False, "version": "development", "tag": ""
+        "publish": False,
+        "version": "development",
+        "tag": "",
     }
 
 
 def test_annotated_tag_in_main_history_is_publishable(release_repository):
+    """Verify annotated tag in main history is publishable."""
     assert evaluate_ref("refs/tags/v1.2.3", "main", release_repository.root) == {
-        "publish": True, "version": "1.2.3", "tag": "v1.2.3"
+        "publish": True,
+        "version": "1.2.3",
+        "tag": "v1.2.3",
     }
 
 
 def test_side_branch_tag_is_rejected(release_repository):
+    """Verify side branch tag is rejected."""
     release_repository.run("checkout", "-b", "feature")
     release_repository.run("commit", "--allow-empty", "-m", "Unmerged")
     release_repository.run("tag", "v9.0.0")
@@ -68,6 +85,7 @@ def test_side_branch_tag_is_rejected(release_repository):
 
 
 def test_checkout_must_match_tag(release_repository):
+    """Verify checkout must match tag."""
     release_repository.run("commit", "--allow-empty", "-m", "Later")
     with pytest.raises(ValueError, match="checkout"):
         evaluate_ref("refs/tags/v1.2.3", "main", release_repository.root)

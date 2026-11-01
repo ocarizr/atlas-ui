@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for graph concurrency with isolated scenario ownership and cleanup.
+ */
+
 #include "job_system_fixture.hpp"
 
 #include <atomic>
@@ -10,21 +15,29 @@
 
 namespace atlas::jobs::tests
 {
+/// @brief Scenario state for graph case, isolated per test and released through RAII.
 struct graph_case
 {
+    /// @brief Scenario-owned workers used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::size_t workers;
+    /// @brief Scenario-owned seed used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     unsigned seed;
 };
 
+/// @brief Print a readable parameter-case description for GoogleTest failure diagnostics.
 std::ostream& operator<<(std::ostream& output, const graph_case& parameters)
 {
     return output << "workers=" << parameters.workers << ", seed=" << parameters.seed;
 }
 
+/// @brief Scenario state for generated graph tests, isolated per test and released through RAII.
 class generated_graph_tests : public testing::TestWithParam<graph_case>
 {
 };
 
+/// @brief Verify dependency results match a sequential reference.
 TEST_P(generated_graph_tests, dependency_results_match_a_sequential_reference)
 {
     const auto parameters = GetParam();
@@ -47,6 +60,7 @@ TEST_P(generated_graph_tests, dependency_results_match_a_sequential_reference)
                 reference[index] += reference[previous];
             }
         }
+
         ids.push_back(graph.add(std::to_string(index),
                                 [&, index, dependencies]
                                 {
@@ -55,6 +69,7 @@ TEST_P(generated_graph_tests, dependency_results_match_a_sequential_reference)
                                     {
                                         value += results[previous];
                                     }
+
                                     results[index] = value;
                                 }));
         for (const auto dependency : dependencies)
@@ -62,6 +77,7 @@ TEST_P(generated_graph_tests, dependency_results_match_a_sequential_reference)
             graph.precedes(ids[dependency], ids.back());
         }
     }
+
     const auto execution = scheduler.submit_graph(graph);
     scheduler.wait(execution);
     EXPECT_EQ(results, reference);
@@ -81,6 +97,7 @@ INSTANTIATE_TEST_SUITE_P(reproducible_schedules, generated_graph_tests,
                                     std::to_string(info.param.seed);
                          });
 
+/// @brief Verify concurrent graph producers share the pool with independent jobs.
 TEST_F(job_system_fixture, concurrent_graph_producers_share_the_pool_with_independent_jobs)
 {
     std::atomic<int> executed{0};
@@ -95,11 +112,23 @@ TEST_F(job_system_fixture, concurrent_graph_producers_share_the_pool_with_indepe
                     for (int iteration = 0; iteration < 20; ++iteration)
                     {
                         job_graph graph;
-                        const auto root = graph.add("root", [&] { ++executed; });
-                        const auto leaf = graph.add("leaf", [&] { ++executed; });
+                        const auto root = graph.add("root",
+                                                    [&]
+                                                    {
+                                                        ++executed;
+                                                    });
+                        const auto leaf = graph.add("leaf",
+                                                    [&]
+                                                    {
+                                                        ++executed;
+                                                    });
                         graph.precedes(root, leaf);
                         system.submit_graph(graph);
-                        system.submit([&] { ++executed; });
+                        system.submit(
+                            [&]
+                            {
+                                ++executed;
+                            });
                     }
                 });
         }
@@ -113,21 +142,42 @@ TEST_F(job_system_fixture, concurrent_graph_producers_share_the_pool_with_indepe
     EXPECT_EQ(counts.running, 0U);
 }
 
+/// @brief Verify failed fan in waits for all prerequisites and skips once.
 TEST_F(job_system_fixture, failed_fan_in_waits_for_all_prerequisites_and_skips_once)
 {
     job_graph graph;
-    const auto held = graph.add("held", [&] { gate.wait(); });
-    const auto failed = graph.add("failed", [] { throw 1; });
-    const auto also_failed = graph.add("also failed", [] { throw 2; });
+    const auto held = graph.add("held",
+                                [&]
+                                {
+                                    gate.wait();
+                                });
+    const auto failed = graph.add("failed",
+                                  []
+                                  {
+                                      throw 1;
+                                  });
+    const auto also_failed = graph.add("also failed",
+                                       []
+                                       {
+                                           throw 2;
+                                       });
     std::atomic<int> forbidden{0};
-    const auto join = graph.add("join", [&] { ++forbidden; });
+    const auto join = graph.add("join",
+                                [&]
+                                {
+                                    ++forbidden;
+                                });
     graph.precedes(held, join);
     graph.precedes(failed, join);
     graph.precedes(also_failed, join);
     const auto execution = system.submit_graph(graph);
     std::promise<void> observed;
     auto ready = observed.get_future();
-    const auto observer = system.submit([&] { observed.set_value(); });
+    const auto observer = system.submit(
+        [&]
+        {
+            observed.set_value();
+        });
     EXPECT_EQ(ready.wait_for(std::chrono::seconds{3}), std::future_status::ready);
     EXPECT_EQ(execution.status(join), job_status::pending);
     EXPECT_EQ(system.statistics().waiting, 1U);

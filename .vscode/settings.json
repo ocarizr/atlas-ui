@@ -1,0 +1,13 @@
+{
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.detectIndentation": false,
+  "editor.tabSize": 4,
+  "C_Cpp.clang_format_style": "file",
+  "C_Cpp.clang_format_path": "${workspaceFolder}/.venv/Scripts/clang-format.exe",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
+  "ruff.path": ["${workspaceFolder}/.venv/Scripts/ruff.exe"],
+  "[cpp]": { "editor.defaultFormatter": "ms-vscode.cpptools" },
+  "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" }
+}

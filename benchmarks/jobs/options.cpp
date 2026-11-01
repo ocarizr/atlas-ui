@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Strict workload benchmark command-line parsing.
+ */
+
 #include "benchmark.hpp"
 
 #include <charconv>
@@ -7,6 +12,7 @@ namespace atlas::jobs::workloads
 {
 namespace
 {
+/// @brief Parse a positive representable workload size from command-line text.
 std::size_t number(std::string_view text)
 {
     std::size_t result = 0;
@@ -15,9 +21,12 @@ std::size_t number(std::string_view text)
     {
         throw std::invalid_argument{"Expected an unsigned decimal argument"};
     }
+
     return result;
 }
 } // namespace
+
+/// @brief Parse and validate benchmark command-line sizes, seeds and execution policy.
 benchmark_options parse_options(int argc, char** argv)
 {
     benchmark_options result;
@@ -29,15 +38,18 @@ benchmark_options parse_options(int argc, char** argv)
             result = {{257, 32, 4, 42}, 2, 1};
             continue;
         }
+
         if (index + 1 == argc)
         {
             throw std::invalid_argument{"A benchmark option needs a value"};
         }
+
         if (argument == "--machine")
         {
             result.machine = argv[++index];
             continue;
         }
+
         const auto value = number(argv[++index]);
         if (argument == "--size")
         {
@@ -68,6 +80,7 @@ benchmark_options parse_options(int argc, char** argv)
             throw std::invalid_argument{"Unknown benchmark option"};
         }
     }
+
     if (!result.workers || result.workers > 256 || !result.workload.grain ||
         !result.workload.rounds || result.workload.rounds > 1048576 ||
         result.workload.size > 4194304 || !result.repetitions || result.repetitions > 100 ||
@@ -75,6 +88,7 @@ benchmark_options parse_options(int argc, char** argv)
     {
         throw std::invalid_argument{"Benchmark arguments exceed their documented bounds"};
     }
+
     return result;
 }
 } // namespace atlas::jobs::workloads

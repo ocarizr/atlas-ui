@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Direct root/child/continuation dispatch and executor-created context contracts.
+ */
+
 #include <atlas/jobs/job_dispatcher.hpp>
 
 #include "execution_context.hpp"
@@ -5,21 +10,26 @@
 
 namespace atlas::jobs
 {
+/// @brief Bind a non-owning client to an existing shared pool.
 job_dispatcher::job_dispatcher(std::weak_ptr<detail::scheduler> scheduler)
     : scheduler_{std::move(scheduler)}
 {
 }
 
+/// @brief Return the origin-thread registration interface for completion notifications.
 completion_callbacks job_dispatcher::callbacks() const
 {
     return completion_callbacks{scheduler_, options_.priority};
 }
 
+/// @brief Return the origin-thread registration interface for completion notifications.
 completion_callbacks job_context::callbacks() const
 {
     return completion_callbacks{scheduler_, active_task()->options.priority};
 }
 
+/// @brief Create a non-owning dispatch view with explicit priority and cooperative cancellation
+/// policy.
 job_dispatcher job_dispatcher::with_options(job_options options) const
 {
     if (options.priority != job_priority::high && options.priority != job_priority::normal &&
@@ -27,16 +37,20 @@ job_dispatcher job_dispatcher::with_options(job_options options) const
     {
         throw std::invalid_argument{"Invalid job priority"};
     }
+
     auto result = *this;
     result.options_ = std::move(options);
     return result;
 }
 
+/// @brief Inspect this scope's cooperative cancellation token without cancelling running code
+/// forcibly.
 bool job_context::stop_requested() const
 {
     return active_task()->options.cancellation.stop_requested();
 }
 
+/// @brief Throw the cancellation cause when requested; prior writes are not rolled back.
 void job_context::throw_if_cancelled() const
 {
     if (stop_requested())
@@ -45,11 +59,14 @@ void job_context::throw_if_cancelled() const
     }
 }
 
+/// @brief Read this task's effective scheduling class; categories do not set priority.
 job_priority job_context::priority() const
 {
     return active_task()->options.priority;
 }
 
+/// @brief Validate the shared runtime and admit a root or explicit parent-linked task with this
+/// client's policy.
 task_handle job_dispatcher::submit(job_label label, detail::task_body body,
                                    std::span<const task_handle> prerequisites,
                                    const std::shared_ptr<detail::task_state>& parent) const
@@ -59,27 +76,38 @@ task_handle job_dispatcher::submit(job_label label, detail::task_body body,
     {
         throw std::logic_error{"The job runtime is no longer available"};
     }
+
     return scheduler->submit_task(std::move(label), std::move(body), prerequisites, parent,
                                   parent ? parent->options : options_);
 }
 
+/// @brief Create a named fan-in task that completes after its prerequisites succeed.
 task_handle job_dispatcher::fence(job_label label, std::span<const task_handle> prerequisites) const
 {
-    return submit(std::move(label), [](job_context&) {}, prerequisites);
+    return submit(
+        std::move(label),
+        [](job_context&)
+        {
+        },
+        prerequisites);
 }
 
+/// @brief Create a named fan-in task that completes after its prerequisites succeed.
 task_handle job_dispatcher::fence(job_label label,
                                   std::initializer_list<task_handle> prerequisites) const
 {
     return fence(std::move(label), std::span{prerequisites.begin(), prerequisites.size()});
 }
 
+/// @brief Bind an executor-created context to its runtime and currently executing parent scope.
 job_context::job_context(std::weak_ptr<detail::scheduler> scheduler,
                          std::weak_ptr<detail::task_state> parent)
     : scheduler_{std::move(scheduler)}, parent_{std::move(parent)}
 {
 }
 
+/// @brief Admit an attached child with optional prerequisites while the current parent body is
+/// executing.
 task_handle job_context::submit(job_label label, detail::task_body body,
                                 std::span<const task_handle> prerequisites) const
 {
@@ -88,6 +116,7 @@ task_handle job_context::submit(job_label label, detail::task_body body,
                                              parent);
 }
 
+/// @brief Validate that this executor-created context is used by its still-executing callback.
 std::shared_ptr<detail::task_state> job_context::active_task() const
 {
     auto parent = parent_.lock();
@@ -95,15 +124,20 @@ std::shared_ptr<detail::task_state> job_context::active_task() const
     {
         throw std::logic_error{"A job context is usable only inside its originating callback"};
     }
+
     return parent;
 }
 
+/// @brief Return an independent default-policy client of the same pool; it does not attach new
+/// roots to this scope.
 job_dispatcher job_context::dispatcher() const
 {
     (void)active_task();
     return job_dispatcher{scheduler_};
 }
 
+/// @brief Borrow the task-owned monotonic resource until scoped descendants and input cleanup
+/// finish.
 std::pmr::memory_resource& job_context::scratch() const
 {
     const auto task = active_task();
@@ -112,13 +146,16 @@ std::pmr::memory_resource& job_context::scratch() const
     {
         throw std::logic_error{"The job runtime is no longer available"};
     }
+
     if (!task->scratch)
     {
         task->scratch = std::make_unique<detail::scratch_resource>(scheduler->scratch_config);
     }
+
     return *task->scratch;
 }
 
+/// @brief Submit a separate continuation gated on the active scope's terminal publication.
 task_handle job_context::continue_task(job_label label, detail::task_body body) const
 {
     const task_handle prerequisite{active_task()};
@@ -127,6 +164,8 @@ task_handle job_context::continue_task(job_label label, detail::task_body body) 
         .submit(std::move(label), std::move(body), std::span{&prerequisite, 1});
 }
 
+/// @brief Register declared memory regions atomically and retain the returned guard through the
+/// actual accesses.
 access_guard job_context::access(std::span<const memory_access> regions) const
 {
     const auto task = active_task();
@@ -135,15 +174,20 @@ access_guard job_context::access(std::span<const memory_access> regions) const
     {
         throw std::logic_error{"The job runtime is no longer available"};
     }
+
     const auto token = scheduler->sanitizer->acquire(*task, regions);
     return access_guard{scheduler->sanitizer, token};
 }
 
+/// @brief Register declared memory regions atomically and retain the returned guard through the
+/// actual accesses.
 access_guard job_context::access(std::initializer_list<memory_access> regions) const
 {
     return access(std::span{regions.begin(), regions.size()});
 }
 
+/// @brief Register declared memory regions atomically and retain the returned guard through the
+/// actual accesses.
 access_guard job_context::access(memory_access region) const
 {
     return access(std::span{&region, 1});

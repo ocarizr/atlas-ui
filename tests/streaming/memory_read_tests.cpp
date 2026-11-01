@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for memory read with isolated scenario ownership and cleanup.
+ */
+
 #include <atlas/streaming/asset_streamer.hpp>
 #include <gtest/gtest.h>
 
@@ -6,6 +11,7 @@
 
 namespace atlas::streaming::tests
 {
+/// @brief Verify publishes an owned range on a job worker.
 TEST(memory_read_tests, publishes_an_owned_range_on_a_job_worker)
 {
     jobs::job_system jobs{2};
@@ -28,14 +34,23 @@ TEST(memory_read_tests, publishes_an_owned_range_on_a_job_worker)
     EXPECT_EQ(*output, (asset_bytes{20, 30}));
 }
 
+/// @brief Scenario state for invalid range, isolated per test and released through RAII.
 struct invalid_range
 {
+    /// @brief Scenario-owned offset used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::uint64_t offset;
+    /// @brief Scenario-owned size used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::size_t size;
 };
+
+/// @brief Scenario state for invalid memory ranges, isolated per test and released through RAII.
 class invalid_memory_ranges : public testing::TestWithParam<invalid_range>
 {
 };
+
+/// @brief Verify returns an error without partial bytes.
 TEST_P(invalid_memory_ranges, returns_an_error_without_partial_bytes)
 {
     jobs::job_system jobs{1};
@@ -52,10 +67,12 @@ TEST_P(invalid_memory_ranges, returns_an_error_without_partial_bytes)
               })
         .get();
 }
+
 INSTANTIATE_TEST_SUITE_P(boundaries, invalid_memory_ranges,
                          testing::Values(invalid_range{3, 0}, invalid_range{1, 2},
                                          invalid_range{UINT64_MAX, 1}));
 
+/// @brief Verify allows an empty range at the end.
 TEST(memory_read_tests, allows_an_empty_range_at_the_end)
 {
     jobs::job_system jobs{1};

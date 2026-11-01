@@ -29,12 +29,9 @@ jobs:
       - name: Lint GitHub Actions workflows
         if: inputs.tooling
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color
-      - name: Check C++ formatting and analyzer configuration
+      - name: Check analyzer configuration
         if: inputs.configure
         shell: pwsh
         run: |
-          ./scripts/check_format.ps1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           clang-tidy --verify-config
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          clang-format --style=file --dump-config | Out-Null

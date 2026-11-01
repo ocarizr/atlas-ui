@@ -20,6 +20,10 @@ name: Plan validation
         value: ${{ jobs.plan.outputs.groups }}
       keys:
         value: ${{ jobs.plan.outputs.keys }}
+      has-formatting:
+        value: ${{ jobs.plan.outputs.has-formatting }}
+      formatting:
+        value: ${{ jobs.plan.outputs.formatting }}
 jobs:
   plan:
     runs-on: windows-2022
@@ -32,6 +36,8 @@ jobs:
       matrices: ${{ steps.impact.outputs.matrices }}
       groups: ${{ steps.impact.outputs.groups }}
       keys: ${{ steps.impact.outputs.keys }}
+      has-formatting: ${{ steps.impact.outputs.has-formatting }}
+      formatting: ${{ steps.impact.outputs.formatting }}
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:

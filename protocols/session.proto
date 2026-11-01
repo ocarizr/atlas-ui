@@ -1,11 +1,18 @@
+/// @file
+/// @brief Version negotiation and identity for the editor-managed preview session.
 syntax = "proto3";
 package atlas.preview;
 
+/// Session metadata exchanged before preview control requests are accepted.
 message SessionInfo {
+  /// Supported wire-contract version; incompatible versions require an explicit upgrade.
   uint32 protocol_version = 1;
+  /// Composition-root supplied identity of the runtime/editor preview session.
   string session_id = 2;
 }
 
+/// Editor-to-preview control contract; transport and lifecycle belong to composition roots.
 service PreviewControl {
+  /// Exchange protocol compatibility and session identity before further control traffic.
   rpc Handshake(SessionInfo) returns (SessionInfo);
 }

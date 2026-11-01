@@ -5,12 +5,12 @@ import re
 from pathlib import Path
 
 from scripts.ci.architecture import validate_architecture
-
 from scripts.ci.config import read_yaml
 from scripts.ci.impact import repository_files, validate_components
 
 
 def main():
+    """Check repository links, configuration, portability boundaries and local workflow references."""
     root = Path.cwd()
     validate_architecture(root)
     validate_components(read_yaml(root / ".ci/components.yaml"))

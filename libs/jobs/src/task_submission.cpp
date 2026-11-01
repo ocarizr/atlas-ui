@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Validated task admission with prepared dependency publication storage.
+ */
+
 #include "callback_mailbox.hpp"
 #include "execution_context.hpp"
 #include "scheduler_state.hpp"
@@ -8,6 +13,7 @@ namespace atlas::jobs::detail
 {
 namespace
 {
+/// @brief Traverse weak dependency markers to reject a cycle without reviving retired user state.
 bool reaches(const std::shared_ptr<task_state>& start, const task_state* target)
 {
     std::vector<std::shared_ptr<task_state>> pending{start};
@@ -20,10 +26,12 @@ bool reaches(const std::shared_ptr<task_state>& start, const task_state* target)
         {
             return true;
         }
+
         if (terminal(node->status.load()) || !visited.insert(node.get()).second)
         {
             continue;
         }
+
         for (const auto& edge : node->waits_for)
         {
             if (!edge->terminal)
@@ -35,10 +43,13 @@ bool reaches(const std::shared_ptr<task_state>& start, const task_state* target)
             }
         }
     }
+
     return false;
 }
 } // namespace
 
+/// @brief Validate direct-task inputs and allocate publication storage before taking the commit
+/// lock.
 void scheduler::prepare_task(task_submission& prepared, job_label label, task_body body,
                              std::span<const task_handle> prerequisites, job_options options)
 {
@@ -46,6 +57,7 @@ void scheduler::prepare_task(task_submission& prepared, job_label label, task_bo
     {
         throw std::invalid_argument{"A task needs a nonempty name and function"};
     }
+
     prepared.task = std::make_shared<task_state>();
     auto& task = prepared.task;
     task->marker->task = task;
@@ -60,6 +72,7 @@ void scheduler::prepare_task(task_submission& prepared, job_label label, task_bo
     {
         task->cancellation_error = std::make_exception_ptr(job_cancelled{});
     }
+
     task->entry.emplace_back();
     std::unordered_set<const task_state*> unique;
     for (const auto& handle : prerequisites)
@@ -68,6 +81,7 @@ void scheduler::prepare_task(task_submission& prepared, job_label label, task_bo
         {
             throw std::invalid_argument{"Prerequisites must be valid tasks from this runtime"};
         }
+
         if (unique.insert(handle.state_.get()).second)
         {
             prepared.links.push_back({task, prepared.dependencies.size(), {}});
@@ -77,6 +91,7 @@ void scheduler::prepare_task(task_submission& prepared, job_label label, task_bo
     }
 }
 
+/// @brief Prepare a direct task and publish its prerequisite links as one admission operation.
 task_handle scheduler::submit_task(job_label label, task_body body,
                                    std::span<const task_handle> prerequisites,
                                    const std::shared_ptr<task_state>& parent, job_options options,
@@ -93,11 +108,13 @@ task_handle scheduler::submit_task(job_label label, task_body body,
         prepared.task->delivery_error = std::make_exception_ptr(
             std::runtime_error{"Callback owner thread exited before delivery"});
     }
+
     prepare_trace(prepared, parent);
     if (parent)
     {
         prepared.parent_edge.push_back(prepared.task->marker);
     }
+
     {
         const std::lock_guard lock{mutex};
         if (parent)
@@ -106,6 +123,7 @@ task_handle scheduler::submit_task(job_label label, task_body body,
             {
                 throw std::logic_error{"The parent job body has already closed"};
             }
+
             for (const auto& prerequisite : prepared.dependencies)
             {
                 if (reaches(prerequisite, parent.get()))
@@ -118,16 +136,19 @@ task_handle scheduler::submit_task(job_label label, task_body body,
         {
             throw std::logic_error{"The job system is shutting down"};
         }
+
         if (next_task_id == std::numeric_limits<std::uint64_t>::max())
         {
             throw std::overflow_error{"Task identities exhausted"};
         }
+
         publish_task(prepared, parent);
     }
     available.notify_all();
     return task_handle{std::move(prepared.task)};
 }
 
+/// @brief Commit a prepared task and its dependencies while preserving parent join accounting.
 void scheduler::publish_task(task_submission& prepared, const std::shared_ptr<task_state>& parent)
 {
     // Storage and cycle checks are complete: publication cannot allocate.
@@ -145,6 +166,7 @@ void scheduler::publish_task(task_submission& prepared, const std::shared_ptr<ta
             task->trace.reset();
         }
     }
+
     if (parent)
     {
         task->parent = parent;
@@ -152,6 +174,7 @@ void scheduler::publish_task(task_submission& prepared, const std::shared_ptr<ta
         ++parent->unfinished;
         parent->waits_for.splice(parent->waits_for.end(), prepared.parent_edge);
     }
+
     task->submitted = task_clock::now();
     for (std::size_t index = 0; index < prepared.dependencies.size(); ++index)
     {
@@ -163,6 +186,7 @@ void scheduler::publish_task(task_submission& prepared, const std::shared_ptr<ta
             {
                 inherit_failure(*task, prerequisite, index, links.front().retired);
             }
+
             prepared.retired_links.splice(prepared.retired_links.end(), links, links.begin());
         }
         else
@@ -171,6 +195,7 @@ void scheduler::publish_task(task_submission& prepared, const std::shared_ptr<ta
             prerequisite->subscribers.splice(prerequisite->subscribers.end(), links, links.begin());
         }
     }
+
     ++submitted;
     if (task->remaining == 0)
     {
@@ -182,6 +207,7 @@ void scheduler::publish_task(task_submission& prepared, const std::shared_ptr<ta
     }
 }
 
+/// @brief Make an eligible task runnable without occupying a worker on unmet prerequisites.
 void scheduler::queue_task(const std::shared_ptr<task_state>& task)
 {
     task->skipped = static_cast<bool>(task->inherited_error);

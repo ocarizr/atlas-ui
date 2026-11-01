@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Simultaneously live declared-region validation and bounded findings.
+ */
+
 #include "access_registry.hpp"
 #include "task_state.hpp"
 
@@ -9,6 +14,7 @@ namespace atlas::jobs::detail
 {
 namespace
 {
+/// @brief Reject invalid or overflowing declared-memory descriptors before registering them.
 access_region checked_region(const memory_access& request)
 {
     const auto begin = reinterpret_cast<std::uintptr_t>(request.data);
@@ -18,10 +24,12 @@ access_region checked_region(const memory_access& request)
         throw std::invalid_argument{
             "A declared access needs a valid, non-overflowing memory region"};
     }
+
     return {begin, begin + request.bytes, request.mode};
 }
 
 #if ATLAS_JOBS_SANITIZER
+/// @brief Normalize one borrowed span descriptor into a validated byte-address range.
 std::vector<access_region> normalize(std::span<const memory_access> requests)
 {
     std::vector<access_region> result;
@@ -33,11 +41,13 @@ std::vector<access_region> normalize(std::span<const memory_access> requests)
             result.push_back(checked_region(request));
         }
     }
+
     return result;
 }
 #endif
 } // namespace
 
+/// @brief Configure bounded live-access diagnostics and validate the cache-line heuristic.
 access_registry::access_registry(job_sanitizer_options options) : options_{options}
 {
     if (!std::has_single_bit(options.cache_line_size))
@@ -47,6 +57,7 @@ access_registry::access_registry(job_sanitizer_options options) : options_{optio
     }
 }
 
+/// @brief Retain a bounded access finding and account for report overflow.
 void access_registry::record(diagnostic_kind kind, const std::string& name,
                              const std::string& other)
 {
@@ -55,6 +66,7 @@ void access_registry::record(diagnostic_kind kind, const std::string& name,
         ++dropped_;
         return;
     }
+
     diagnostics_.push_back({kind,
                             kind == diagnostic_kind::possible_false_sharing
                                 ? diagnostic_severity::warning
@@ -62,6 +74,8 @@ void access_registry::record(diagnostic_kind kind, const std::string& name,
                             name, other});
 }
 
+/// @brief Reject incompatible overlapping live declarations and record cache-line heuristic
+/// warnings.
 void access_registry::check(const active_access& incoming)
 {
     bool warned = false;
@@ -71,6 +85,7 @@ void access_registry::check(const active_access& incoming)
         {
             continue;
         }
+
         for (const auto& left : incoming.regions)
         {
             for (const auto& right : existing.regions)
@@ -79,12 +94,14 @@ void access_registry::check(const active_access& incoming)
                 {
                     continue;
                 }
+
                 if (left.begin < right.end && right.begin < left.end)
                 {
                     record(diagnostic_kind::conflicting_access, incoming.name, existing.name);
                     throw job_sanitizer_error{"Conflicting declared access: " + incoming.name +
                                               " / " + existing.name};
                 }
+
                 const auto line = options_.cache_line_size;
                 if (!warned && left.begin / line <= (right.end - 1) / line &&
                     right.begin / line <= (left.end - 1) / line)
@@ -97,6 +114,7 @@ void access_registry::check(const active_access& incoming)
     }
 }
 
+/// @brief Validate and register simultaneous declared memory scopes, rejecting conflicting access.
 std::size_t access_registry::acquire(const task_state& owner,
                                      std::span<const memory_access> requests)
 {
@@ -110,6 +128,7 @@ std::size_t access_registry::acquire(const task_state& owner,
         {
             throw std::overflow_error{"Sanitizer access tokens exhausted"};
         }
+
         check(incoming);
         incoming.token = next_token_++;
         active_.push_back(std::move(incoming));
@@ -128,12 +147,17 @@ std::size_t access_registry::acquire(const task_state& owner,
     return 0;
 }
 
+/// @brief Retire owned registration state; scoped cleanup must not throw.
 void access_registry::release(std::size_t token) noexcept
 {
     try
     {
         const std::lock_guard lock{mutex_};
-        std::erase_if(active_, [token](const auto& item) { return item.token == token; });
+        std::erase_if(active_,
+                      [token](const auto& item)
+                      {
+                          return item.token == token;
+                      });
     }
     catch (...)
     {
@@ -141,12 +165,16 @@ void access_registry::release(std::size_t token) noexcept
     }
 }
 
+/// @brief Retire callback-scoped access registrations and report guards escaping their scope.
 bool access_registry::finish(const task_state& owner)
 {
 #if ATLAS_JOBS_SANITIZER
     const std::lock_guard lock{mutex_};
-    const auto removed =
-        std::erase_if(active_, [&owner](const auto& item) { return item.owner == &owner; });
+    const auto removed = std::erase_if(active_,
+                                       [&owner](const auto& item)
+                                       {
+                                           return item.owner == &owner;
+                                       });
     if (removed != 0)
     {
         record(diagnostic_kind::escaped_access, owner.name);
@@ -158,6 +186,8 @@ bool access_registry::finish(const task_state& owner)
     return false;
 }
 
+/// @brief Copy bounded declared-access findings under the registry mutex; this does not invoke an
+/// output or reset findings.
 job_sanitizer_report access_registry::report() const
 {
     const std::lock_guard lock{mutex_};

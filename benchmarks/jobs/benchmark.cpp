@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Warmup, alternating samples and reference verification for generic job workloads.
+ */
+
 #include "benchmark.hpp"
 
 #include <algorithm>
@@ -7,13 +12,17 @@ namespace atlas::jobs::workloads
 {
 namespace
 {
+/// @brief Steady clock used by benchmark wall-duration samples.
 using clock_type = std::chrono::steady_clock;
+
+/// @brief Read elapsed steady-clock nanoseconds for the benchmark's current sample.
 std::uint64_t elapsed(clock_type::time_point start)
 {
     return static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::nanoseconds>(clock_type::now() - start).count());
 }
 
+/// @brief Build a workload pool configuration with explicit workers and opt-in trace capacity.
 job_system_options runtime_options(const benchmark_options& options, bool tracing)
 {
     job_system_options result;
@@ -26,6 +35,9 @@ job_system_options runtime_options(const benchmark_options& options, bool tracin
     result.trace_capacity = tracing ? 4 + chunks * 2 : 0;
     return result;
 }
+
+/// @brief Validate one candidate access against currently live declarations or the sequential
+/// reference.
 void check(const workload_state& state, std::uint64_t reference)
 {
     if (state.checksum != reference || state.phase.load() != 3)
@@ -33,6 +45,8 @@ void check(const workload_state& state, std::uint64_t reference)
         throw std::runtime_error{"Parallel phases did not match the sequential reference"};
     }
 }
+
+/// @brief Run sequential and parallel samples in alternating order and verify equivalent results.
 void measure_pair(job_system& runtime, const benchmark_options& options, benchmark_result& result,
                   std::size_t iteration)
 {
@@ -66,6 +80,8 @@ void measure_pair(job_system& runtime, const benchmark_options& options, benchma
     }
 }
 
+/// @brief Measure successful C++ allocation requests for one verified workload outside timing
+/// samples.
 allocation_counts allocation_census(job_system& runtime, const benchmark_options& options,
                                     std::uint64_t reference)
 {
@@ -81,12 +97,15 @@ allocation_counts allocation_census(job_system& runtime, const benchmark_options
         (void)end_allocation_counting();
         throw;
     }
+
     const auto result = end_allocation_counting();
     check(*state, reference);
     return result;
 }
 } // namespace
 
+/// @brief Warm up, validate and measure the configured deterministic workload and allocation
+/// census.
 benchmark_result measure(const benchmark_options& options)
 {
     verify_allocation_counter();
@@ -102,6 +121,7 @@ benchmark_result measure(const benchmark_options& options)
     {
         measure_pair(runtime, options, result, iteration);
     }
+
     result.allocations = allocation_census(runtime, options, result.checksum);
     job_system traced{runtime_options(options, true)};
     auto trace_state = prepare_workload(options.workload);
@@ -112,6 +132,7 @@ benchmark_result measure(const benchmark_options& options)
     {
         throw std::runtime_error{"Incomplete benchmark trace"};
     }
+
     return result;
 }
 } // namespace atlas::jobs::workloads

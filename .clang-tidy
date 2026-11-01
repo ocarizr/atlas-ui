@@ -12,7 +12,8 @@ WarningsAsErrors: '*'
 HeaderFilterRegex: '(^|[/\\])(libs|apps|tools|tests)[/\\]'
 FormatStyle: file
 CheckOptions:
-  readability-function-size.LineThreshold: '60'
+  # Physical lines include Allman braces, blank boundaries and documented local fixtures.
+  readability-function-size.LineThreshold: '100'
   readability-identifier-naming.ClassCase: lower_case
   readability-identifier-naming.StructCase: lower_case
   readability-identifier-naming.EnumCase: lower_case

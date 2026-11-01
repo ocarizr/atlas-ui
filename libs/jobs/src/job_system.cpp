@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Shared worker-pool lifecycle, coordinator waits and aggregate observation.
+ */
+
 #include <atlas/jobs/job_system.hpp>
 
 #include "execution_context.hpp"
@@ -13,21 +18,28 @@
 
 namespace atlas::jobs
 {
+/// @brief Create an empty legacy handle or retain its shared completion and weak runtime identity.
 job_handle::job_handle(std::shared_future<void> completion, std::weak_ptr<const void> owner)
     : completion_{std::move(completion)}, owner_{std::move(owner)}
 {
 }
 
+/// @brief Create the configured persistent pool; invalid worker counts/options are rejected before
+/// use.
 job_system::job_system(std::size_t worker_count, job_sanitizer_options sanitizer)
     : job_system{job_system_options{worker_count, sanitizer, {}, 0, {}}}
 {
 }
 
+/// @brief Create the configured persistent pool; invalid worker counts/options are rejected before
+/// use.
 job_system::job_system(job_system_options options)
     : impl_{std::make_shared<detail::scheduler>(std::move(options))}
 {
 }
 
+/// @brief Copy the bounded incremental-task trace; pending or dropped entries indicate an
+/// incomplete capture.
 job_trace_report job_system::trace_report() const
 {
     const std::lock_guard lock{impl_->mutex};
@@ -35,6 +47,8 @@ job_trace_report job_system::trace_report() const
             impl_->trace_admitted - impl_->trace_records.size(), impl_->trace_records};
 }
 
+/// @brief Drain accepted work and release persistent resources; callers must obey the enclosing
+/// coordinator/lifetime contract.
 job_system::~job_system()
 {
     try
@@ -47,22 +61,27 @@ job_system::~job_system()
     }
 }
 
+/// @brief Return a non-owning client of the existing pool without creating worker threads.
 job_dispatcher job_system::dispatcher() const
 {
     return job_dispatcher{impl_};
 }
 
+/// @brief Copy bounded declared-access diagnostics, including dropped-report counts.
 job_sanitizer_report job_system::sanitizer_report() const
 {
     return impl_->sanitizer->report();
 }
 
+/// @brief Admit a legacy independent callback and retain its completion result for coordinator
+/// observation.
 job_handle job_system::submit(std::function<void()> job)
 {
     if (!job)
     {
         throw std::invalid_argument{"Cannot submit an empty job"};
     }
+
     detail::ready_queue prepared;
     auto& task = prepared.emplace_back();
     task.callback = std::move(job);
@@ -74,6 +93,7 @@ job_handle job_system::submit(std::function<void()> job)
         {
             throw std::logic_error{"The job system is shutting down"};
         }
+
         impl_->queue.push(prepared, job_priority::normal);
         ++impl_->submitted;
     }
@@ -81,6 +101,7 @@ job_handle job_system::submit(std::function<void()> job)
     return job_handle{std::move(completion), impl_->identity};
 }
 
+/// @brief Validate and snapshot the entire DAG before publishing any callback.
 graph_handle job_system::submit_graph(const job_graph& graph)
 {
     // All callback copies, nodes and queue links are allocated before publication.
@@ -91,6 +112,7 @@ graph_handle job_system::submit_graph(const job_graph& graph)
         {
             throw std::logic_error{"The job system is shutting down"};
         }
+
         state->scheduler = impl_->identity;
         const auto roots = state->publish(state, impl_->queue.normal());
         impl_->submitted += state->nodes.size();
@@ -104,6 +126,7 @@ graph_handle job_system::submit_graph(const job_graph& graph)
     return graph_handle{std::move(state)};
 }
 
+/// @brief Wait only from a coordinator, publish task effects and rethrow the recorded failure.
 void job_system::wait(const job_handle& job) const
 {
     detail::require_coordinator();
@@ -111,15 +134,19 @@ void job_system::wait(const job_handle& job) const
     {
         throw std::invalid_argument{"Invalid handle or handle owned by another job system"};
     }
+
     job.completion_.get();
 }
 
+/// @brief Wait for accepted work and observer delivery to drain; concurrent producers may submit
+/// afterward.
 void job_system::wait_idle() const
 {
     detail::require_coordinator();
     impl_->wait_for_idle();
 }
 
+/// @brief Wait only from a coordinator, publish task effects and rethrow the recorded failure.
 void job_system::wait(const graph_handle& graph) const
 {
     detail::require_coordinator();
@@ -127,6 +154,7 @@ void job_system::wait(const graph_handle& graph) const
     {
         throw std::invalid_argument{"Invalid graph handle or handle owned by another job system"};
     }
+
     graph.state_->finished.get();
     // Completion publishes every node's terminal state. Choose a stable failure,
     // independent of which worker happened to finish first.
@@ -139,17 +167,21 @@ void job_system::wait(const graph_handle& graph) const
     }
 }
 
+/// @brief Deliver up to the requested number of this coordinator's queued notifications.
 std::size_t job_system::dispatch_callbacks(std::size_t limit)
 {
     return impl_->dispatch_callbacks(limit);
 }
 
+/// @brief Stop accepting new roots, drain accepted work and join owned workers; never call from a
+/// job.
 void job_system::shutdown()
 {
     detail::require_coordinator();
     impl_->drain_and_stop();
 }
 
+/// @brief Return an observational snapshot of this instance's counters without resetting them.
 job_statistics job_system::statistics() const
 {
     const std::lock_guard lock{impl_->mutex};
@@ -158,6 +190,7 @@ job_statistics job_system::statistics() const
     {
         sizes[index] += impl_->affine_queued[index];
     }
+
     return {impl_->worker_count,
             sizes[0] + sizes[1] + sizes[2],
             impl_->running,

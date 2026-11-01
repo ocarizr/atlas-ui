@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Application/tool composition roots and bootstrap argument contracts.
+ */
+
 #include <atlas/application/entry_point.hpp>
 #include <atlas/jobs/job_system.hpp>
 #include <atlas/jobs_diagnostics/observer.hpp>
@@ -9,6 +14,8 @@
 
 namespace atlas::application
 {
+/// @brief Compose the selected executable's services and return its bootstrap/smoke-test exit
+/// status.
 int run_application(application_kind kind, int argc, char** argv)
 {
     const std::string_view name = kind == application_kind::game ? "atlas_game" : "atlas_editor";
@@ -19,6 +26,7 @@ int run_application(application_kind kind, int argc, char** argv)
                          "Usage: " + std::string{name} + " [--smoke-test]");
         return 2;
     }
+
     try
     {
         jobs::job_system_options options;
@@ -29,7 +37,9 @@ int run_application(application_kind kind, int argc, char** argv)
         scheduler.dispatcher()
             .run("initialize session", &session,
                  [](jobs::job_context&, preview::SessionInfo*& state)
-                 { state->set_protocol_version(1); })
+                 {
+                     state->set_protocol_version(1);
+                 })
             .wait();
         session.set_session_id(std::string{name});
         scheduler.shutdown();
@@ -47,6 +57,8 @@ int run_application(application_kind kind, int argc, char** argv)
     }
 }
 
+/// @brief Validate tool arguments and report commands not implemented by the content-tool
+/// bootstrap.
 int run_tool(tool_kind kind, int argc, char** argv)
 {
     const std::string_view name = kind == tool_kind::cook ? "atlas_cook" : "atlas_package";
@@ -59,6 +71,7 @@ int run_tool(tool_kind kind, int argc, char** argv)
                 ": content processing is not implemented; use CPack for current packaging");
         return 0;
     }
+
     (void)log.write(diagnostics::log_level::error, "application",
                     std::string{name} + " has no content commands yet; use --help");
     return 2;

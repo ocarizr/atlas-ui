@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for profiling with isolated scenario ownership and cleanup.
+ */
+
 #include <atlas/diagnostics/profiling.hpp>
 #include <gtest/gtest.h>
 
@@ -7,6 +12,7 @@
 
 namespace atlas::diagnostics::tests
 {
+/// @brief Verify durations and scopes export chrome events with escaped text.
 TEST(profiling_tests, durations_and_scopes_export_chrome_events_with_escaped_text)
 {
     profiler capture;
@@ -25,6 +31,7 @@ TEST(profiling_tests, durations_and_scopes_export_chrome_events_with_escaped_tex
     EXPECT_NE(output.str().find("\"ph\":\"X\""), std::string::npos);
 }
 
+/// @brief Verify capacity and invalid intervals are observable.
 TEST(profiling_tests, capacity_and_invalid_intervals_are_observable)
 {
     profiling_options options;
@@ -40,6 +47,7 @@ TEST(profiling_tests, capacity_and_invalid_intervals_are_observable)
     EXPECT_EQ(capture.statistics().recorded, 0U);
 }
 
+/// @brief Verify concurrent producers use distinct tracks and bounded storage.
 TEST(profiling_tests, concurrent_producers_use_distinct_tracks_and_bounded_storage)
 {
     profiler capture;
@@ -56,6 +64,7 @@ TEST(profiling_tests, concurrent_producers_use_distinct_tracks_and_bounded_stora
                 }
             });
     }
+
     producers.clear();
     EXPECT_EQ(capture.statistics().recorded, 128U);
     EXPECT_EQ(capture.statistics().dropped, 0U);

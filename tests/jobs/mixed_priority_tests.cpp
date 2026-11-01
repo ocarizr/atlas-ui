@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for mixed priority with isolated scenario ownership and cleanup.
+ */
+
 #include "job_system_fixture.hpp"
 
 #include <algorithm>
@@ -7,9 +12,11 @@
 
 namespace atlas::jobs::tests
 {
+/// @brief Scenario state for mixed priority tests, isolated per test and released through RAII.
 class mixed_priority_tests : public testing::TestWithParam<std::size_t>
 {
   protected:
+    /// @brief Construct a clean per-test runtime before the scenario starts.
     void SetUp() override
     {
         job_system_options options;
@@ -28,20 +35,29 @@ class mixed_priority_tests : public testing::TestWithParam<std::size_t>
                     gate.wait();
                 });
         }
+
         for (auto& signal : started)
         {
             ASSERT_EQ(signal.wait_for(std::chrono::seconds{3}), std::future_status::ready);
         }
     }
+
+    /// @brief Drain and join per-test work before releasing fixture-owned data.
     void TearDown() override
     {
         gate.open();
         system->shutdown();
     }
+
+    /// @brief Scenario-owned system used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::unique_ptr<job_system> system;
+    /// @brief Scenario-owned gate used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     signal_gate gate;
 };
 
+/// @brief Verify ready classes progress with bounded dispatch gaps and no lost work.
 TEST_P(mixed_priority_tests, ready_classes_progress_with_bounded_dispatch_gaps_and_no_lost_work)
 {
     std::atomic<std::size_t> executed{0};
@@ -51,9 +67,13 @@ TEST_P(mixed_priority_tests, ready_classes_progress_with_bounded_dispatch_gaps_a
         for (int index = 0; index < 64; ++index)
         {
             jobs.run("mixed", &executed,
-                     [](job_context&, std::atomic<std::size_t>*& total) { total->fetch_add(1); });
+                     [](job_context&, std::atomic<std::size_t>*& total)
+                     {
+                         total->fetch_add(1);
+                     });
         }
     }
+
     const auto queued = system->statistics();
     EXPECT_EQ(queued.queued_by_priority, (std::array<std::size_t, 3>{64, 64, 64}));
     gate.open();
@@ -79,9 +99,11 @@ TEST_P(mixed_priority_tests, ready_classes_progress_with_bounded_dispatch_gaps_a
         {
             ++full_round[group];
         }
+
         ++position;
         EXPECT_EQ(task.status, job_status::succeeded);
     }
+
     EXPECT_EQ(counts, (std::array<std::size_t, 3>{64, 64, 64}));
     EXPECT_EQ(full_round, (std::array<std::size_t, 3>{4, 2, 1}));
     const auto complete = system->statistics();

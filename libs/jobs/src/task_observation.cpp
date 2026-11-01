@@ -1,8 +1,15 @@
+/**
+ * @file
+ * @brief Terminal event delivery outside scheduler locks and observer draining.
+ */
+
 #include "execution_context.hpp"
 #include "scheduler_state.hpp"
 
 namespace atlas::jobs::detail
 {
+/// @brief Deliver immutable terminal metadata outside the pool lock and retire observer-drain
+/// accounting.
 void scheduler::observe_task(const std::shared_ptr<task_state>& task, std::uint64_t parent_id)
 {
     const auto previous_observing = observing_job;

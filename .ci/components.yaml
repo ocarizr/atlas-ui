@@ -225,10 +225,33 @@ components:
     - testing
     - ipc
     - content
+formatting_contexts:
+  tooling:
+  - scripts/**/*.py
+  - tests/tooling/**
+  - tests/support/**
+formatting_global_paths:
+- .clang-format
+- .editorconfig
+- .gitattributes
+- pyproject.toml
+- scripts/check_format.ps1
+- scripts/ci/format_sources.py
+- scripts/ci/format_selection.py
+- scripts/ci/config.py
+- scripts/ci/documentation.py
+- scripts/ci/cpp_spacing.py
+- scripts/ci/requirements.txt
+- .ci/components.yaml
+- .github/workflows/reusable_format.yml
+- .github/workflows/reusable_plan.yml
+- .github/workflows/reusable_validation.yml
+- .github/actions/setup_ci/**
 global_paths:
 - CMakeLists.txt
 - CMakePresets.json
 - pytest.ini
+- pyproject.toml
 - cmake/**
 - third_party/**
 - .ci/**

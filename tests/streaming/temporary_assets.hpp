@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for temporary assets with isolated scenario ownership and cleanup.
+ */
+
 #pragma once
 
 #include <filesystem>
@@ -7,9 +12,11 @@
 
 namespace atlas::streaming::tests
 {
+/// @brief Scenario state for temporary assets, isolated per test and released through RAII.
 class temporary_assets
 {
   public:
+    /// @brief Create an isolated temporary asset directory for this test.
     temporary_assets()
     {
         std::random_device random;
@@ -25,20 +32,29 @@ class temporary_assets
                 return;
             }
         }
+
         throw std::runtime_error{"Cannot create an isolated temporary asset directory"};
     }
+
+    /// @brief Release temporary assets resources and complete its scoped cleanup.
     ~temporary_assets()
     {
         std::error_code error;
         std::filesystem::remove_all(directory_, error);
     }
+
+    /// @brief Disable copy construction/assignment to preserve unique lifecycle ownership.
     temporary_assets(const temporary_assets&) = delete;
+    /// @brief Disable copy construction/assignment to preserve unique lifecycle ownership.
     temporary_assets& operator=(const temporary_assets&) = delete;
 
+    /// @brief Return this fixture's isolated temporary path.
     [[nodiscard]] std::filesystem::path path() const
     {
         return directory_ / "menu.bin";
     }
+
+    /// @brief Write scenario bytes into this fixture's isolated storage.
     void write() const
     {
         std::ofstream file{path(), std::ios::binary};
@@ -50,6 +66,8 @@ class temporary_assets
     }
 
   private:
+    /// @brief Scenario-owned directory used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::filesystem::path directory_;
 };
 } // namespace atlas::streaming::tests

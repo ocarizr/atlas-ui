@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for cancellation with isolated scenario ownership and cleanup.
+ */
+
 #include "job_system_fixture.hpp"
 
 #include <atomic>
@@ -5,6 +10,7 @@
 
 namespace atlas::jobs::tests
 {
+/// @brief Verify pre cancelled work and its dependents never invoke callbacks.
 TEST(cancellation_tests, pre_cancelled_work_and_its_dependents_never_invoke_callbacks)
 {
     job_system system{1};
@@ -12,8 +18,16 @@ TEST(cancellation_tests, pre_cancelled_work_and_its_dependents_never_invoke_call
     EXPECT_TRUE(stop.request_stop());
     EXPECT_FALSE(stop.request_stop());
     auto jobs = system.dispatcher().with_options({.cancellation = stop.get_token()});
-    auto root = jobs.run("cancelled", [](job_context&) { FAIL(); });
-    auto next = system.dispatcher().after(root, "blocked", [](job_context&) { FAIL(); });
+    auto root = jobs.run("cancelled",
+                         [](job_context&)
+                         {
+                             FAIL();
+                         });
+    auto next = system.dispatcher().after(root, "blocked",
+                                          [](job_context&)
+                                          {
+                                              FAIL();
+                                          });
     EXPECT_THROW(root.wait(), job_error);
     EXPECT_THROW(std::rethrow_exception(root.exception()), job_cancelled);
     EXPECT_THROW(next.wait(), job_error);
@@ -24,15 +38,25 @@ TEST(cancellation_tests, pre_cancelled_work_and_its_dependents_never_invoke_call
     EXPECT_EQ(system.statistics().failed, 0U);
 }
 
+/// @brief Verify running callbacks observe requests at explicit checkpoints.
 TEST_F(job_system_fixture, running_callbacks_observe_requests_at_explicit_checkpoints)
 {
     std::stop_source stop;
+
+    /// @brief Scenario state for input, isolated per test and released through RAII.
     struct input
     {
+        /// @brief Scenario-owned gate used to observe behavior and cleanup without sharing mutable
+        /// state between tests.
         signal_gate* gate;
+        /// @brief Scenario-owned started used to observe behavior and cleanup without sharing
+        /// mutable state between tests.
         std::shared_ptr<std::promise<void>> started;
+        /// @brief Scenario-owned forbidden used to observe behavior and cleanup without sharing
+        /// mutable state between tests.
         std::atomic<bool>* forbidden;
     };
+
     auto started = std::make_shared<std::promise<void>>();
     auto ready = started->get_future();
     std::atomic<bool> forbidden{false};
@@ -56,16 +80,24 @@ TEST_F(job_system_fixture, running_callbacks_observe_requests_at_explicit_checkp
     EXPECT_FALSE(forbidden.load());
 }
 
+/// @brief Verify normal return commits success despite a late request.
 TEST_F(job_system_fixture, normal_return_commits_success_despite_a_late_request)
 {
     std::stop_source stop;
     auto started = std::make_shared<std::promise<void>>();
     auto ready = started->get_future();
+
+    /// @brief Scenario state for input, isolated per test and released through RAII.
     struct input
     {
+        /// @brief Scenario-owned gate used to observe behavior and cleanup without sharing mutable
+        /// state between tests.
         signal_gate* gate;
+        /// @brief Scenario-owned started used to observe behavior and cleanup without sharing
+        /// mutable state between tests.
         std::shared_ptr<std::promise<void>> started;
     };
+
     auto root = system.dispatcher()
                     .with_options({.cancellation = stop.get_token()})
                     .run("commit", input{&gate, started},

@@ -2,7 +2,8 @@
 
 ## Independent component pipelines
 
-PRs and main/tag delivery share `reusable_validation.yml`. It starts quality checks,
+PRs and main/tag delivery share `reusable_validation.yml`. It starts independent
+formatting/documentation checks, repository quality checks,
 five dependency-product producers and independently named component pipelines.
 There is no global dependency-preparation or quality barrier before native builds.
 Each component waits only for its own external groups and compiled Atlas prerequisites.
@@ -10,6 +11,7 @@ Each component waits only for its own external groups and compiled Atlas prerequ
 ```mermaid
 flowchart LR
   plan --> quality
+  plan --> formatting[Per-component source style/docs]
   plan --> testing[GoogleTest product]
   plan --> media[Media product]
   plan --> transport[gRPC / Protobuf product]
@@ -38,9 +40,10 @@ claiming unlimited runner capacity or a completely asynchronous scheduling graph
 | --- | --- |
 | `pr.yml` | PR entry point and stable required `PR validation` status |
 | `delivery.yml` | Main validation/packaging and strict version-tag publishing |
-| `reusable_plan.yml` | Change impact, component prerequisites and vendor identities |
+| `reusable_plan.yml` | Change impact, formatting contexts, component prerequisites and vendor identities |
 | `reusable_validation.yml` | Explicit component/vendor dependency graph and final gate |
-| `reusable_quality.yml` | Global formatting, assets, repository/tooling checks and workflow lint |
+| `reusable_quality.yml` | Global assets, repository/tooling checks, analyzer configuration and workflow lint |
+| `reusable_format.yml` | Independent pinned C++/Python/Protobuf formatting and source-documentation checks per context |
 | `reusable_dependencies.yml` | Recover or prepare one compiled third-party product |
 | `reusable_build.yml` | Build/test/export exactly one component per profile |
 | `reusable_package.yml` | Assemble validated Release applications; no compilation |
@@ -58,6 +61,11 @@ compiled prerequisites (`build_requires`), vendor groups, targets and CTest labe
 The planner selects changed components and transitive consumers, then includes
 the libraries needed to link them. Editor-only changes do not select atlas_game.
 Required shared libraries still need producer jobs to provide link inputs.
+
+Formatting selects direct source owners independently of build-consumer expansion.
+Shared formatter-policy changes recheck every populated formatting context; an
+unmapped owned source fails planning. See the [source style contract](26_source_style_and_documentation.md)
+for CLI/IDE commands, reference comments and required-gate behavior.
 
 Documentation-only changes start no native compilation. Shared build/tool changes
 are conservatively global. Unmapped C++/Protobuf sources fail planning. Contexts

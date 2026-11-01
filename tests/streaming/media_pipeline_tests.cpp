@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for media pipeline with isolated scenario ownership and cleanup.
+ */
+
 #include <atlas/streaming/asset_streamer.hpp>
 #include <gtest/gtest.h>
 #include <opus/opus.h>
@@ -8,6 +13,7 @@
 
 namespace atlas::streaming::tests
 {
+/// @brief Verify decodes streamed opus bytes on a job without opening a file.
 TEST(media_pipeline_tests, decodes_streamed_opus_bytes_on_a_job_without_opening_a_file)
 {
     jobs::job_system jobs{2};

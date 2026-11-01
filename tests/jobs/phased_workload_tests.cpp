@@ -1,24 +1,43 @@
+/**
+ * @file
+ * @brief Behavioral coverage for phased workload with isolated scenario ownership and cleanup.
+ */
+
 #include "job_system_fixture.hpp"
 #include "phased_workload.hpp"
 
 namespace atlas::jobs::tests
 {
+/// @brief Scenario state for phased case, isolated per test and released through RAII.
 struct phased_case
 {
+    /// @brief Scenario-owned workers used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::size_t workers;
+    /// @brief Scenario-owned size used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::size_t size;
+    /// @brief Scenario-owned grain used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::size_t grain;
+    /// @brief Scenario-owned seed used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::uint64_t seed;
 };
+
+/// @brief Print a readable parameter-case description for GoogleTest failure diagnostics.
 std::ostream& operator<<(std::ostream& output, const phased_case& value)
 {
     return output << "workers=" << value.workers << ", size=" << value.size
                   << ", grain=" << value.grain << ", seed=" << value.seed;
 }
+
+/// @brief Scenario state for phased workload tests, isolated per test and released through RAII.
 class phased_workload_tests : public testing::TestWithParam<phased_case>
 {
 };
 
+/// @brief Verify incremental phases and ordered reduction match the sequential reference.
 TEST_P(phased_workload_tests,
        incremental_phases_and_ordered_reduction_match_the_sequential_reference)
 {
@@ -33,6 +52,7 @@ TEST_P(phased_workload_tests,
     {
         snapshot.push_back(item.input);
     }
+
     const auto run = workloads::submit_workload(system.dispatcher(), state);
     run.merge.wait();
     EXPECT_EQ(state->checksum, reference);
@@ -44,6 +64,7 @@ TEST_P(phased_workload_tests,
     {
         EXPECT_EQ(state->items[index].input, snapshot[index]);
     }
+
     for (const auto& diagnostic : system.sanitizer_report().diagnostics)
     {
         EXPECT_NE(diagnostic.severity, diagnostic_severity::error);
@@ -58,6 +79,7 @@ INSTANTIATE_TEST_SUITE_P(reproducible_batches, phased_workload_tests,
                                          phased_case{4, 257, 7, 2026}, phased_case{1, 257, 512, 42},
                                          phased_case{4, 257, 512, 42}));
 
+/// @brief Verify a failed phase drains children and never executes later phases.
 TEST(phased_failure_tests, a_failed_phase_drains_children_and_never_executes_later_phases)
 {
     job_system system{2};
@@ -73,6 +95,7 @@ TEST(phased_failure_tests, a_failed_phase_drains_children_and_never_executes_lat
     EXPECT_EQ(system.statistics().submitted, system.statistics().completed);
 }
 
+/// @brief Verify a completed batch cannot be reopened by a late submission.
 TEST(phased_failure_tests, a_completed_batch_cannot_be_reopened_by_a_late_submission)
 {
     job_system system{2};

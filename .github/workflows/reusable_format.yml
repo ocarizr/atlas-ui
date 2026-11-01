@@ -1,0 +1,24 @@
+name: Component formatting and documentation
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        type: string
+        required: true
+jobs:
+  format:
+    name: Format ${{ matrix.component }}
+    runs-on: windows-2022
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - uses: ./.github/actions/setup_ci
+    - name: Check source formatting and reference comments
+      env:
+        FORMAT_COMPONENT: ${{ matrix.component }}
+      run: python -m scripts.ci.format_sources --component "$env:FORMAT_COMPONENT"

@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for metrics failure with isolated scenario ownership and cleanup.
+ */
+
 #include <atlas/diagnostics/metrics.hpp>
 #include <gtest/gtest.h>
 
@@ -6,9 +11,12 @@
 
 namespace atlas::diagnostics::tests
 {
+/// @brief Scenario state for invalid metric tests, isolated per test and released through RAII.
 class invalid_metric_tests : public testing::TestWithParam<double>
 {
 };
+
+/// @brief Verify non finite or negative counter values do not create series.
 TEST_P(invalid_metric_tests, non_finite_or_negative_counter_values_do_not_create_series)
 {
     metrics collection;
@@ -16,6 +24,7 @@ TEST_P(invalid_metric_tests, non_finite_or_negative_counter_values_do_not_create
     EXPECT_TRUE(collection.snapshot().points.empty());
     EXPECT_EQ(collection.statistics().rejected, 1U);
 }
+
 INSTANTIATE_TEST_SUITE_P(values, invalid_metric_tests,
                          testing::Values(-1., std::numeric_limits<double>::infinity(),
                                          std::numeric_limits<double>::quiet_NaN()),
@@ -26,6 +35,7 @@ INSTANTIATE_TEST_SUITE_P(values, invalid_metric_tests,
                                                       : "nan";
                          });
 
+/// @brief Verify zero attribute budget allows unlabelled metrics only.
 TEST(metrics_failure_tests, zero_attribute_budget_allows_unlabelled_metrics_only)
 {
     metrics_options options;
@@ -36,6 +46,7 @@ TEST(metrics_failure_tests, zero_attribute_budget_allows_unlabelled_metrics_only
     EXPECT_DOUBLE_EQ(collection.snapshot().points.front().value, 0);
 }
 
+/// @brief Verify empty attribute values and utf8 names are supported.
 TEST(metrics_failure_tests, empty_attribute_values_and_utf8_names_are_supported)
 {
     metrics collection;
@@ -45,6 +56,7 @@ TEST(metrics_failure_tests, empty_attribute_values_and_utf8_names_are_supported)
     EXPECT_FALSE(collection.set("bad", 1, {{"key\n", "value"}}));
 }
 
+/// @brief Verify invalid names attributes and limits are rejected.
 TEST(metrics_failure_tests, invalid_names_attributes_and_limits_are_rejected)
 {
     metrics_options options;
@@ -67,6 +79,7 @@ TEST(metrics_failure_tests, invalid_names_attributes_and_limits_are_rejected)
     EXPECT_THROW((void)metrics{options}, std::invalid_argument);
 }
 
+/// @brief Verify duplicate attribute keys are rejected before registration.
 TEST(metrics_failure_tests, duplicate_attribute_keys_are_rejected_before_registration)
 {
     metrics collection;
@@ -75,6 +88,7 @@ TEST(metrics_failure_tests, duplicate_attribute_keys_are_rejected_before_registr
     EXPECT_TRUE(collection.set("count", -1, {{"key", "a"}}));
 }
 
+/// @brief Verify disabled collection is empty and has no side effects.
 TEST(metrics_failure_tests, disabled_collection_is_empty_and_has_no_side_effects)
 {
     metrics_options options;

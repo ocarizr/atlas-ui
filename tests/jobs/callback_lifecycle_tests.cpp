@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for callback lifecycle with isolated scenario ownership and cleanup.
+ */
+
 #include "job_system_fixture.hpp"
 
 #include <atomic>
@@ -7,19 +12,26 @@
 
 namespace atlas::jobs::tests
 {
+/// @brief Verify bounded pumping and shutdown deliver pending notifications.
 TEST(callback_lifecycle_tests, bounded_pumping_and_shutdown_deliver_pending_notifications)
 {
     job_system system{1};
     auto jobs = system.dispatcher();
-    auto source = jobs.run("source", [](job_context&) {});
+    auto source = jobs.run("source",
+                           [](job_context&)
+                           {
+                           });
     source.wait();
     int calls = 0;
     for (int index = 0; index < 3; ++index)
     {
         jobs.callbacks().on_complete(source, "notify", &calls,
                                      [](job_context&, const task_handle&, int*& count)
-                                     { ++*count; });
+                                     {
+                                         ++*count;
+                                     });
     }
+
     EXPECT_EQ(system.dispatch_callbacks(0), 0U);
     EXPECT_EQ(system.dispatch_callbacks(1), 1U);
     EXPECT_EQ(calls, 1);
@@ -28,6 +40,7 @@ TEST(callback_lifecycle_tests, bounded_pumping_and_shutdown_deliver_pending_noti
     EXPECT_EQ(system.statistics().caller_dispatched, 3U);
 }
 
+/// @brief Verify an exiting owner fails delivery without invoking on another thread.
 TEST_F(job_system_fixture, an_exiting_owner_fails_delivery_without_invoking_on_another_thread)
 {
     auto result = std::make_shared<std::promise<task_handle>>();
@@ -35,12 +48,17 @@ TEST_F(job_system_fixture, an_exiting_owner_fails_delivery_without_invoking_on_a
     {
         std::jthread owner{[jobs = system.dispatcher(), result, this]
                            {
-                               auto source =
-                                   jobs.run("held", &gate, [](job_context&, signal_gate*& value)
-                                            { value->wait(); });
+                               auto source = jobs.run("held", &gate,
+                                                      [](job_context&, signal_gate*& value)
+                                                      {
+                                                          value->wait();
+                                                      });
                                result->set_value(jobs.callbacks().on_complete(
-                                   source, "abandoned", [](job_context&, const task_handle&)
-                                   { FAIL() << "The originating thread has exited"; }));
+                                   source, "abandoned",
+                                   [](job_context&, const task_handle&)
+                                   {
+                                       FAIL() << "The originating thread has exited";
+                                   }));
                            }};
     }
     gate.open();
@@ -57,15 +75,21 @@ TEST_F(job_system_fixture, an_exiting_owner_fails_delivery_without_invoking_on_a
     }
 }
 
+/// @brief Verify caller callbacks have explicit trace identity.
 TEST(callback_lifecycle_tests, caller_callbacks_have_explicit_trace_identity)
 {
     job_system_options options;
     options.trace_capacity = 2;
     job_system system{options};
     auto jobs = system.dispatcher();
-    auto source = jobs.run("source", [](job_context&) {});
-    auto notification =
-        jobs.callbacks().on_complete(source, "notify", [](job_context&, const task_handle&) {});
+    auto source = jobs.run("source",
+                           [](job_context&)
+                           {
+                           });
+    auto notification = jobs.callbacks().on_complete(source, "notify",
+                                                     [](job_context&, const task_handle&)
+                                                     {
+                                                     });
     notification.wait();
     const auto report = system.trace_report();
     ASSERT_EQ(report.tasks.size(), 2U);
@@ -76,6 +100,7 @@ TEST(callback_lifecycle_tests, caller_callbacks_have_explicit_trace_identity)
     EXPECT_EQ(system.statistics().queued, 0U);
 }
 
+/// @brief Verify already queued notifications fail when the owner exits.
 TEST(callback_lifecycle_tests, already_queued_notifications_fail_when_the_owner_exits)
 {
     job_system system{1};
@@ -85,10 +110,16 @@ TEST(callback_lifecycle_tests, already_queued_notifications_fail_when_the_owner_
         std::jthread owner{
             [jobs = system.dispatcher(), &result]
             {
-                auto source = jobs.run("source", [](job_context&) {});
+                auto source = jobs.run("source",
+                                       [](job_context&)
+                                       {
+                                       });
                 source.wait();
-                result.set_value(jobs.callbacks().on_complete(
-                    source, "undelivered", [](job_context&, const task_handle&) { FAIL(); }));
+                result.set_value(jobs.callbacks().on_complete(source, "undelivered",
+                                                              [](job_context&, const task_handle&)
+                                                              {
+                                                                  FAIL();
+                                                              }));
             }};
     }
     auto notification = future.get();
@@ -96,6 +127,7 @@ TEST(callback_lifecycle_tests, already_queued_notifications_fail_when_the_owner_
     EXPECT_EQ(system.statistics().queued, 0U);
 }
 
+/// @brief Verify concurrent shutdown callers each pump their own notifications.
 TEST(callback_lifecycle_tests, concurrent_shutdown_callers_each_pump_their_own_notifications)
 {
     job_system system{2};
@@ -105,10 +137,18 @@ TEST(callback_lifecycle_tests, concurrent_shutdown_callers_each_pump_their_own_n
     const auto owner = [&]
     {
         auto jobs = system.dispatcher();
-        auto source = jobs.run("source", [](job_context&) {});
+        auto source = jobs.run("source",
+                               [](job_context&)
+                               {
+                               });
+        /// @brief Scenario state for input, isolated per test and released through RAII.
         struct input
         {
+            /// @brief Scenario-owned owner used to observe behavior and cleanup without sharing
+            /// mutable state between tests.
             std::thread::id owner;
+            /// @brief Scenario-owned calls used to observe behavior and cleanup without sharing
+            /// mutable state between tests.
             std::atomic<int>* calls;
         };
         jobs.callbacks().on_complete(source, "notify", input{std::this_thread::get_id(), &calls},

@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Public composition boundary for the pinned gRPC C++ client dependency.
+ */
+
 #pragma once
 
 // gRPC 1.84 instantiates its deprecated experimental certificate types inside
