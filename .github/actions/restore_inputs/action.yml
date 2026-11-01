@@ -33,6 +33,14 @@ runs:
       path: build/vendor/testing
       github-token: ${{ github.token }}
       run-id: ${{ fromJSON(inputs.upstream)['vendor-testing'].outputs.run-id }}
+  - name: Restore memory dependency product
+    if: ${{ contains(fromJSON(steps.plan.outputs.groups), 'memory') }}
+    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+    with:
+      name: vendor-memory-${{ fromJSON(inputs.keys).memory }}
+      path: build/vendor/memory
+      github-token: ${{ github.token }}
+      run-id: ${{ fromJSON(inputs.upstream)['vendor-memory'].outputs.run-id }}
   - name: Restore content dependency product
     if: ${{ contains(fromJSON(steps.plan.outputs.groups), 'content') }}
     uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333

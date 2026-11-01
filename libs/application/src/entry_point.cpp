@@ -6,6 +6,7 @@
 #include <atlas/application/entry_point.hpp>
 #include <atlas/jobs/job_system.hpp>
 #include <atlas/jobs_diagnostics/observer.hpp>
+#include <atlas/memory/memory_resource.hpp>
 #include <session.pb.h>
 
 #include <exception>
@@ -29,7 +30,9 @@ int run_application(application_kind kind, int argc, char** argv)
 
     try
     {
+        const auto allocations = memory::make_resource();
         jobs::job_system_options options;
+        options.scratch.upstream = allocations.get();
         options.worker_count = 2;
         options.observer = jobs_diagnostics::make_observer(log, {});
         jobs::job_system scheduler{options};

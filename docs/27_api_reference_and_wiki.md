@@ -21,7 +21,7 @@ for checksum mismatches, and remove partial downloads. Retries never relax the p
 
 The generator discovers `libs/**/include/` roots containing C++ headers and runs
 Doxygen independently for each library. The current references cover application,
-diagnostics, IPC, jobs, jobs diagnostics and streaming. New public-header library
+diagnostics, IPC, jobs, jobs diagnostics, memory and streaming. New public-header library
 roots join automatically. Tests, application entry points, third-party sources,
 private implementation directories and generated Protobuf bindings are not inputs.
 The wiki renderer omits private members; public-header support/detail symbols can

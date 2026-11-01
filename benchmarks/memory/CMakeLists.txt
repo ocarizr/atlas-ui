@@ -1,0 +1,7 @@
+add_executable(atlas_memory_benchmark main.cpp)
+target_link_libraries(atlas_memory_benchmark PRIVATE atlas::memory)
+atlas_configure_target(atlas_memory_benchmark)
+if(BUILD_TESTING)
+    add_test(NAME memory_benchmark.smoke COMMAND atlas_memory_benchmark --smoke)
+    set_tests_properties(memory_benchmark.smoke PROPERTIES LABELS memory TIMEOUT 20)
+endif()

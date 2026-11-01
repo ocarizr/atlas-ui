@@ -36,6 +36,13 @@ jobs:
     with:
       group: testing
       key: ${{ fromJSON(needs.plan.outputs.keys).testing }}
+  vendor-memory:
+    needs: plan
+    if: ${{ contains(fromJSON(needs.plan.outputs.groups), 'memory') }}
+    uses: ./.github/workflows/reusable_dependencies.yml
+    with:
+      group: memory
+      key: ${{ fromJSON(needs.plan.outputs.keys).memory }}
   vendor-content:
     needs:
     - plan
@@ -72,7 +79,7 @@ jobs:
     needs:
     - plan
     - vendor-testing
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'jobs') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'jobs') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: jobs
@@ -80,12 +87,41 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).jobs) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  memory:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-memory
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'memory') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: memory
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).memory) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  memory-integration:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-memory
+    - memory
+    - jobs
+    - streaming
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'memory-integration') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: memory-integration
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['memory-integration']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   diagnostics:
     needs:
     - plan
     - vendor-testing
     - vendor-content
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'diagnostics') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'diagnostics') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: diagnostics
@@ -100,7 +136,7 @@ jobs:
     - vendor-content
     - jobs
     - diagnostics
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'jobs-diagnostics') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'jobs-diagnostics') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: jobs-diagnostics
@@ -113,7 +149,7 @@ jobs:
     - plan
     - vendor-testing
     - jobs
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'jobs-benchmark') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'jobs-benchmark') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: jobs-benchmark
@@ -127,7 +163,7 @@ jobs:
     - vendor-testing
     - vendor-media
     - jobs
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'streaming') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'streaming') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: streaming
@@ -140,7 +176,7 @@ jobs:
     - plan
     - vendor-testing
     - vendor-ipc
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'ipc') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'ipc') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: ipc
@@ -154,9 +190,11 @@ jobs:
     - vendor-testing
     - vendor-ipc
     - vendor-content
+    - vendor-memory
+    - memory
     - jobs-diagnostics
     - ipc
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'application') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'application') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: application
@@ -170,7 +208,7 @@ jobs:
     - vendor-testing
     - vendor-content
     - vendor-media
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'dependencies') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'dependencies') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: dependencies
@@ -183,7 +221,7 @@ jobs:
     - plan
     - vendor-testing
     - vendor-graphics
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'windows') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'windows') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: windows
@@ -196,8 +234,9 @@ jobs:
     - plan
     - vendor-ipc
     - vendor-content
+    - vendor-memory
     - application
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'game') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'game') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: game
@@ -210,8 +249,9 @@ jobs:
     - plan
     - vendor-ipc
     - vendor-content
+    - vendor-memory
     - application
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'editor') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'editor') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: editor
@@ -224,8 +264,9 @@ jobs:
     - plan
     - vendor-ipc
     - vendor-content
+    - vendor-memory
     - application
-    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'tools') }}
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'tools') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
       component: tools
@@ -242,11 +283,14 @@ jobs:
     - format
     - reference
     - vendor-testing
+    - vendor-memory
     - vendor-content
     - vendor-media
     - vendor-ipc
     - vendor-graphics
     - jobs
+    - memory
+    - memory-integration
     - diagnostics
     - jobs-diagnostics
     - jobs-benchmark

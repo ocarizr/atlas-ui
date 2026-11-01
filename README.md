@@ -54,6 +54,8 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | Component | Debug/tests | Release/tests | ASan | MSVC analysis | clang-tidy | Coverage | SDK-free |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | [Jobs](libs/jobs/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Memory](libs/memory/CMakeLists.txt) | Yes | Yes | System backend | Yes | Yes | Yes | Yes |
+| [Memory consumers](tests/memory_integration/CMakeLists.txt) | Yes | Yes | System backend | Yes | Yes | Yes | Yes |
 | [Diagnostics](libs/diagnostics/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Jobs diagnostics](libs/jobs_diagnostics/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Streaming](libs/streaming/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
@@ -65,7 +67,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | [Dependency integration](tests/dependencies/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Windows SDK](tests/platform/windows/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | — |
 
-Third-party products are built in five independent groups: testing, content/logging,
+Third-party products are built in six independent groups: testing, memory, content/logging,
 media, IPC and graphics. They include Debug and Release variants and are retained
 for 14 days; vendor binaries themselves are not sanitizer-instrumented. The
 [CI design](docs/12_ci_and_delivery.md) describes reuse, provenance, scheduling and
@@ -96,6 +98,7 @@ HTML output, CI validation and automatic wiki synchronization.
 | [Job-system implementation plan](docs/14_job_system_implementation_plan.md) | Foundation, maturity milestones and the gate before UI |
 | [Streamer and media jobs](docs/15_streamer_and_media_jobs.md) | Exclusive storage boundary, memory/loose sources, bundle plan and decode scheduling |
 | [Streaming API and memory](libs/streaming/README.md) | Platform selection, allocator ownership, retained-byte quotas and runtime copy grain |
+| [Shared memory policy](libs/memory/README.md) | Application-owned PMR resources, mimalloc integration, ASan fallback and validation scope |
 | [Portability and naming](docs/16_portability_and_naming.md) | Platform boundaries, snake_case, exceptions and validation |
 | [Direct job dispatch](docs/18_job_dispatch_usage.md) | Injected clients, child lifetimes, ranges, sequencing and outcomes |
 | [Job workloads and profiling](docs/19_job_workloads_and_profiling.md) | Phased proof, scratch memory, benchmark methodology and XML traces |

@@ -15,8 +15,8 @@ from scripts.ci import verify_vendor_inputs
         pytest.param("streaming", ["testing", "media"], "@(jobs)", id="single-prerequisite"),
         pytest.param(
             "editor",
-            ["ipc", "content"],
-            "@(application|diagnostics|ipc|jobs|jobs-diagnostics)",
+            ["memory", "ipc", "content"],
+            "@(application|diagnostics|ipc|jobs|jobs-diagnostics|memory)",
             id="transitive-prerequisites",
         ),
     ],

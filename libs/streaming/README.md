@@ -103,6 +103,10 @@ Weak result observers do not retain byte reservations after the last strong owne
 releases the buffer. An injected resource that itself borrows an upstream resource
 must keep that upstream chain valid for its own lifetime.
 
+The composition root can supply [Atlas memory](../memory/README.md), sharing the
+same application-selected PMR backend with job scratch and future subsystems.
+Streaming does not depend directly on mimalloc or change global allocator state.
+
 Buffers may safely outlive the streamer. A source supplied as a `memory_asset` has
 its own allocation ownership: keep its allocator alive and never mutate backing
 bytes through another alias.
