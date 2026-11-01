@@ -1,5 +1,13 @@
 # Portability and naming
 
+Root configuration now exposes `ATLAS_TARGET_PLATFORM` with `windows` as the only
+implemented target. Other enumerated desktop/mobile/console values are reserved and
+fail explicitly. Native streamer sources are selected behind a shared private file
+interface; the Windows SDK remains under `libs/platform/windows/streaming/` and the
+SDK-free profile selects a standard reference backend. See the
+[streaming contract](../libs/streaming/README.md). This does not establish another
+platform's support or make Xbox a Windows Desktop alias.
+
 ## Architecture versus platform support
 
 Atlas UI is designed as a cross-platform C++20 project. **Windows Desktop x64 is currently the only supported and validated target.** Direct3D 12 and XAudio2 are the current Windows choices; this does not make shared UI, jobs, streaming or content contracts Windows APIs. No Linux/macOS renderer, release or CI coverage is claimed.

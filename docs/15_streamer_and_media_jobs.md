@@ -12,15 +12,24 @@ Consumers request an asset ID, offset and exact byte count. They receive owned i
 
 - `memory_asset` pins shared immutable bytes; callers must not mutate them through another alias. `loose_file_asset` registers an authorized local path that media consumers never receive.
 - `read(request, completion)` is thread-safe. The returned future observes callback completion/errors; only coordinators may wait. Worker consumers chain ready continuations.
-- Memory copies and accepted read completions execute as CPU jobs. One persistent dedicated I/O thread acquires file bytes before dispatching the completion job. No thread is created per request and CPU workers never wait on disk.
-- Default limits are 4 MiB per read and 32 pending operations, including callbacks in flight. Oversized requests and exhausted admission budgets fail before callback/I/O dispatch. Split larger assets into ranges.
+- Memory copies and accepted read completions use the current direct job API with explicit payload ownership. Small/single-worker/busy-pool copies use one root; substantial memory copies may use disjoint attached children with a bounded grain policy. One persistent dedicated I/O thread acquires file bytes before dispatching ready CPU work. No thread is created per request and CPU workers never wait on disk.
+- Default limits are 4 MiB per read, 32 pending operations and 64 MiB of requested output bytes, including retained consumer results. Oversized requests and exhausted admission budgets fail before callback/I/O dispatch. Split larger assets into ranges.
 - Exact ranges must fit the source; empty reads at EOF are valid. Unknown IDs, null memory backing, missing files and invalid ranges return an exception through `read_result`. Partial bytes are never published.
 - Callback exceptions reach the future. If the scheduler has stopped, the future reports dispatch failure and no callback runs on the wrong thread.
 - Creating-coordinator `shutdown()` rejects new requests, drains accepted reads/callbacks, joins I/O and is idempotent. Destroy on that same coordinator and keep the Job System alive until draining finishes. Completion jobs must not shut down their streamer or wait for another read.
 
-Retained output buffers belong to consumers; pending limits do not bound bytes retained after completion. Future cache/pool budgets must account for these references. Shutdown does not aggregate callback exceptions: observe the futures or explicitly route errors through consumer diagnostics.
+Retained output buffers belong to consumers and remain charged until their final owner releases them. A shared PMR resource can replace default payload allocation without changing storage logic; outputs retain allocator ownership beyond streamer destruction. The quota excludes metadata, source bytes, alignment overhead, allocator cache retention and OS caches. It is not a process-wide memory bound or a guarantee against fragmentation. Shutdown does not aggregate callback exceptions: observe futures or explicitly route errors through consumer diagnostics.
 
-The first disk backend uses synchronous standard-library reads on its dedicated I/O thread. It is asynchronous to callers and isolates CPU workers, but serializes disk acquisition and cannot cancel a blocked OS operation. Overlapped Windows I/O/IOCP, priorities, cancellation, prefetch and cache eviction remain later milestones.
+CMake selects one platform implementation behind a fixed private file interface.
+`ATLAS_TARGET_PLATFORM=windows` is supported; other enumerated targets are reserved
+and rejected until implemented. Native Windows file reads live under the Windows
+boundary; the SDK-free validation profile selects a standard-library reference
+backend. Both currently use synchronous reads on the dedicated I/O thread. They
+are asynchronous to callers and isolate CPU workers, but serialize acquisition and
+cannot cancel a blocked OS operation. Per-read CPU priority and cooperative stop
+tokens are implemented. Overlapped Windows I/O/IOCP, storage priorities, generations,
+prefetch and cache eviction remain later milestones. See the
+[streaming API and memory contracts](../libs/streaming/README.md).
 
 ## Ready-work pipeline
 
@@ -49,8 +58,8 @@ Combined playback additionally needs a common clock, timestamps, buffering/under
 
 ## Implementation sequence and acceptance
 
-1. **Current base:** memory/loose ranges, persistent I/O, job completions, limits, errors and draining. Test bounds, large offsets, missing/unknown assets, callback failures, concurrent producers, reentrant requests and cleanup. Retain the streamed Opus decode test.
-2. **Scheduler/storage concurrency:** dependency graphs, cancellation/generations, priorities, budgets, backpressure and overlapped I/O. Prove slow storage does not occupy CPU workers or starve frame/audio work; measure queued/read/decode latency, bytes, failures and allocations.
+1. **Current base:** memory/loose ranges, selected native/reference backends, persistent I/O, current direct jobs and child-copy grain policy, CPU priorities, cooperative cancellation, retained-byte budgets, shared PMR payload allocation, counters, errors and draining. Tests cover bounds, missing/unknown assets, callback/allocation failures, concurrent producers, reentrant requests, allocator/output lifetime and cleanup. The streamed Opus decode test remains.
+2. **Storage concurrency and performance gate:** bounded Windows overlapped I/O/IOCP, handle reuse, actual disk cancellation, storage priority, generations and explicit backpressure/retry policy. Add a controllably slow backend fixture to prove storage stalls cannot occupy CPU workers or starve frame/audio work. Measure queued/read/decode latency, bytes, failures and allocations on representative assets; tune copy thresholds rather than assuming parallelism wins. Preserve the SDK-free contract tests.
 3. **Bundles:** versioned cooked index, IDs, entry offsets/lengths, integrity/compression metadata. Translate ranges with overflow-safe bounds and decoded-size budgets. Compare loose, memory and bundle results through the same API/tests. No bundle backend is implemented yet.
 4. **Media adapters:** streamer-backed WebM parsing/seek, real AV1/Opus fixtures, corruption, stale completions, packet ordering, decoder errors and buffer lifetimes. Containers/codecs never open files.
 5. **Playback/performance:** device-loss/underrun recovery, seek cancellation, consumption-driven PCM reclamation, startup/loop/scrub and measured synchronization. Compare sequential and jobified processing on reference assets/hardware before claiming speedups.

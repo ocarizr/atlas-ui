@@ -95,6 +95,7 @@ HTML output, CI validation and automatic wiki synchronization.
 | [Dependencies and media](docs/13_dependencies_and_media.md) | Pinned packages, AV1/WebM and UI sound effects |
 | [Job-system implementation plan](docs/14_job_system_implementation_plan.md) | Foundation, maturity milestones and the gate before UI |
 | [Streamer and media jobs](docs/15_streamer_and_media_jobs.md) | Exclusive storage boundary, memory/loose sources, bundle plan and decode scheduling |
+| [Streaming API and memory](libs/streaming/README.md) | Platform selection, allocator ownership, retained-byte quotas and runtime copy grain |
 | [Portability and naming](docs/16_portability_and_naming.md) | Platform boundaries, snake_case, exceptions and validation |
 | [Direct job dispatch](docs/18_job_dispatch_usage.md) | Injected clients, child lifetimes, ranges, sequencing and outcomes |
 | [Job workloads and profiling](docs/19_job_workloads_and_profiling.md) | Phased proof, scratch memory, benchmark methodology and XML traces |

@@ -7,7 +7,7 @@
       "hidden": true,
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
-      "cacheVariables": { "BUILD_TESTING": "ON", "VCPKG_TARGET_TRIPLET": "x64-windows" }
+      "cacheVariables": { "BUILD_TESTING": "ON", "VCPKG_TARGET_TRIPLET": "x64-windows", "ATLAS_TARGET_PLATFORM": "windows" }
     },
     {
       "name": "windows-msvc",

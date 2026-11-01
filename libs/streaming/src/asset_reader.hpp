@@ -5,10 +5,15 @@
 
 #pragma once
 
+#include "buffer_memory.hpp"
 #include <atlas/streaming/asset_streamer.hpp>
 
 namespace atlas::streaming::detail
 {
-/// @brief Resolve a registered source and return immutable owned bytes or the original read error.
-read_result read_asset(const asset_catalog& catalog, const read_request& request) noexcept;
+/// @brief Reject overflowing or out-of-source exact ranges before allocating payload storage.
+void validate_range(std::uint64_t length, const read_request& request);
+/// @brief Acquire one exact file range on the dedicated I/O path through the selected platform
+/// adapter.
+read_result read_file_asset(const loose_file_asset& source, const read_request& request,
+                            const std::shared_ptr<buffer_reservation>& reservation) noexcept;
 } // namespace atlas::streaming::detail

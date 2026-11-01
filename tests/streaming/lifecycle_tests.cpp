@@ -17,6 +17,9 @@ TEST(streamer_lifecycle_tests, rejects_invalid_limits)
     jobs::job_system jobs{1};
     EXPECT_THROW((asset_streamer{jobs, {}, {0, 1}}), std::invalid_argument);
     EXPECT_THROW((asset_streamer{jobs, {}, {1, 0}}), std::invalid_argument);
+    EXPECT_THROW((asset_streamer{jobs, {}, {1, 1, 0}}), std::invalid_argument);
+    EXPECT_THROW((asset_streamer{jobs, {}, {1, 1, 4, 0, 0}}), std::invalid_argument);
+    EXPECT_THROW((asset_streamer{jobs, {}, {1, 1, 4, 0, 63}}), std::invalid_argument);
 }
 
 /// @brief Verify rejects invalid requests without callbacks.
