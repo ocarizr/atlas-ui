@@ -16,11 +16,35 @@ $task_pin = $task_pin | ConvertFrom-Json
 $task_directory = Join-Path $task_root ".tools/doxygen/$($task_pin.version)"
 $task_archive = Join-Path $task_root ".tools/doxygen/doxygen-$($task_pin.version).zip"
 New-Item -ItemType Directory -Force (Split-Path -Parent $task_archive) | Out-Null
-if (-not (Test-Path -LiteralPath $task_archive)) {
-    Invoke-WebRequest -Uri $task_pin.windows_url -OutFile $task_archive
+if (Test-Path -LiteralPath $task_archive) {
+    $task_hash = (Get-FileHash -LiteralPath $task_archive -Algorithm SHA256).Hash
+    if ($task_hash -ne $task_pin.windows_sha256) {
+        Write-Warning "Discarding invalid Doxygen cache: expected SHA256 $($task_pin.windows_sha256), got $task_hash."
+        Remove-Item -LiteralPath $task_archive -Force
+    }
 }
-if ((Get-FileHash -LiteralPath $task_archive -Algorithm SHA256).Hash -ne $task_pin.windows_sha256) {
-    throw 'Doxygen archive checksum mismatch; discard the cached archive and retry.'
+for ($task_attempt = 1; -not (Test-Path -LiteralPath $task_archive); ++$task_attempt) {
+    # Never promote a partial/unverified response into the reusable archive cache.
+    $task_partial = "$task_archive.$([guid]::NewGuid().ToString('N')).partial"
+    try {
+        Invoke-WebRequest -Uri $task_pin.windows_url -OutFile $task_partial -TimeoutSec 60 -Headers @{'Cache-Control' = 'no-cache'}
+        $task_hash = (Get-FileHash -LiteralPath $task_partial -Algorithm SHA256).Hash
+        if ($task_hash -ne $task_pin.windows_sha256) {
+            $task_size = (Get-Item -LiteralPath $task_partial).Length
+            throw "Doxygen download SHA256 mismatch: expected $($task_pin.windows_sha256), got $task_hash ($task_size bytes)."
+        }
+        Move-Item -LiteralPath $task_partial -Destination $task_archive -Force
+    }
+    catch {
+        if ($task_attempt -eq 3) {
+            throw "Cannot install verified Doxygen archive after 3 attempts: $($_.Exception.Message)"
+        }
+        Write-Warning "Doxygen download attempt $task_attempt failed: $($_.Exception.Message) Retrying."
+        Start-Sleep -Seconds $task_attempt
+    }
+    finally {
+        if (Test-Path -LiteralPath $task_partial) { Remove-Item -LiteralPath $task_partial -Force }
+    }
 }
 Expand-Archive -LiteralPath $task_archive -DestinationPath $task_directory -Force
 $task_executable = @(Get-ChildItem -LiteralPath $task_directory -Filter doxygen.exe -Recurse -File)
