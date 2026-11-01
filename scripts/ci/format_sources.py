@@ -4,6 +4,7 @@ import argparse
 import shutil
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 
 from scripts.ci.config import read_yaml
@@ -14,10 +15,10 @@ from scripts.ci.impact import repository_files
 
 
 def formatter_executable(override=None):
-    """Resolve the pinned formatter beside Python before considering toolchain PATH."""
+    """Resolve the pinned formatter in Python's scripts directory before toolchain PATH."""
     executable = (
         override
-        or shutil.which("clang-format", path=str(Path(sys.executable).parent))
+        or shutil.which("clang-format", path=sysconfig.get_path("scripts"))
         or shutil.which("clang-format")
     )
     if not executable:

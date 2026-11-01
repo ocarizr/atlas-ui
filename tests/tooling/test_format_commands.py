@@ -1,6 +1,7 @@
 """Validate the developer formatter entry point and independent CI checks."""
 
 import sys
+import sysconfig
 from pathlib import Path
 
 import pytest
@@ -66,3 +67,36 @@ def test_formatter_version_cannot_silently_drift_from_ci(monkeypatch):
     )
     with pytest.raises(ValueError, match="Expected clang-format 19.1.7"):
         format_sources.formatter_executable("other-formatter")
+
+
+@pytest.mark.parametrize(
+    ("python_path", "scripts_path"),
+    [
+        ("python/python.exe", "python/Scripts"),
+        ("venv/Scripts/python.exe", "venv/Scripts"),
+    ],
+    ids=["global-python", "virtual-environment"],
+)
+def test_formatter_prefers_python_scripts_over_toolchain_path(
+    monkeypatch, python_path, scripts_path
+):
+    """Use the pinned pip tool even when native setup prepends another LLVM version."""
+    pinned = f"{scripts_path}/clang-format.exe"
+    monkeypatch.setattr(sys, "executable", python_path)
+    monkeypatch.setattr(sysconfig, "get_path", lambda name: scripts_path)
+    monkeypatch.setattr(
+        format_sources.shutil,
+        "which",
+        lambda name, path=None: (
+            pinned if path and Path(path) == Path(scripts_path) else "toolchain/clang-format.exe"
+        ),
+    )
+    monkeypatch.setattr(
+        format_sources.subprocess,
+        "check_output",
+        lambda command, **kwargs: (
+            "clang-format version 19.1.7" if command[0] == pinned else "clang-format version 20.1.8"
+        ),
+    )
+
+    assert format_sources.formatter_executable() == pinned
