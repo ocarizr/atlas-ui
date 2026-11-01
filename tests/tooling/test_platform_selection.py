@@ -11,10 +11,18 @@ from scripts.ci.impact import select_components
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_storage_adapter_changes_select_streaming_without_graphics_checks():
+@pytest.mark.parametrize(
+    "path",
+    [
+        "libs/platform/windows/streaming/iocp_backend.cpp",
+        "tests/platform/windows/streaming/iocp_completion_tests.cpp",
+    ],
+    ids=["native-adapter", "native-storage-tests"],
+)
+def test_storage_adapter_changes_select_streaming_without_graphics_checks(path):
     """The platform folder must not make a storage-only edit depend on DXC/graphics products."""
     config = read_yaml(ROOT / ".ci/components.yaml")
-    selected = select_components(config, ["libs/platform/windows/streaming/file_reader.cpp"])
+    selected = select_components(config, [path])
     assert "streaming" in selected
     assert "windows" not in selected
 

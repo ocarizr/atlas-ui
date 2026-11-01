@@ -24,11 +24,14 @@ CMake selects one platform implementation behind a fixed private file interface.
 `ATLAS_TARGET_PLATFORM=windows` is supported; other enumerated targets are reserved
 and rejected until implemented. Native Windows file reads live under the Windows
 boundary; the SDK-free validation profile selects a standard-library reference
-backend. Both currently use synchronous reads on the dedicated I/O thread. They
-are asynchronous to callers and isolate CPU workers, but serialize acquisition and
-cannot cancel a blocked OS operation. Per-read CPU priority and cooperative stop
-tokens are implemented. Overlapped Windows I/O/IOCP, storage priorities, generations,
-prefetch and cache eviction remain later milestones. See the
+backend. Windows now uses bounded overlapped reads through IOCP: four concurrent
+file slots by default, configurable with `max_io_requests`. Queued cancellation
+avoids file admission; active cancellation requests `CancelIoEx` and retains the
+buffer/OVERLAPPED until OS acknowledgment, including completion races. Shutdown
+drains; callers request stop explicitly when aborting. The reference backend remains
+serial and cannot interrupt a blocked read. Native open/metadata/allocation still
+run on the I/O owner, not CPU workers. Per-read CPU priority applies to ready work.
+Storage priorities, generations, prefetch and cache eviction remain later milestones. See the
 [streaming API and memory contracts](../libs/streaming/README.md).
 
 ## Ready-work pipeline
@@ -59,7 +62,7 @@ Combined playback additionally needs a common clock, timestamps, buffering/under
 ## Implementation sequence and acceptance
 
 1. **Current base:** memory/loose ranges, selected native/reference backends, persistent I/O, current direct jobs and child-copy grain policy, CPU priorities, cooperative cancellation, retained-byte budgets, shared PMR payload allocation, counters, errors and draining. Tests cover bounds, missing/unknown assets, callback/allocation failures, concurrent producers, reentrant requests, allocator/output lifetime and cleanup. The streamed Opus decode test remains.
-2. **Storage concurrency and performance gate:** bounded Windows overlapped I/O/IOCP, handle reuse, actual disk cancellation, storage priority, generations and explicit backpressure/retry policy. Add a controllably slow backend fixture to prove storage stalls cannot occupy CPU workers or starve frame/audio work. Measure queued/read/decode latency, bytes, failures and allocations on representative assets; tune copy thresholds rather than assuming parallelism wins. Preserve the SDK-free contract tests.
+2. **Storage concurrency implemented; performance gate remains:** bounded Windows IOCP, specific-operation `CancelIoEx`, safe completion/drain ownership, active/peak/cancellation counters and controlled latency/fault fixtures. Tests prove pending I/O leaves CPU workers available and queued cancellation does not need a native slot. Handles are bounded per active request and closed after completion; idle reuse remains deferred until loose-file identity/invalidation is defined. Storage priority, generations and explicit retry policy remain open. Measure queued/read/decode latency, bytes, failures and allocations on representative assets before claiming speedups; preserve SDK-free tests. The next functional increment is bundles.
 3. **Bundles:** versioned cooked index, IDs, entry offsets/lengths, integrity/compression metadata. Translate ranges with overflow-safe bounds and decoded-size budgets. Compare loose, memory and bundle results through the same API/tests. No bundle backend is implemented yet.
 4. **Media adapters:** streamer-backed WebM parsing/seek, real AV1/Opus fixtures, corruption, stale completions, packet ordering, decoder errors and buffer lifetimes. Containers/codecs never open files.
 5. **Playback/performance:** device-loss/underrun recovery, seek cancellation, consumption-driven PCM reclamation, startup/loop/scrub and measured synchronization. Compare sequential and jobified processing on reference assets/hardware before claiming speedups.

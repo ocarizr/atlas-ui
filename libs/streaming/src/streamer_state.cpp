@@ -2,7 +2,6 @@
  * @brief Ready-job dispatch, exact retirement and persistent disk acquisition.
  */
 #include "streamer_state.hpp"
-#include "asset_reader.hpp"
 #include <ios>
 #include <limits>
 #include <stdexcept>
@@ -12,18 +11,25 @@ namespace atlas::streaming::detail
 /// @brief Validate budgets and retain a client of the application-owned pool.
 streamer_state::streamer_state(jobs::job_system& scheduler, asset_catalog assets,
                                streamer_limits budgets,
-                               std::shared_ptr<std::pmr::memory_resource> resource)
+                               std::shared_ptr<std::pmr::memory_resource> resource,
+                               std::unique_ptr<file_io> storage)
     : jobs{scheduler}, dispatcher{scheduler.dispatcher()}, catalog{std::move(assets)},
-      limits{budgets}, memory{std::make_shared<buffer_memory>(std::move(resource))}
+      limits{budgets}, memory{std::make_shared<buffer_memory>(std::move(resource))},
+      files{std::move(storage)}
 {
     if (limits.max_read_bytes == 0 || limits.max_pending_requests == 0 ||
-        limits.max_resident_bytes == 0 || limits.copy_grain_bytes == 0 ||
-        limits.copy_grain_bytes % 64 != 0 ||
+        limits.max_resident_bytes == 0 || limits.max_io_requests == 0 ||
+        limits.copy_grain_bytes == 0 || limits.copy_grain_bytes % 64 != 0 ||
         limits.max_read_bytes >
             static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max()))
     {
         throw std::invalid_argument{
             "Streamer limits must be positive, representable and use cache-line grains"};
+    }
+
+    if (!files)
+    {
+        files = make_file_io();
     }
 }
 
@@ -112,34 +118,4 @@ void streamer_state::schedule(const std::shared_ptr<read_operation>& operation,
     }
 }
 
-/// @brief Keep blocking storage calls off CPU workers and discard cancelled acquisitions before
-/// delivery.
-void streamer_state::run_io()
-{
-    while (true)
-    {
-        std::shared_ptr<read_operation> operation;
-        {
-            std::unique_lock lock{mutex};
-            available.wait(lock,
-                           [this]
-                           {
-                               return !queue.empty() || !accepting;
-                           });
-            if (queue.empty())
-            {
-                return;
-            }
-
-            operation = std::move(queue.front());
-            queue.pop_front();
-        }
-        auto result = operation->options.cancellation.stop_requested()
-                          ? read_result{std::make_exception_ptr(jobs::job_cancelled{})}
-                          : read_file_asset(
-                                std::get<loose_file_asset>(catalog.at(operation->request.asset_id)),
-                                operation->request, operation->reservation);
-        schedule(operation, std::move(result));
-    }
-}
 } // namespace atlas::streaming::detail

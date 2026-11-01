@@ -71,9 +71,12 @@ struct streamer_limits
     /// @brief Positive cache-line-multiple target chunk size; runtime also caps chunk count by
     /// worker count.
     std::size_t copy_grain_bytes{std::size_t{256} * 1024};
+    /// @brief Maximum outstanding file operations and their per-request native handles.
+    std::size_t max_io_requests{4};
 };
 
-/// @brief CPU scheduling priority and cooperative read cancellation; neither preempts disk I/O.
+/// @brief CPU priority and cancellation; native pending transfers receive best-effort OS
+/// cancellation.
 struct read_options
 {
     /// @brief Weighted scheduler class used by ready acquisition/delivery work.
@@ -100,6 +103,17 @@ struct streamer_statistics
     std::size_t completed;
     /// @brief Retired acquisition/cancellation or callback failures.
     std::size_t failed;
+    /// @brief Current admitted storage operations, including metadata/submission and pending
+    /// transfers.
+    std::size_t io_in_flight;
+    /// @brief Highest observed simultaneous storage-operation count.
+    std::size_t peak_io_in_flight;
+    /// @brief Native cancellation API calls; requests do not imply confirmed aborted transfers.
+    std::size_t io_cancellation_requests;
+    /// @brief Native cancellation calls racing with already-completed operations.
+    std::size_t io_cancellation_races;
+    /// @brief Other native cancellation-call failures, still followed by completion draining.
+    std::size_t io_cancellation_errors;
 };
 
 /// @brief Owned immutable exact bytes or the original acquisition failure.

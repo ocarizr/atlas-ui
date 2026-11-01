@@ -73,6 +73,7 @@ std::future<void> asset_streamer::read(read_request request, read_completion com
     auto finished = operation->finished.get_future();
     auto& state = *impl_->state;
     bool file = false;
+    std::exception_ptr storage_failure;
     {
         const std::lock_guard lock{state.mutex};
         if (!state.accepting)
@@ -92,14 +93,24 @@ std::future<void> asset_streamer::read(read_request request, read_completion com
                std::holds_alternative<loose_file_asset>(source->second);
         if (file)
         {
-            state.queue.push_back(operation);
+            storage_failure = state.storage_failure;
+            if (!storage_failure)
+            {
+                operation->cancellation_wakeup.emplace(operation->options.cancellation,
+                                                       detail::io_wakeup{impl_->state});
+                state.queue.push_back(operation);
+            }
         }
 
         ++state.pending;
     }
-    if (file)
+    if (storage_failure)
     {
-        state.available.notify_one();
+        state.schedule(operation, storage_failure);
+    }
+    else if (file)
+    {
+        state.files->wake();
     }
     else
     {
@@ -114,13 +125,19 @@ streamer_statistics asset_streamer::statistics() const
 {
     auto& state = *impl_->state;
     const std::lock_guard lock{state.mutex};
+    const auto io = state.files->statistics();
     return {state.pending,
             state.memory->resident.load(),
             state.memory->peak.load(),
             state.serial_copies.load(),
             state.parallel_copies.load(),
             state.completed,
-            state.failed};
+            state.failed,
+            state.io_in_flight.load(),
+            state.peak_io_in_flight.load(),
+            io.cancellation_requests,
+            io.cancellation_races,
+            io.cancellation_errors};
 }
 
 /// @brief Close admission, join storage and wait only on the coordinator for accepted deliveries.
@@ -136,7 +153,7 @@ void asset_streamer::shutdown()
         const std::lock_guard lock{state.mutex};
         state.accepting = false;
     }
-    state.available.notify_all();
+    state.files->wake();
     if (impl_->io.joinable())
     {
         impl_->io.join();
