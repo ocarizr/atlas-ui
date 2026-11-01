@@ -8,6 +8,12 @@ five dependency-product producers and independently named component pipelines.
 There is no global dependency-preparation or quality barrier before native builds.
 Each component waits only for its own external groups and compiled Atlas prerequisites.
 
+Pull requests also require independent Doxygen reference generation, without wiki
+credentials. The separate `documentation.yml` workflow generates and publishes
+the API wiki on `main`, independently of package/release jobs. Its reusable build,
+temporary transfer artifact, synchronization policy and retry procedure are
+described in [API reference and wiki](27_api_reference_and_wiki.md).
+
 ```mermaid
 flowchart LR
   plan --> quality

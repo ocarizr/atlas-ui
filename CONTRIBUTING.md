@@ -73,4 +73,9 @@ Use a focused branch and target `main`. Update documentation when contracts chan
 
 PRs validate; they do not package or publish. The main-branch workflow packages. Publishing additionally requires a strict version tag and verification that its commit belongs to `main`. Use standard semantic versioning: major for incompatible changes, minor for compatible features, patch for compatible fixes.
 
+The generated API wiki has an independent documentation workflow: PRs validate
+Doxygen generation, and pushes to `main` publish the current reference without a
+release tag. Edit source comments rather than wiki pages. See the
+[wiki publication guide](docs/27_api_reference_and_wiki.md).
+
 Keep generated output, local SDKs, machine settings, and temporary work outside tracked source paths. Maintain `.gitignore` without hiding source assets or test fixtures.

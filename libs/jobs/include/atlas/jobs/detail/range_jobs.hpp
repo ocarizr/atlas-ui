@@ -18,7 +18,8 @@ template <typename T, typename Function> struct range_chunk
 
 /// @brief Execute one borrowed range chunk with its declared access guard held.
 ///
-/// @param context Optional borrowed correlation metadata copied during capture.
+/// @param context Executor-provided access and cancellation capabilities.
+/// @param payload Borrowed chunk and copied range callable.
 template <typename T, typename Function>
 void run_chunk(job_context& context, range_chunk<T, Function>& payload)
 {
@@ -52,7 +53,8 @@ template <typename T, typename Function> struct range_payload
 
 /// @brief Validate span/grain inputs and join all admitted chunks, preserving the small-range path.
 ///
-/// @param context Optional borrowed correlation metadata copied during capture.
+/// @param context Executor-provided child-dispatch and cancellation capabilities.
+/// @param payload Borrowed range, chunk size and copied range callable.
 template <typename T, typename Function>
 void run_ranges(job_context& context, range_payload<T, Function>& payload)
 {

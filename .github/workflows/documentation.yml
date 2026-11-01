@@ -1,0 +1,34 @@
+name: Publish API wiki
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: api-wiki
+  cancel-in-progress: false
+jobs:
+  generate:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/reusable_reference.yml
+    with:
+      upload: true
+  publish:
+    needs: generate
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
+    - uses: ./.github/actions/setup_ci
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        name: doxygen-reference-${{ github.sha }}
+        path: build/documentation
+    - name: Synchronize generated pages with repository wiki
+      env:
+        WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+      run: python -m scripts.ci.publish_wiki --repository $env:GITHUB_REPOSITORY --current-main

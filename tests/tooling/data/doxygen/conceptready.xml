@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doxygen version="1.18.0"><compounddef id="conceptready" kind="concept">
+  <compoundname>atlas::ready</compoundname>
+  <templateparamlist><param><type>typename T</type></param></templateparamlist>
+  <initializer>template&lt;typename T&gt; concept atlas::ready = sizeof(T) &gt; 0</initializer>
+  <briefdescription><para>Require a complete type.</para></briefdescription>
+</compounddef></doxygen>

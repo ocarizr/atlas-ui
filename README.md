@@ -73,6 +73,11 @@ the distinction between internal build artifacts and deliverable packaging.
 
 ## Documentation
 
+The generated [API wiki](https://github.com/ocarizr/atlas-ui/wiki) provides library
+and symbol references from Doxygen source comments. See the
+[generation and publication guide](docs/27_api_reference_and_wiki.md) for local
+HTML output, CI validation and automatic wiki synchronization.
+
 | Document | Topics |
 | --- | --- |
 | [Scope](docs/01_scope.md) | Goals, boundaries, supported features |
@@ -100,6 +105,7 @@ the distinction between internal build artifacts and deliverable packaging.
 | [Diagnostics and packages](docs/24_diagnostics_and_packages.md) | Logging, metrics/telemetry adapters, Chrome trace export, jobs integration and package strategy |
 | [Job-system backlog](docs/25_job_system_backlog.md) | Remaining gaps, priorities, completion criteria and deferred optimizations |
 | [Source style and documentation](docs/26_source_style_and_documentation.md) | Pinned formatters, reference comments, independent CI checks and IDE tools |
+| [API reference and wiki](docs/27_api_reference_and_wiki.md) | Doxygen generation, library navigation, wiki synchronization and credentials |
 | [Job safety and reuse](libs/jobs/README.md) | Declared-access sanitizer, limitations, standalone build and package |
 | [Job graph usage](docs/17_job_graph_usage.md) | Generic examples, dependencies, errors, ownership and diagnostics |
 

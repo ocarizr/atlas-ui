@@ -61,9 +61,12 @@ struct log_record
 {
     /// @brief Severity of the structured record being delivered.
     log_level level;
-    /// @brief Borrowed category, message and formatted text; copy each view before retaining
-    /// asynchronously.
-    std::string_view category, message, formatted;
+    /// @brief Borrowed category; copy before retaining asynchronously.
+    std::string_view category;
+    /// @brief Borrowed message; copy before retaining asynchronously.
+    std::string_view message;
+    /// @brief Borrowed formatted text; copy before retaining asynchronously.
+    std::string_view formatted;
     /// @brief Producer wall-clock timestamp supplied with this record.
     std::chrono::system_clock::time_point timestamp;
     /// @brief Original producer thread identity, independent of the output backend's thread.

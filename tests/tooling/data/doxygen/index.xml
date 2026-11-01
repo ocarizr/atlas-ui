@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doxygenindex version="1.18.0">
+  <compound refid="classworker" kind="class"><name>atlas::worker</name></compound>
+  <compound refid="conceptready" kind="concept"><name>atlas::ready</name></compound>
+</doxygenindex>
