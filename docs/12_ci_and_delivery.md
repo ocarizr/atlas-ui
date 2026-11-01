@@ -7,6 +7,11 @@ formatting/documentation checks, repository quality checks,
 six dependency-product producers and independently named component pipelines.
 There is no global dependency-preparation or quality barrier before native builds.
 Each component waits only for its own external groups and compiled Atlas prerequisites.
+Component jobs explicitly require `success()` before starting. A failed or cancelled
+input producer prevents its consumers from restoring/building; the final required
+gate still runs and reports the originating failure. Regression tests compare each
+component's declared inputs with workflow dependencies and ensure every vendor group
+has a corresponding restore step before identity verification.
 
 Pull requests also require independent Doxygen reference generation, without wiki
 credentials. The separate `documentation.yml` workflow generates and publishes
@@ -100,6 +105,7 @@ CI mapping when adding a real library/application; regression tests compare them
 | Product | Direct packages | Consumers |
 | --- | --- | --- |
 | testing | GoogleTest | Library and native integration tests |
+| memory | mimalloc | PMR memory resources and application/consumer integration |
 | content | EnTT, pugixml, yaml-cpp, spdlog | Dependency tests and application logging |
 | media | dav1d, libwebm, Opus | Streamer media tests and dependency tests |
 | ipc | gRPC, Protobuf | Protocol and application consumers |
@@ -155,6 +161,28 @@ fields plus the run ID. Debug/Release, sanitizer and compiler-profile products n
 mix. Source products are retained for one day and are not looked up across runs.
 If these short-lived products expire, rerun the full validation rather than only
 a downstream failed job, so its producers generate fresh same-run link inputs.
+
+### Unchanged-library reuse follow-up
+
+A streaming source edit does not mark jobs as changed: impact propagates toward
+consumers, not prerequisites. The current planner still schedules prerequisite
+producers with their validation matrices because owned products are available only
+inside the current run. Shared CMake/CI changes conservatively select all components.
+This explains jobs validation even when its C++ sources were not edited.
+
+The next CI optimization is to distinguish affected validation from unchanged link
+inputs and recover prevalidated owned products from trusted main producers. Reuse
+must identify the library source/public and generated headers, tests/validation
+policy, transitive inputs, vendor identities, CMake settings, compiler/SDK, profile,
+configuration and instrumentation ABI. Expired/missing/incompatible products must
+fall back to a producer; a failed producer must block its consumers. A downstream
+change alone must not trigger unchanged upstream tests when compatible validated
+inputs exist. Changes to shared build rules or an upstream dependency still require
+affected-consumer validation.
+
+Cross-run owned-product lookup is not implemented by the input-restoration fix;
+current run/revision provenance checks remain enforced. Do not bypass them or accept
+arbitrary PR/fork artifacts to obtain a cache hit.
 
 Each component retains its own coverage report. Reports contain fresh profiles
 and may include exercised imported library code. Formatting is global, not repeated
