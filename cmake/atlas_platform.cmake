@@ -1,0 +1,18 @@
+include_guard(GLOBAL)
+
+if(NOT DEFINED ATLAS_TARGET_PLATFORM)
+    string(TOLOWER "${CMAKE_SYSTEM_NAME}" atlas_default_platform)
+    if(atlas_default_platform STREQUAL "darwin")
+        set(atlas_default_platform macos)
+    endif()
+    set(ATLAS_TARGET_PLATFORM "${atlas_default_platform}" CACHE STRING "Atlas target platform")
+endif()
+set(ATLAS_TARGET_PLATFORM "${ATLAS_TARGET_PLATFORM}" CACHE STRING "Atlas target platform")
+set_property(CACHE ATLAS_TARGET_PLATFORM PROPERTY STRINGS
+    windows linux macos android ios xbox playstation switch)
+if(NOT ATLAS_TARGET_PLATFORM STREQUAL "windows")
+    message(FATAL_ERROR "ATLAS_TARGET_PLATFORM=${ATLAS_TARGET_PLATFORM}: adapter not implemented; only windows is supported.")
+endif()
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    message(FATAL_ERROR "ATLAS_TARGET_PLATFORM=windows requires a Windows target.")
+endif()

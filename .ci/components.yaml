@@ -163,6 +163,7 @@ components:
   streaming:
     paths:
     - libs/streaming/**
+    - libs/platform/windows/streaming/**
     - tests/streaming/**
     depends_on:
     - jobs
@@ -193,7 +194,7 @@ components:
     - media
   windows:
     paths:
-    - libs/platform/windows/**
+    - libs/platform/windows/CMakeLists.txt
     - tests/platform/windows/**
     depends_on: []
     build_targets:

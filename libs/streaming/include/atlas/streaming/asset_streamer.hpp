@@ -13,6 +13,8 @@
 #include <functional>
 #include <future>
 #include <memory>
+#include <memory_resource>
+#include <stop_token>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -21,7 +23,7 @@
 namespace atlas::streaming
 {
 /// @brief Owned contiguous bytes delivered immutably by the streamer.
-using asset_bytes = std::vector<std::uint8_t>;
+using asset_bytes = std::pmr::vector<std::uint8_t>;
 
 /// @brief Pinned immutable backing bytes; external aliases must not mutate the same storage.
 struct memory_asset
@@ -60,6 +62,44 @@ struct streamer_limits
     std::size_t max_read_bytes{std::size_t{4} * 1024 * 1024};
     /// @brief Accepted read-operation limit including completion callbacks in flight.
     std::size_t max_pending_requests{32};
+    /// @brief Maximum requested output bytes reserved or retained by consumers, excluding source
+    /// data and metadata.
+    std::size_t max_resident_bytes{std::size_t{64} * 1024 * 1024};
+    /// @brief Opt-in minimum copy size for disjoint children on an available pool; zero disables
+    /// uncalibrated splitting.
+    std::size_t parallel_copy_threshold{0};
+    /// @brief Positive cache-line-multiple target chunk size; runtime also caps chunk count by
+    /// worker count.
+    std::size_t copy_grain_bytes{std::size_t{256} * 1024};
+};
+
+/// @brief CPU scheduling priority and cooperative read cancellation; neither preempts disk I/O.
+struct read_options
+{
+    /// @brief Weighted scheduler class used by ready acquisition/delivery work.
+    jobs::job_priority priority{jobs::job_priority::background};
+    /// @brief Caller-owned cancellation signal checked before acquisition, between chunks and
+    /// before delivery.
+    std::stop_token cancellation{};
+};
+
+/// @brief Observational counters; byte reservations include outputs retained after delivery.
+struct streamer_statistics
+{
+    /// @brief Accepted operations whose completion delivery has not retired.
+    std::size_t pending;
+    /// @brief Bytes reserved for reads or held by live output buffers.
+    std::size_t resident_bytes;
+    /// @brief Highest observed simultaneously reserved output byte count.
+    std::size_t peak_resident_bytes;
+    /// @brief Reads that used one CPU copy without child dispatch.
+    std::size_t serial_copies;
+    /// @brief Reads partitioned into disjoint attached copy jobs.
+    std::size_t parallel_copies;
+    /// @brief Retired completion deliveries, including errors and cancellation.
+    std::size_t completed;
+    /// @brief Retired acquisition/cancellation or callback failures.
+    std::size_t failed;
 };
 
 /// @brief Owned immutable exact bytes or the original acquisition failure.
@@ -79,7 +119,10 @@ class asset_streamer
     /// @param jobs Application-owned pool that must outlive accepted streamer work and draining.
     /// @param catalog Immutable logical source registrations; memory aliases must remain immutable.
     /// @param limits Positive per-read and in-flight request budgets.
-    asset_streamer(jobs::job_system& jobs, asset_catalog catalog, streamer_limits limits = {});
+    /// @param buffers Optional shared thread-safe payload allocator; retained outputs keep it
+    /// alive. Null selects new/delete.
+    asset_streamer(jobs::job_system& jobs, asset_catalog catalog, streamer_limits limits = {},
+                   std::shared_ptr<std::pmr::memory_resource> buffers = {});
     /// @brief Drain accepted work and release persistent resources; callers must obey the enclosing
     /// coordinator/lifetime contract.
     ~asset_streamer();
@@ -96,7 +139,10 @@ class asset_streamer
 
     /// The future observes callback completion/errors; wait only on coordinators.
     /// Accepted source/read failures reach the callback as exception_ptr.
-    std::future<void> read(read_request request, read_completion completion);
+    std::future<void> read(read_request request, read_completion completion,
+                           read_options options = {});
+    /// @brief Return thread-safe observational admission, allocation and scheduling counters.
+    [[nodiscard]] streamer_statistics statistics() const;
     /// @brief On the creating coordinator, reject new reads, drain accepted callbacks and join I/O
     /// before destroying storage.
     void shutdown();

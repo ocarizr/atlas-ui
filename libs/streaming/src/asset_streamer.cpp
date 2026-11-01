@@ -1,148 +1,21 @@
-/**
- * @file
- * @brief Exclusive storage acquisition with persistent I/O and job-based ready delivery.
+/** @file
+ * @brief Logical read admission, persistent I/O ownership and draining lifecycle.
  */
-
+#include "streamer_state.hpp"
 #include <atlas/streaming/asset_streamer.hpp>
-
-#include "asset_reader.hpp"
-
-#include <condition_variable>
-#include <deque>
-#include <ios>
-#include <limits>
-#include <mutex>
-#include <optional>
 #include <stdexcept>
 #include <thread>
-#include <utility>
 
 namespace atlas::streaming
 {
-namespace
-{
-/// @brief Accepted request, callback and promise retained until its completion delivery retires.
-struct read_operation
-{
-    /// @brief Owned asset-relative request retained until ready completion.
-    read_request request;
-    /// @brief Retained callback/promise making the accepted operation observable to its
-    /// coordinator.
-    read_completion completion;
-    /// @brief Aggregate completion signal or terminal flag used by the enclosing operation.
-    std::promise<void> finished;
-};
-
-/// @brief Shared catalog/admission/I/O state kept alive through accepted completion jobs.
-struct streamer_state : std::enable_shared_from_this<streamer_state>
-{
-    /// @brief Validate request/byte admission limits before accepting any reads.
-    streamer_state(jobs::job_system& scheduler, asset_catalog assets, streamer_limits budgets)
-        : jobs{scheduler}, catalog{std::move(assets)}, limits{budgets}
-    {
-        if (limits.max_read_bytes == 0 || limits.max_pending_requests == 0 ||
-            limits.max_read_bytes >
-                static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max()))
-        {
-            throw std::invalid_argument{"Streamer limits must be positive and representable"};
-        }
-    }
-
-    /// @brief Release one accepted streaming operation and notify draining shutdown.
-    void retire()
-    {
-        const std::lock_guard lock{mutex};
-        --pending;
-        idle.notify_all();
-    }
-
-    /// @brief Dispatch a prepared read result as CPU work and retire admission if dispatch fails.
-    void schedule(const std::shared_ptr<read_operation>& operation,
-                  std::optional<read_result> prepared = std::nullopt)
-    {
-        try
-        {
-            jobs.submit(
-                [self = shared_from_this(), operation, prepared = std::move(prepared)]() mutable
-                {
-                    try
-                    {
-                        auto result = prepared
-                                          ? std::move(*prepared)
-                                          : detail::read_asset(self->catalog, operation->request);
-                        operation->completion(std::move(result));
-                        operation->finished.set_value();
-                    }
-                    catch (...)
-                    {
-                        operation->finished.set_exception(std::current_exception());
-                    }
-
-                    self->retire();
-                });
-        }
-        catch (...)
-        {
-            // A stopped scheduler cannot dispatch a callback on the correct thread.
-            operation->finished.set_exception(std::current_exception());
-            retire();
-        }
-    }
-
-    /// @brief Drain queued file reads on the persistent I/O thread, then schedule ready
-    /// completions.
-    void run_io()
-    {
-        while (true)
-        {
-            std::shared_ptr<read_operation> operation;
-            {
-                std::unique_lock lock{mutex};
-                available.wait(lock,
-                               [this]
-                               {
-                                   return !queue.empty() || !accepting;
-                               });
-                if (queue.empty())
-                {
-                    return;
-                }
-
-                operation = std::move(queue.front());
-                queue.pop_front();
-            }
-            schedule(operation, detail::read_asset(catalog, operation->request));
-        }
-    }
-
-    /// @brief Borrowed application-owned pool, which must outlive streamer draining.
-    jobs::job_system& jobs;
-    /// @brief Immutable logical asset-source registration map.
-    const asset_catalog catalog;
-    /// @brief Validated per-read and in-flight streaming admission budgets.
-    const streamer_limits limits;
-    /// @brief Synchronization for the enclosing shared registry/capture/execution state.
-    std::mutex mutex;
-    /// @brief Condition variable waking persistent workers when work or shutdown becomes available.
-    std::condition_variable available;
-    /// @brief Condition variable used to observe accepted streaming operations retiring.
-    std::condition_variable idle;
-    /// @brief Pending accepted I/O operations or eligible work in the enclosing subsystem.
-    std::deque<std::shared_ptr<read_operation>> queue;
-    /// @brief Accepted read operations not yet retired, including completion callbacks in flight.
-    std::size_t pending{0};
-    /// @brief Whether new root submissions/requests/messages are still admitted.
-    bool accepting{true};
-};
-} // namespace
-
-/// @brief Private implementation state; callers interact through the enclosing public API.
+/// @brief Lifecycle owner; native handles and CPU jobs retain only shared execution state.
 struct asset_streamer::impl
 {
-    /// @brief Create shared storage state and start one persistent I/O worker owned by the creating
-    /// coordinator.
-    impl(jobs::job_system& jobs, asset_catalog catalog, streamer_limits limits)
-        : state{std::make_shared<streamer_state>(jobs, std::move(catalog), limits)},
+    /// @brief Validate state before creating the one persistent blocking-storage thread.
+    impl(jobs::job_system& jobs, asset_catalog catalog, streamer_limits limits,
+         std::shared_ptr<std::pmr::memory_resource> buffers)
+        : state{std::make_shared<detail::streamer_state>(jobs, std::move(catalog), limits,
+                                                         std::move(buffers))},
           io{[shared = state]
              {
                  shared->run_io();
@@ -150,24 +23,23 @@ struct asset_streamer::impl
     {
     }
 
-    /// @brief Shared execution/workload state retained through all accepted callbacks.
-    std::shared_ptr<streamer_state> state;
-    /// @brief Creating coordinator thread that alone may shut down/destroy this streamer.
+    /// @brief Shared execution state retained by accepted work.
+    std::shared_ptr<detail::streamer_state> state;
+    /// @brief Coordinator responsible for stopping external producers and draining.
     const std::thread::id coordinator{std::this_thread::get_id()};
-    /// @brief Persistent dedicated I/O thread; disk reads do not block the CPU worker pool.
+    /// @brief Persistent disk-I/O owner; CPU workers never perform blocking file acquisition.
     std::jthread io;
 };
 
-/// @brief Own an immutable catalog and persistent I/O thread while borrowing a pool that must
-/// outlive draining.
+/// @brief Construct with an application-owned pool and an optional reusable payload allocator.
 asset_streamer::asset_streamer(jobs::job_system& jobs, asset_catalog catalog,
-                               streamer_limits limits)
-    : impl_{std::make_unique<impl>(jobs, std::move(catalog), limits)}
+                               streamer_limits limits,
+                               std::shared_ptr<std::pmr::memory_resource> buffers)
+    : impl_{std::make_unique<impl>(jobs, std::move(catalog), limits, std::move(buffers))}
 {
 }
 
-/// @brief Drain accepted work and release persistent resources; callers must obey the enclosing
-/// coordinator/lifetime contract.
+/// @brief Drain on the creating coordinator; misuse cannot safely destroy live I/O state.
 asset_streamer::~asset_streamer()
 {
     try
@@ -180,9 +52,9 @@ asset_streamer::~asset_streamer()
     }
 }
 
-/// @brief Request an exact asset range; accepted results are delivered as jobs, never by blocking a
-/// CPU worker.
-std::future<void> asset_streamer::read(read_request request, read_completion completion)
+/// @brief Reserve request and payload budgets before making work visible to storage or CPU workers.
+std::future<void> asset_streamer::read(read_request request, read_completion completion,
+                                       read_options options)
 {
     if (!completion)
     {
@@ -194,9 +66,10 @@ std::future<void> asset_streamer::read(read_request request, read_completion com
         throw std::length_error{"Asset read exceeds the configured byte limit"};
     }
 
-    auto operation = std::make_shared<read_operation>();
+    auto operation = std::make_shared<detail::read_operation>();
     operation->request = std::move(request);
     operation->completion = std::move(completion);
+    operation->options = std::move(options);
     auto finished = operation->finished.get_future();
     auto& state = *impl_->state;
     bool file = false;
@@ -212,6 +85,8 @@ std::future<void> asset_streamer::read(read_request request, read_completion com
             throw std::overflow_error{"The asset streamer request budget is exhausted"};
         }
 
+        operation->reservation = detail::reserve_buffer(state.memory, operation->request.size,
+                                                        state.limits.max_resident_bytes);
         const auto source = state.catalog.find(operation->request.asset_id);
         file = source != state.catalog.end() &&
                std::holds_alternative<loose_file_asset>(source->second);
@@ -234,8 +109,21 @@ std::future<void> asset_streamer::read(read_request request, read_completion com
     return finished;
 }
 
-/// @brief On the creating coordinator, reject new reads, drain accepted callbacks and join I/O
-/// before destroying storage.
+/// @brief Read admission/terminal counters under their lock and byte/copy counters atomically.
+streamer_statistics asset_streamer::statistics() const
+{
+    auto& state = *impl_->state;
+    const std::lock_guard lock{state.mutex};
+    return {state.pending,
+            state.memory->resident.load(),
+            state.memory->peak.load(),
+            state.serial_copies.load(),
+            state.parallel_copies.load(),
+            state.completed,
+            state.failed};
+}
+
+/// @brief Close admission, join storage and wait only on the coordinator for accepted deliveries.
 void asset_streamer::shutdown()
 {
     if (std::this_thread::get_id() != impl_->coordinator)

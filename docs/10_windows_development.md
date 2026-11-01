@@ -1,5 +1,11 @@
 # Windows development
 
+The presets select `ATLAS_TARGET_PLATFORM=windows`. Native storage adapters are
+compiled privately into the streamer; `windows-portable` keeps that target but
+sets `ATLAS_BUILD_WINDOWS_INTEGRATION=OFF` to exercise the SDK-free reference
+implementation. Reserved platform names are not validated support. See the
+[streamer platform and memory contracts](../libs/streaming/README.md).
+
 ## Prerequisites
 
 - Windows x64 and Visual Studio 2022 Desktop development with C++, Windows SDK and ASan component.
