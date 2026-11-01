@@ -53,8 +53,8 @@ errors must remain visible to diagnostics consumers. Live editor visualization,
 full causal dependency flows, lock contention and real consumer frame budgets remain
 future integration work.
 
-Build/install `atlas_jobs` 0.2.x and `atlas_diagnostics` 0.1.x first, then configure
+Build/install `atlas_jobs` 0.2.x and `atlas_diagnostics` 0.2.x first, then configure
 this directory with their install prefixes in `CMAKE_PREFIX_PATH`. Consumers use
-`find_package(atlas_jobs_diagnostics 0.1.0 CONFIG REQUIRED)` and link
+`find_package(atlas_jobs_diagnostics 0.2.0 CONFIG REQUIRED)` and link
 `atlas::jobs_diagnostics`. Jobs 0.2 adds observer options and changes compiled layouts:
 rebuild all matching clients; do not mix 0.1 headers/binaries with 0.2.

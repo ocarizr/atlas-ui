@@ -10,6 +10,11 @@ bounded Chrome trace export. Console output is available; physical file persiste
 requires a storage write adapter. Editor visualization, configuration hot reload and
 full causal profiling remain future integration work.
 
+Numeric metrics are a separate opt-in counter/gauge registry with bounded
+cardinality and owning cumulative snapshots. Applications choose observations and
+explicitly invoke a `metrics_output` adapter; no CPU sampling, analytics events or
+network transport is installed. See the [metrics contract](../libs/diagnostics/README.md#metrics).
+
 Profiling covers CPU/frame/job timings, memory, streaming, dependencies, frame/job timelines and asset loads, with immediate editor visualization. Proposed extra metrics include queue time, barrier waits, dirty-region counts and render-data cost. Measure instrumentation overhead separately.
 
 ## Testing discipline

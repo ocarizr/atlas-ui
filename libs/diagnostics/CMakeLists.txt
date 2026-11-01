@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.25)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    project(atlas_diagnostics VERSION 0.1.0 LANGUAGES CXX)
+    project(atlas_diagnostics VERSION 0.2.0 LANGUAGES CXX)
 endif()
 find_package(spdlog 1.17 CONFIG REQUIRED)
 find_package(yaml-cpp 0.9 CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 add_library(atlas_diagnostics STATIC src/logging.cpp src/log_output.cpp src/profiling.cpp
-    src/chrome_trace.cpp src/settings.cpp)
+    src/chrome_trace.cpp src/settings.cpp src/metrics.cpp)
 add_library(atlas::diagnostics ALIAS atlas_diagnostics)
 target_include_directories(atlas_diagnostics PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
@@ -30,7 +30,7 @@ include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/atlas_diagnostics_config.cmake.in
     "${CMAKE_CURRENT_BINARY_DIR}/atlas_diagnosticsConfig.cmake" INSTALL_DESTINATION share/atlas_diagnostics)
 write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/atlas_diagnosticsConfigVersion.cmake"
-    VERSION 0.1.0 COMPATIBILITY SameMinorVersion)
+    VERSION 0.2.0 COMPATIBILITY SameMinorVersion)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/atlas_diagnosticsConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/atlas_diagnosticsConfigVersion.cmake" DESTINATION share/atlas_diagnostics)
 install(FILES README.md DESTINATION share/atlas_diagnostics)

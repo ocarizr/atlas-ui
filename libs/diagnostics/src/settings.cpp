@@ -116,6 +116,32 @@ profiling_options parse_profiling(const YAML::Node& profile)
     }
     return result;
 }
+metrics_options parse_metrics(const YAML::Node& node)
+{
+    metrics_options result;
+    if (!node)
+    {
+        return result;
+    }
+    keys(node, {"enabled", "max_series", "max_attributes", "max_text_bytes"});
+    if (node["enabled"])
+    {
+        result.enabled = node["enabled"].as<bool>();
+    }
+    if (node["max_series"])
+    {
+        result.max_series = size(node["max_series"]);
+    }
+    if (node["max_attributes"])
+    {
+        result.max_attributes = size(node["max_attributes"]);
+    }
+    if (node["max_text_bytes"])
+    {
+        result.max_text_bytes = size(node["max_text_bytes"]);
+    }
+    return result;
+}
 } // namespace
 
 diagnostics_settings parse_settings(std::string_view yaml)
@@ -128,11 +154,13 @@ diagnostics_settings parse_settings(std::string_view yaml)
         {
             return result;
         }
-        keys(root, {"logging", "profiling"});
+        keys(root, {"logging", "profiling", "metrics"});
         result.logging = parse_logging(root["logging"]);
         result.profiling = parse_profiling(root["profiling"]);
+        result.metrics = parse_metrics(root["metrics"]);
         validate(result.logging);
         validate(result.profiling);
+        validate(result.metrics);
         return result;
     }
     catch (const YAML::Exception& error)

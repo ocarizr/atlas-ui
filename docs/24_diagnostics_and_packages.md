@@ -2,14 +2,21 @@
 
 ## Dependency boundaries
 
-`atlas::diagnostics` owns logging, capture, configuration parsing and Chrome trace
-serialization. Its implementation uses spdlog and yaml-cpp; its headers expose only
+`atlas::diagnostics` owns logging, numeric metrics, capture, configuration parsing
+and Chrome trace serialization. Its implementation uses spdlog and yaml-cpp; its headers expose only
 standard C++ types. `atlas::jobs` owns scheduling and a generic optional observer.
 `atlas::jobs_diagnostics` adapts terminal observations into structured logs and trace
 events. Applications compose these packages; neither foundational library depends
 on the application or editor.
 
 This keeps diagnostics independently buildable and jobs reusable without spdlog.
+
+Metrics have a separate cumulative counter/gauge registry with bounded series and
+owning snapshots. `metrics_output` is an explicit adapter boundary for telemetry;
+no platform SDK, transport or application analytics collection is enabled. Profiling
+counter events remain trace observations, not that registry. See the
+[metrics and telemetry contract](../libs/diagnostics/README.md#metrics).
+
 Core jobs remains usable with the declared-access sanitizer on or off. The observer
 is optional and disabled by default. Its metadata reuses existing task ownership;
 enabling it does not require bounded scheduler tracing to be enabled.
@@ -52,8 +59,8 @@ package configs and version checks:
 | Package | Version | Public target | Dependencies |
 | --- | --- | --- | --- |
 | atlas_jobs | 0.2.0 | atlas::jobs | C++20, Threads |
-| atlas_diagnostics | 0.1.0 | atlas::diagnostics | C++20; private spdlog/yaml-cpp/Threads |
-| atlas_jobs_diagnostics | 0.1.0 | atlas::jobs_diagnostics | atlas_jobs 0.2.x, atlas_diagnostics 0.1.x |
+| atlas_diagnostics | 0.2.0 | atlas::diagnostics | C++20; private spdlog/yaml-cpp/Threads |
+| atlas_jobs_diagnostics | 0.2.0 | atlas::jobs_diagnostics | atlas_jobs 0.2.x, atlas_diagnostics 0.2.x |
 
 The new packages and jobs use same-minor compatibility while their versions are
 0.x. Consumers can request `EXACT` versions; a future source-fetch policy should
