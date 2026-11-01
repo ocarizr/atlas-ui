@@ -23,7 +23,8 @@ struct job_label
     /// @brief Initialize owned task name/category; categories describe observations and do not
     /// select priority.
     ///
-    /// @param value Finite numeric observation; gauges accept negative values.
+    /// @param value Owned task name.
+    /// @param group Optional diagnostic category.
     job_label(std::string value, std::string group = {})
         : name{std::move(value)}, category{std::move(group)}
     {
@@ -32,7 +33,7 @@ struct job_label
     /// @brief Initialize owned task name/category; categories describe observations and do not
     /// select priority.
     ///
-    /// @param value Finite numeric observation; gauges accept negative values.
+    /// @param value Task name copied into owned storage; null produces an empty name.
     job_label(const char* value) : job_label{value ? std::string{value} : std::string{}}
     {
     }

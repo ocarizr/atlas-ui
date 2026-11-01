@@ -264,7 +264,9 @@ class job_dispatcher
     /// client's policy.
     ///
     /// @param label Owned diagnostic name and optional category for this work.
+    /// @param body Owned callable retained until execution and joined cleanup.
     /// @param prerequisites Earlier tasks whose successful completion makes this body eligible.
+    /// @param parent Optional parent scope whose completion joins this task.
     task_handle submit(job_label label, detail::task_body body,
                        std::span<const task_handle> prerequisites,
                        const std::shared_ptr<detail::task_state>& parent = {}) const;
@@ -473,11 +475,13 @@ class job_context
     /// @brief Submit a separate continuation gated on the active scope's terminal publication.
     ///
     /// @param label Owned diagnostic name and optional category for this work.
+    /// @param body Owned continuation callable.
     task_handle continue_task(job_label label, detail::task_body body) const;
     /// @brief Admit an attached child with optional prerequisites while the current parent body is
     /// executing.
     ///
     /// @param label Owned diagnostic name and optional category for this work.
+    /// @param body Owned child callable.
     /// @param prerequisites Earlier tasks whose successful completion makes this body eligible.
     task_handle submit(job_label label, detail::task_body body,
                        std::span<const task_handle> prerequisites) const;

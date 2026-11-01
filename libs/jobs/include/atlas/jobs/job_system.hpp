@@ -57,7 +57,8 @@ class job_handle
     /// @brief Create an empty legacy handle or retain its shared completion and weak runtime
     /// identity.
     ///
-    /// @param completion Ready callback run as a job; callback errors reach the returned future.
+    /// @param completion Shared terminal completion state.
+    /// @param owner Weak runtime identity used to validate ownership.
     job_handle(std::shared_future<void> completion, std::weak_ptr<const void> owner);
 
     /// @brief Retained legacy completion state, independently observable by coordinator waits.

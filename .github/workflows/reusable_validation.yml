@@ -9,6 +9,9 @@ name: Parallel component validation
         type: string
         default: development
 jobs:
+  reference:
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable_reference.yml
   plan:
     uses: ./.github/workflows/reusable_plan.yml
     with:
@@ -237,6 +240,7 @@ jobs:
     - plan
     - quality
     - format
+    - reference
     - vendor-testing
     - vendor-content
     - vendor-media
@@ -267,6 +271,7 @@ jobs:
           if ($task_entry.Value.result -notin @('success', 'skipped')) { throw "Failed check: $($task_entry.Key)" }
         }
         if ($task_results.plan.result -ne 'success' -or $task_results.quality.result -ne 'success') { throw 'Planning or quality failed.' }
+        if ($env:GITHUB_EVENT_NAME -eq 'pull_request' -and $task_results.reference.result -ne 'success') { throw 'Doxygen reference generation failed.' }
         if ($task_results.plan.outputs.'has-formatting' -eq 'true' -and $task_results.format.result -ne 'success') { throw 'Selected formatting checks did not pass.' }
         $task_selected = $task_results.plan.outputs.components | ConvertFrom-Json
         foreach ($task_name in $task_selected) {

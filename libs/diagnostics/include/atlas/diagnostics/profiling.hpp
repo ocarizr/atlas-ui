@@ -53,8 +53,14 @@ struct event_context
     std::string_view result;
     /// @brief Numeric scheduling class exported as event metadata.
     std::uint32_t priority{0};
-    /// @brief Dependency, queue, join and total nanosecond metadata, respectively.
-    std::chrono::nanoseconds dependency_wait{}, queue_wait{}, join{}, total{};
+    /// @brief Time spent waiting for dependencies.
+    std::chrono::nanoseconds dependency_wait{};
+    /// @brief Time spent in the ready queue.
+    std::chrono::nanoseconds queue_wait{};
+    /// @brief Time spent joining child work.
+    std::chrono::nanoseconds join{};
+    /// @brief Total elapsed task lifetime.
+    std::chrono::nanoseconds total{};
 };
 
 /// @brief Reject invalid configuration, handles or descriptors before mutating execution state.

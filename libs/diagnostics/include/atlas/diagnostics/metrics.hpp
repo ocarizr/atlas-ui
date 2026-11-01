@@ -58,9 +58,10 @@ struct metric_point
 /// record.
 struct metric_snapshot
 {
-    /// @brief Wall-clock registry creation and snapshot-capture times; clock adjustments may move
-    /// them backward.
-    std::chrono::system_clock::time_point started{}, captured{};
+    /// @brief Wall-clock registry creation time; clock adjustments may move it backward.
+    std::chrono::system_clock::time_point started{};
+    /// @brief Wall-clock snapshot capture time; clock adjustments may move it backward.
+    std::chrono::system_clock::time_point captured{};
     /// @brief Owned cumulative counter/gauge observations sorted by name and dimensions.
     std::vector<metric_point> points;
 };
@@ -70,9 +71,16 @@ struct metrics_statistics
 {
     /// @brief Current number of retained metric name/dimension combinations.
     std::size_t series{0};
-    /// @brief Applied, invalid, capacity-dropped, successful-report and failed-report totals,
-    /// respectively.
-    std::uint64_t accepted{0}, rejected{0}, dropped{0}, exported{0}, export_errors{0};
+    /// @brief Total successfully applied observations.
+    std::uint64_t accepted{0};
+    /// @brief Total rejected invalid observations.
+    std::uint64_t rejected{0};
+    /// @brief Total observations dropped due to capacity limits.
+    std::uint64_t dropped{0};
+    /// @brief Total successful snapshot reports.
+    std::uint64_t exported{0};
+    /// @brief Total failed snapshot reports.
+    std::uint64_t export_errors{0};
 };
 
 /// Implement transport/platform mapping here. No output is installed automatically.

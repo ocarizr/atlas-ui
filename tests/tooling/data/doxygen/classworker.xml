@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doxygen version="1.18.0"><compounddef id="classworker" kind="class">
+  <compoundname>atlas::worker</compoundname>
+  <templateparamlist><param><type>typename T</type></param></templateparamlist>
+  <briefdescription><para>Execute independent work.</para></briefdescription>
+  <detaileddescription><para>Keep <computeroutput>data</computeroutput> alive.</para></detaileddescription>
+  <sectiondef kind="public-func"><memberdef id="classworker_run" kind="function" prot="public">
+    <type>void</type><definition>void atlas::worker::run</definition><argsstring>(int count)</argsstring><name>run</name>
+    <briefdescription><para>Run work after <ref refid="classworker">worker</ref> initialization.</para></briefdescription>
+    <detaileddescription>
+      <parameterlist kind="param"><parameteritem><parameternamelist><parametername>count</parametername></parameternamelist><parameterdescription><para>Number of items.</para></parameterdescription></parameteritem></parameterlist>
+      <simplesect kind="warning"><para>Do not block.</para></simplesect>
+      <programlisting><codeline><highlight>int<sp/>count<sp/>=<sp/>3;</highlight></codeline></programlisting>
+    </detaileddescription>
+    <location file="libs/jobs/include/worker.hpp" line="10"/>
+  </memberdef></sectiondef>
+  <sectiondef kind="private-attrib"><memberdef id="classworker_secret" kind="variable" prot="private">
+    <definition>int atlas::worker::secret</definition><name>secret</name>
+  </memberdef></sectiondef>
+  <location file="libs/jobs/include/worker.hpp" line="5"/>
+</compounddef></doxygen>

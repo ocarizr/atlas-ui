@@ -59,6 +59,7 @@ using callback_body = std::function<void(job_context&)>;
 /// @brief Determine whether a terminal source outcome satisfies this notification filter.
 ///
 /// @param event Terminal outcome filter; notification failures never replace source outcomes.
+/// @param status Published terminal status to compare against the filter.
 bool matches(completion_event event, job_status status) noexcept;
 
 /// @brief Stateless callable object or pointer to a free function; closures carrying state are
@@ -341,6 +342,7 @@ class completion_callbacks
     ///
     /// @param source Completed-source handle belonging to the originating runtime/thread.
     /// @param label Owned diagnostic name and optional category for this work.
+    /// @param body Owned notification callable retained until delivery or cleanup.
     task_handle subscribe(const task_handle& source, job_label label,
                           detail::callback_body body) const;
     /// @brief Weak reference to the shared runtime; this client never creates a worker pool.
