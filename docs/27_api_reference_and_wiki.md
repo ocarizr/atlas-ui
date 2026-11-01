@@ -54,6 +54,14 @@ Actions runner currently target Windows, consistent with validated project suppo
 required gate demands its success. PR generation uses read-only permissions, no
 publication secret and no wiki writes.
 
+PRs run the generator with `--check`: HTML generation is disabled, intermediate
+Doxygen XML lives in a temporary directory and reference conversion/link validation
+run in memory. Temporary XML is removed on success and failure; no Markdown snapshot,
+HTML tree or reference artifact is retained or uploaded. The same check is available
+locally with `python -m scripts.ci.build_reference --doxygen <executable> --check`.
+The reusable workflow independently guards artifact upload with the `main` branch
+condition, even if a caller incorrectly requests upload from another branch.
+
 `documentation.yml` runs on every push to `main`, and can be manually dispatched
 on `main` to retry publication. It does not wait for native builds or package
 delivery. A generation job uploads the complete HTML/XML/wiki tree as an internal
@@ -94,10 +102,10 @@ validated snapshot explicitly:
 python -m scripts.ci.publish_wiki --repository owner/repository --ssh
 ```
 
-This command intentionally permits an explicitly requested initial publication from
-a working branch. Push its source commit first so source links resolve. Normal CI
-publication is restricted to `main` and passes `--current-main`. The source checkout
-itself must never be used as the wiki destination.
+Run this command only from a local `main` checkout. The publication entry point
+rejects other local branches, detached checkouts and non-main Actions refs before
+accessing the wiki. CI also passes `--current-main` to reject stale snapshots. The
+source checkout itself must never be used as the wiki destination.
 
 References: [Doxygen XML output](https://www.doxygen.nl/manual/customize.html),
 [official downloads and checksums](https://www.doxygen.nl/download.html), and

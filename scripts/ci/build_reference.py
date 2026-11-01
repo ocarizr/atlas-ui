@@ -3,11 +3,12 @@
 import argparse
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 from scripts.ci.config import read_yaml
 from scripts.ci.wiki_renderer import render_library
-from scripts.ci.wiki_snapshot import write_snapshot
+from scripts.ci.wiki_snapshot import validate_pages, write_snapshot
 
 
 def public_libraries(root):
@@ -19,7 +20,7 @@ def public_libraries(root):
     }
 
 
-def generate(root, output, executable, repository, revision):
+def generate(root, output, executable, repository, revision, check_only=False):
     """Run pinned Doxygen for every public library, publishing no partial snapshots."""
     root, output = Path(root).resolve(), Path(output).resolve()
     pin = read_yaml(root / ".ci/doxygen.yaml")
@@ -42,6 +43,8 @@ def generate(root, output, executable, repository, revision):
         headers = sorted(include.rglob("*.hpp")) + sorted(include.rglob("*.h"))
         destination = output / name
         configuration = base + f'\nPROJECT_NUMBER = "{revision}"\n'
+        if check_only:
+            configuration += "GENERATE_HTML = NO\n"
         configuration += f'OUTPUT_DIRECTORY = "{destination.as_posix()}"\n'
         configuration += f'STRIP_FROM_PATH = "{root.as_posix()}/"\n'
         configuration += (
@@ -57,8 +60,20 @@ def generate(root, output, executable, repository, revision):
     introduction += f"[Source revision `{revision[:12]}`]({repository}/tree/{revision})\n\n"
     pages["Home.md"] = introduction + "## Libraries\n\n" + "\n".join(navigation) + "\n"
     pages["_Sidebar.md"] = "[API reference](Home)\n\n" + "\n".join(navigation) + "\n"
-    write_snapshot(output / "wiki", pages, revision)
-    print(f"Generated {len(libraries)} libraries and {len(pages)} wiki pages at {output}")
+    if check_only:
+        validate_pages(pages)
+        print(f"Validated documentation and reference links for {len(libraries)} libraries.")
+    else:
+        write_snapshot(output / "wiki", pages, revision)
+        print(f"Generated {len(libraries)} libraries and {len(pages)} wiki pages at {output}")
+
+
+def validate(root, executable, repository, revision):
+    """Check Doxygen and reference conversion using temporary XML, without retaining deliverables."""
+    build = Path(root).resolve() / "build"
+    build.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="reference-check-", dir=build) as temporary:
+        generate(root, temporary, executable, repository, revision, check_only=True)
 
 
 def main():
@@ -68,11 +83,17 @@ def main():
     parser.add_argument("--output", default="build/documentation")
     parser.add_argument("--repository", default="https://github.com/ocarizr/atlas-ui")
     parser.add_argument("--revision")
+    parser.add_argument(
+        "--check", action="store_true", help="Validate only; retain no reference output"
+    )
     args = parser.parse_args()
     revision = (
         args.revision or subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     )
-    generate(Path.cwd(), args.output, args.doxygen, args.repository.rstrip("/"), revision)
+    if args.check:
+        validate(Path.cwd(), args.doxygen, args.repository.rstrip("/"), revision)
+    else:
+        generate(Path.cwd(), args.output, args.doxygen, args.repository.rstrip("/"), revision)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 """Validate public API discovery, pinned Doxygen execution and failed-build isolation."""
 
+import re
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -54,3 +56,28 @@ def test_wrong_doxygen_version_fails_before_creating_output(reference_project, m
             reference_project, output, "doxygen", "https://github.com/o/r", "a" * 40
         )
     assert not output.exists()
+
+
+@pytest.mark.parametrize("fail", [False, True], ids=["valid-docs", "doxygen-failure"])
+def test_check_mode_leaves_no_reference_outputs(reference_project, monkeypatch, fail):
+    """Validation discards temporary XML on success and failure and never writes HTML/wiki pages."""
+
+    def doxygen(command, **kwargs):
+        """Provide XML only after checking that publishable HTML output is disabled."""
+        assert "GENERATE_HTML = NO" in kwargs["input"]
+        destination = Path(re.search(r'OUTPUT_DIRECTORY = "([^"]+)"', kwargs["input"])[1])
+        shutil.copytree(DATA, destination / "xml")
+        if fail:
+            raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr(build_reference.subprocess, "run", doxygen)
+    if fail:
+        with pytest.raises(subprocess.CalledProcessError):
+            build_reference.validate(
+                reference_project, "doxygen", "https://github.com/o/r", "a" * 40
+            )
+    else:
+        build_reference.validate(reference_project, "doxygen", "https://github.com/o/r", "a" * 40)
+    assert not list((reference_project / "build").rglob("*.xml"))
+    assert not list((reference_project / "build").rglob("*.md"))
+    assert not list((reference_project / "build").rglob("manifest.yaml"))

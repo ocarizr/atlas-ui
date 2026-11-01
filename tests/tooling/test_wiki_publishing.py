@@ -96,3 +96,32 @@ def test_pr_checks_generate_without_secrets_and_only_main_publishes():
     steps = workflow["jobs"]["publish"]["steps"]
     assert steps[-1]["env"]["WIKI_TOKEN"] == "${{ secrets.WIKI_TOKEN }}"
     assert "--current-main" in steps[-1]["run"]
+    generation = read_yaml(ROOT / ".github/workflows/reusable_reference.yml")["jobs"]["reference"][
+        "steps"
+    ]
+    assert "--check" in generation[2]["run"]
+    assert "github.ref == 'refs/heads/main'" in generation[-1]["if"]
+
+
+@pytest.mark.parametrize(
+    ("actions", "ref", "branch", "allowed"),
+    [
+        ("true", "refs/heads/main", "", True),
+        ("true", "refs/pull/13/merge", "main", False),
+        ("true", "refs/heads/feature/example", "main", False),
+        ("false", "", "main", True),
+        ("false", "", "feature/example", False),
+        ("false", "", "", False),
+    ],
+    ids=["ci-main", "pull-request", "ci-feature", "local-main", "local-feature", "detached"],
+)
+def test_publication_entry_point_requires_main(monkeypatch, actions, ref, branch, allowed):
+    """Reject publication outside main even when credentials or SSH access are available."""
+    monkeypatch.setenv("GITHUB_ACTIONS", actions)
+    monkeypatch.setenv("GITHUB_REF", ref)
+    monkeypatch.setattr(publish_wiki.subprocess, "check_output", lambda *args, **kwargs: branch)
+    if allowed:
+        publish_wiki.require_main()
+    else:
+        with pytest.raises(ValueError, match="main"):
+            publish_wiki.require_main()

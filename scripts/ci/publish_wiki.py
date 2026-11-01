@@ -11,6 +11,17 @@ from pathlib import Path
 from scripts.ci.wiki_snapshot import read_snapshot, synchronize
 
 
+def require_main():
+    """Require the main workflow ref or a local main checkout before any publication operation."""
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        allowed = os.environ.get("GITHUB_REF") == "refs/heads/main"
+    else:
+        branch = subprocess.check_output(["git", "branch", "--show-current"], text=True).strip()
+        allowed = branch == "main"
+    if not allowed:
+        raise ValueError("Wiki publication is only allowed from main")
+
+
 def git(arguments, environment, directory=None):
     """Run Git without shell interpolation or printing authentication configuration."""
     command = ["git"] + (["-C", str(directory)] if directory else []) + arguments
@@ -78,6 +89,7 @@ def main():
     parser.add_argument("--ssh", action="store_true")
     parser.add_argument("--current-main", action="store_true")
     args = parser.parse_args()
+    require_main()
     publish(Path(args.source).resolve(), args.repository, args.ssh, args.current_main)
 
 
