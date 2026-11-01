@@ -26,6 +26,12 @@ Keep large media as content rather than embedding it into generated source by de
 
 Proposed stages: source validation, dependency/import resolution, constructor/data generation, package assembly, compatibility checks, and standalone loading. Incremental cooking, compression, package granularity and deterministic-output requirements need contracts.
 
+The asset-bundle format is not defined. Bundle-aware cooking, assembly and runtime
+reading are deferred until a reviewed format specification establishes the shared
+writer/reader contract. Continue using loose assets through the streamer in the
+meantime; executable packaging is separate from asset-bundle assembly. Track format
+decisions and acceptance criteria in the [bundle dependency plan](15_streamer_and_media_jobs.md#bundle-dependency-and-interim-scope).
+
 ## Streaming
 
 ```text
@@ -34,7 +40,7 @@ memory / loose files / future bundles -> streamer -> demux/decode jobs -> CPU/GP
 
 Streaming infrastructure is the only application-managed filesystem boundary. Codecs and domains receive IDs, byte ranges and owned buffers; they must not open paths. This applies to libwebm, dav1d, libopus and audio/rendering consumers. Future file writes need explicit storage interfaces under the same boundary. Build tooling and isolated test-fixture setup are outside the running application's boundary.
 
-The current `atlas::streaming` foundation supports bounded exact-range reads from immutable memory or registered loose files. A persistent dedicated I/O thread performs file reads, keeping blocking disk operations off CPU workers. Completion, in-memory work and downstream decode run as jobs. Priority, cancellation, caches, asynchronous Windows I/O and bundle backends remain planned. See the [streamer contract and implementation plan](15_streamer_and_media_jobs.md).
+The current `atlas::streaming` foundation supports bounded exact-range reads from immutable memory or registered loose files. A persistent I/O owner drives bounded Windows IOCP reads and operation-specific cancellation, keeping disk waits off CPU workers. Completion, in-memory work and downstream decode run as jobs with CPU priority. Buffers remain alive until native completion acknowledgment. Storage priority, caches and bundles remain planned; the SDK-free reference uses serial file I/O. See the [streamer contract and implementation plan](15_streamer_and_media_jobs.md).
 
 Assets without GPU state can finish in RAM. Separate reading, demux/decode/preparation, upload/audio handoff and publication. CPU workers must not wait on futures for pending reads; schedule consumers only after their inputs are ready.
 

@@ -74,9 +74,19 @@ default. Calibrate on representative assets and hardware before enabling splitti
 `std::stop_token`. Cancellation is checked before acquisition, by memory-copy
 chunks and before callback delivery. A cancelled read delivers `jobs::job_cancelled`
 as an exception result; required completion/cleanup jobs are never suppressed by
-passing that token to scheduler admission. Cancellation does not roll back writes,
-interrupt synchronous OS reads, or undo callbacks that already started. File reads
-stay FIFO; CPU priority does not reorder or preempt disk I/O.
+passing that token to scheduler admission. Queued cancelled file reads retire without
+opening storage, even while all native slots are occupied. Active Windows reads
+receive `CancelIoEx` on their specific `OVERLAPPED`; cancellation is best-effort and
+can race with successful completion. The buffer, handle and native request remain
+alive until the completion packet is consumed. A synchronous `ReadFile` success
+also requires its packet; it is never delivered twice. Cancellation does not undo
+callbacks that already started. Submission stays FIFO, but independent reads may
+complete out of order. CPU priority does not reorder or preempt disk I/O.
+
+Shutdown drains by default rather than requesting cancellation. Request stop on
+the relevant caller-owned stop sources before shutdown when aborting work is desired.
+Neither cancellation nor shutdown promises a hard deadline: native ownership must
+be drained even if a device is slow or an OS cancellation call fails.
 
 ## Memory ownership and allocation
 
@@ -108,7 +118,8 @@ Do not call `release()` on an injected pool while live buffers use it. A raw
 unsynchronized/monotonic resource is unsuitable for concurrent arbitrary-lifetime
 streaming buffers without an external lifetime/synchronization strategy.
 
-Limits default to 4 MiB per request, 32 accepted requests and 64 MiB of reserved or
+Limits default to 4 MiB per request, 32 accepted requests, four active file reads
+(`max_io_requests`) and 64 MiB of reserved or
 retained **requested output bytes**. Admission rejects exhausted quotas without
 dispatching callbacks or opening files. Invalid ranges and allocation failures
 release reservations during delivery cleanup. Releasing an operation does not
@@ -119,7 +130,10 @@ The byte quota excludes source buffers, catalog/request metadata, shared-pointer
 control blocks, job state, STL iterator proxies, alignment padding, upstream pool
 retention and OS caches. It is not a bound on total process working set or physical
 heap reservations. `statistics()` exposes pending/retained/peak byte and copy-path
-counters plus completed/failed deliveries; counters are observational rather than
+counters plus completed/failed deliveries. `io_in_flight` and `peak_io_in_flight`
+observe storage slots including metadata/submission. Native cancellation counters
+report API attempts, `ERROR_NOT_FOUND` completion races and other API errors;
+attempts do not mean confirmed aborted transfers. Counters are observational rather than
 one globally atomic snapshot. Failed includes acquisition, cancellation and callback
 failures; it excludes reads rejected before admission.
 
@@ -142,30 +156,46 @@ With `ATLAS_BUILD_WINDOWS_INTEGRATION=ON`, CMake compiles only the native implem
 under `libs/platform/windows/streaming/`. The SDK-free profile selects the standard
 implementation under `libs/streaming/src/platform/standard/`. Both implement the same
 private interface and run the same behavioral tests. Neither exposes SDK types in
-public headers. The native backend currently uses synchronous Windows handles on
-the persistent I/O thread: OS latency cannot occupy CPU workers, but disk requests
-are still serialized and files are opened per request. IOCP, bounded handle reuse
-and interruptible disk operations are the next storage-concurrency increment.
+public headers. The native implementation uses overlapped reads and an IOCP pump
+on one persistent I/O owner. It fills at most `max_io_requests` slots without
+blocking CPU workers on disk. Opening files, querying metadata and allocating output
+still occur on the storage owner; they are not themselves fully asynchronous.
+The SDK-free reference remains serial and cannot interrupt a blocked OS read.
 
-Further work includes bundle indexes/ranges, request generations, cache/prefetch
-policy, storage timing/telemetry adapters and a workload-specific performance gate.
+Each active native read owns one file handle, closed after its terminal packet.
+There is no idle handle cache: reopening preserves fresh loose-file identity after
+replacement. Handle reuse needs an explicit identity/invalidation policy first.
+Large native transfers split into DWORD-sized chunks, with exact-range validation
+and 64-bit offsets. Short reads fail without publishing partial data. If the port
+fails, the owner cancels and drains every pending native operation before releasing
+its storage. Queued and later file requests receive the retained backend failure;
+memory sources remain usable. A bounded wait watchdog covers failed wake posts.
+
+Further work includes bundle indexes/ranges, request generations, storage priority,
+cache/prefetch policy, handle reuse, storage timing/telemetry adapters and a
+workload-specific performance gate. Bounded concurrency is not a measured disk
+speedup claim; tune the cap on representative devices and assets.
+The bundle format has not been defined: bundle reading and bundle-aware cooking/
+assembly depend on a reviewed format contract and are deferred. Continue with
+registered loose assets; memory sources remain supported. Do not assume a temporary
+bundle layout in consumers. Format decisions and independent follow-ups are tracked
+in the bundle dependency section of the design below.
 See the [design and implementation sequence](../../docs/15_streamer_and_media_jobs.md).
 
 ## Validation and remaining gates
 
-Local validation of this increment passed 37 streaming tests in Release, ASan,
-MSVC analysis, clang-tidy, the SDK-free profile and LLVM coverage. The full Debug
-suite passed 331 tests, and tooling passed 217 pytest cases. Source-style,
-architecture/configuration/link checks and check-only Doxygen validation passed.
+The shared contract suite runs against native and SDK-free implementations.
+Controlled pending-storage tests verify the actual concurrency cap, CPU-worker
+availability and prompt queued cancellation without arbitrary sleeps. Native-call
+tests control completion packets independently of `ReadFile` return values and
+cover cancellation races/errors, deferred acknowledgment, short reads, high offsets,
+chunk reuse, submission failures and fatal-port/destruction draining. Real loose-file
+and streamed Opus tests exercise the production adapter as well.
 
-Fresh LLVM profiles for the six native implementation translation units report
-95.46% line and 90.00% branch coverage. This scope excludes headers, tests,
-third-party code and the SDK-free implementation, which has separate behavioral
-validation. Remaining unexercised paths include low-level Windows metadata/seek/
-short-read failures, some allocation-admission failure edges and allocator identity.
-The next storage increment needs a controllable fault/latency backend rather than
-timing-dependent filesystem races. Coverage/access checks do not prove race freedom
-or absence of fragmentation; native Windows ThreadSanitizer remains unavailable.
+Run Release, ASan, MSVC analysis, clang-tidy and SDK-free profiles alongside Debug.
+Coverage/access checks do not prove race freedom, bounded device latency or absence
+of fragmentation; native Windows ThreadSanitizer remains unavailable. Controlled
+tests establish ownership correctness without claiming a disk-performance baseline.
 
 To run the native contract suite after configuring the development environment:
 
@@ -175,4 +205,6 @@ ctest --test-dir build/windows-msvc -C Debug -L streaming --output-on-failure --
 ```
 
 References: [C++ pool-resource contracts](https://eel.is/c++draft/mem.res.pool) and
-[Windows synchronous/asynchronous I/O](https://learn.microsoft.com/en-us/windows/win32/fileio/synchronous-and-asynchronous-i-o).
+[Windows synchronous/asynchronous I/O](https://learn.microsoft.com/en-us/windows/win32/fileio/synchronous-and-asynchronous-i-o),
+[CancelIoEx ownership rules](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-cancelioex)
+and [completion packet semantics](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-getqueuedcompletionstatus).

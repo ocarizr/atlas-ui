@@ -165,6 +165,7 @@ components:
     - libs/streaming/**
     - libs/platform/windows/streaming/**
     - tests/streaming/**
+    - tests/platform/windows/streaming/**
     depends_on:
     - jobs
     - dependencies
@@ -195,7 +196,8 @@ components:
   windows:
     paths:
     - libs/platform/windows/CMakeLists.txt
-    - tests/platform/windows/**
+    - tests/platform/windows/CMakeLists.txt
+    - tests/platform/windows/windows_api_tests.cpp
     depends_on: []
     build_targets:
     - atlas_windows_tests

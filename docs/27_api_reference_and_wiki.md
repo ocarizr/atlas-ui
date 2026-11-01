@@ -13,6 +13,12 @@ Windows archive and verifies SHA-256 before extraction or execution. The shared
 `.ci/doxyfile` enables HTML and XML, checks documentation warnings as errors and
 avoids native compilation, vcpkg, Graphviz and external include discovery.
 
+The installer discards invalid cached archives and downloads into a unique temporary
+file. It promotes only verified bytes into the reusable cache, retrying download or
+checksum failures up to three attempts with short backoff. Persistent failures stop
+installation before extraction, report the expected/actual digest and byte count
+for checksum mismatches, and remove partial downloads. Retries never relax the pin.
+
 The generator discovers `libs/**/include/` roots containing C++ headers and runs
 Doxygen independently for each library. The current references cover application,
 diagnostics, IPC, jobs, jobs diagnostics and streaming. New public-header library
