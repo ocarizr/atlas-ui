@@ -6,6 +6,10 @@
 - CMake 3.25+, Ninja and LLVM tools: clang-cl, clang-format, clang-tidy, llvm-profdata and llvm-cov.
 - Git, PowerShell 7 and Python 3.12 for CI tooling; install `scripts/ci/requirements.txt` in a local environment.
 
+Source formatting uses the pinned clang-format/Ruff tools installed with those
+requirements, independently of the compiler's bundled formatter. Follow the
+[style/documentation commands and IDE setup](26_source_style_and_documentation.md).
+
 Use a Developer PowerShell x64 with CMake/Ninja/LLVM on PATH, especially for Ninja profiles. Keep the matching ASan runtime DLL discoverable when executing instrumented binaries outside the debugger.
 
 ## Build profiles
@@ -48,7 +52,12 @@ cmake --preset windows-analysis
 cmake --build --preset windows-analysis
 ```
 
-Formatting uses Allman braces, four spaces and a 100-column limit. The script checks existing tracked/untracked C++ files, respects ignore rules, and excludes third-party/generated code. `-ClangFormat` accepts an explicit executable path. No C++ files means no formatting work, not a completed code-quality audit.
+Formatting uses explicit Allman braces, four spaces for C++/Python, two for Protobuf,
+and a 100-column target. The shared tool checks registered tracked/unignored owned
+sources, documentation and control-block spacing, excluding external/generated
+code. `-Component` and `-Path` limit scope; `-ClangFormat` may select another path
+to the same pinned version. An empty selection is reported as no formatting work,
+not a completed code-quality audit. See the [complete style guide](26_source_style_and_documentation.md).
 
 clang-tidy needs actual compiler includes/defines. Ninja exports compile commands. Selected diagnostics fail the check; suppressions need a concrete reason. Keep tool versions aligned between local use and CI.
 

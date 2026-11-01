@@ -17,6 +17,7 @@ from scripts.ci.vendor_products import fingerprint, prepare_manifest, toolchain_
 
 
 def native_progress(buildtrees):
+    """Summarize recent native-build output without exposing the full command stream."""
     try:
         logs = list(Path(buildtrees).glob("*/install-*-out.log"))
         if not logs:
@@ -27,20 +28,33 @@ def native_progress(buildtrees):
             tail = source.read().decode("utf-8", errors="replace")
         counters = re.findall(r"\[(\d+/\d+)\]", tail)
         relative = latest.relative_to(buildtrees).as_posix()
-        return f"{relative}: {counters[-1]}" if counters else f"{relative}: native build output recorded"
+        return (
+            f"{relative}: {counters[-1]}"
+            if counters
+            else f"{relative}: native build output recorded"
+        )
     except OSError:
         return "native logs are rotating during package cleanup"
 
 
 def run_logged(command, destination, buildtrees):
+    """Run a native command, preserve output/exit status and emit periodic progress while it runs."""
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
     lines = queue.Queue()
     with destination.open("w", encoding="utf-8") as log:
-        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              text=True, encoding="utf-8", errors="replace") as process:
+        with subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        ) as process:
+
             def read_output():
+                """Drain process output into the log and shared progress state until the pipe closes."""
                 try:
                     for line in process.stdout:
                         lines.put(line)
@@ -54,8 +68,10 @@ def run_logged(command, destination, buildtrees):
                     try:
                         line = lines.get(timeout=30)
                     except queue.Empty:
-                        line = (f"Dependency preparation still running ({int(time.monotonic() - started)}s); "
-                                f"{native_progress(buildtrees)}\n")
+                        line = (
+                            f"Dependency preparation still running ({int(time.monotonic() - started)}s); "
+                            f"{native_progress(buildtrees)}\n"
+                        )
                     if line is None:
                         break
                     print(line, end="", flush=True)
@@ -72,42 +88,55 @@ def run_logged(command, destination, buildtrees):
 
 
 def main():
+    """Prepare one pinned vendor group and record its compiled-product provenance."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--triplet", default="x64-windows")
     parser.add_argument("--install-root", default="build/dependencies/vcpkg_installed")
-    parser.add_argument('--group')
-    parser.add_argument('--key')
-    parser.add_argument('--verify', action='store_true')
+    parser.add_argument("--group")
+    parser.add_argument("--key")
+    parser.add_argument("--verify", action="store_true")
     args = parser.parse_args()
     if args.group:
-        product = Path('build/vendor') / args.group
+        product = Path("build/vendor") / args.group
         expected = fingerprint(Path.cwd(), args.group, toolchain_identity())
         if args.key != expected:
-            raise ValueError('Dependency identity differs from the planned versions/toolchain')
+            raise ValueError("Dependency identity differs from the planned versions/toolchain")
         if args.verify:
-            metadata = read_yaml(product / 'product.yaml')
-            if metadata != {'group': args.group, 'key': expected}:
-                raise ValueError('Dependency product identity mismatch')
+            metadata = read_yaml(product / "product.yaml")
+            if metadata != {"group": args.group, "key": expected}:
+                raise ValueError("Dependency product identity mismatch")
             return
-        manifest = Path('build/vendor_manifests') / args.group
+        manifest = Path("build/vendor_manifests") / args.group
         prepare_manifest(Path.cwd(), args.group, manifest)
-        args.install_root = str(product / 'installed')
+        args.install_root = str(product / "installed")
     executable = Path(".tools/vcpkg") / ("vcpkg.exe" if os.name == "nt" else "vcpkg")
-    command = [str(executable.resolve()), "install", f"--triplet={args.triplet}",
-               f"--x-install-root={Path(args.install_root).resolve()}", "--no-print-usage",
-               "--clean-buildtrees-after-build", "--clean-packages-after-build"]
+    command = [
+        str(executable.resolve()),
+        "install",
+        f"--triplet={args.triplet}",
+        f"--x-install-root={Path(args.install_root).resolve()}",
+        "--no-print-usage",
+        "--clean-buildtrees-after-build",
+        "--clean-packages-after-build",
+    ]
     if args.group:
-        command.append(f'--x-manifest-root={manifest.resolve()}')
-    print("Preparing manifest dependencies (Debug and Release); first uncached builds can be lengthy.", flush=True)
-    result = run_logged(command, 'reports/dependencies/install.log', '.tools/vcpkg/buildtrees')
+        command.append(f"--x-manifest-root={manifest.resolve()}")
+    print(
+        "Preparing manifest dependencies (Debug and Release); first uncached builds can be lengthy.",
+        flush=True,
+    )
+    result = run_logged(command, "reports/dependencies/install.log", ".tools/vcpkg/buildtrees")
     if result == 0 and args.group:
-        tooling = product / 'toolchain'
-        for directory in ('scripts', 'triplets'):
-            shutil.copytree(Path('.tools/vcpkg') / directory, tooling / directory, dirs_exist_ok=True)
-        for name in ('.vcpkg-root', 'vcpkg.exe', 'LICENSE.txt'):
-            shutil.copy2(Path('.tools/vcpkg') / name, tooling / name)
-        (product / 'product.yaml').write_text(yaml.safe_dump({'group': args.group, 'key': expected}),
-                                             encoding='utf-8')
+        tooling = product / "toolchain"
+        for directory in ("scripts", "triplets"):
+            shutil.copytree(
+                Path(".tools/vcpkg") / directory, tooling / directory, dirs_exist_ok=True
+            )
+        for name in (".vcpkg-root", "vcpkg.exe", "LICENSE.txt"):
+            shutil.copy2(Path(".tools/vcpkg") / name, tooling / name)
+        (product / "product.yaml").write_text(
+            yaml.safe_dump({"group": args.group, "key": expected}), encoding="utf-8"
+        )
     raise SystemExit(result)
 
 

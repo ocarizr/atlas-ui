@@ -1,9 +1,16 @@
+/**
+ * @file
+ * @brief Persistent worker creation, ready dispatch and draining lifecycle.
+ */
+
 #include "callback_mailbox.hpp"
 #include "execution_context.hpp"
 #include "scheduler_state.hpp"
 
 namespace atlas::jobs::detail
 {
+/// @brief Initialize protected worker-pool state shared by direct dispatch, legacy graphs and
+/// notification delivery.
 scheduler::scheduler(job_system_options options)
     : worker_count{options.worker_count}, scratch_config{options.scratch},
       trace_capacity{options.trace_capacity}, observer{std::move(options.observer)},
@@ -15,6 +22,7 @@ scheduler::scheduler(job_system_options options)
     {
         throw std::invalid_argument{"A job system needs at least one worker"};
     }
+
     workers.reserve(count);
     callback_turn.resize(count, 1);
     worker_mailboxes.reserve(count);
@@ -22,15 +30,20 @@ scheduler::scheduler(job_system_options options)
     {
         worker_mailboxes.push_back(std::make_shared<callback_mailbox>());
     }
+
     scratch_resource validate_scratch{scratch_config};
     trace_records.reserve(trace_capacity);
     for (std::size_t index = 0; index < count; ++index)
     {
-        workers.emplace_back([this, index](const std::stop_token& stop)
-                             { run(stop, worker_scratch[index], index); });
+        workers.emplace_back(
+            [this, index](const std::stop_token& stop)
+            {
+                run(stop, worker_scratch[index], index);
+            });
     }
 }
 
+/// @brief Record execution-thread identity and callback start timing before running a body.
 void scheduler::start_task(task_state& task, std::size_t worker_index, bool caller)
 {
     task.worker_index = worker_index;
@@ -45,6 +58,8 @@ void scheduler::start_task(task_state& task, std::size_t worker_index, bool call
                                                            : job_status::running);
 }
 
+/// @brief Run one persistent worker's dispatch loop, parking only while no eligible work is
+/// available.
 void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t worker_index)
 {
     worker_thread = true;
@@ -54,16 +69,21 @@ void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t 
     {
         execution_threads[worker_index] = std::this_thread::get_id();
     }
+
     const auto& mailbox = worker_mailboxes[worker_index];
     while (true)
     {
         {
             std::unique_lock lock{mutex};
             if (!available.wait(lock, stop,
-                                [&] { return !queue.empty() || !mailbox->ready.empty(); }))
+                                [&]
+                                {
+                                    return !queue.empty() || !mailbox->ready.empty();
+                                }))
             {
                 break;
             }
+
             take_work(work, worker_index);
         }
         if (work.front().task)
@@ -81,14 +101,19 @@ void scheduler::run(const std::stop_token& stop, ready_queue& work, std::size_t 
             {
                 error = std::current_exception();
             }
+
             finish_legacy(work, error);
         }
+
         work.clear();
     }
+
     worker_thread = false;
     current_scheduler = nullptr;
 }
 
+/// @brief Publish legacy callback completion and retire user-owned error state outside scheduler
+/// locks.
 void scheduler::finish_legacy(ready_queue& retired, const std::exception_ptr& error)
 {
     auto& work = retired.front();
@@ -107,6 +132,7 @@ void scheduler::finish_legacy(ready_queue& retired, const std::exception_ptr& er
         {
             work.graph->completion.set_value();
         }
+
         available.notify_all();
     }
     else if (work.completion)
@@ -124,13 +150,16 @@ void scheduler::finish_legacy(ready_queue& retired, const std::exception_ptr& er
     {
         std::terminate();
     }
+
     if (is_idle())
     {
         idle.notify_all();
     }
+
     available.notify_all();
 }
 
+/// @brief Serialize shutdown, drain accepted work and signal/join persistent workers.
 void scheduler::drain_and_stop()
 {
     {

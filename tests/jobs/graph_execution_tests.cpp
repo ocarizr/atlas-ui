@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for graph execution with isolated scenario ownership and cleanup.
+ */
+
 #include "job_system_fixture.hpp"
 
 #include <array>
@@ -7,13 +12,26 @@
 
 namespace atlas::jobs::tests
 {
+/// @brief Verify graph chain observes prerequisite writes.
 TEST_F(job_system_fixture, graph_chain_observes_prerequisite_writes)
 {
     job_graph graph;
     int value = 0;
-    const auto first = graph.add("produce", [&] { value = 21; });
-    const auto second = graph.add("transform", [&] { value *= 2; });
-    const auto third = graph.add("consume", [&] { EXPECT_EQ(value, 42); });
+    const auto first = graph.add("produce",
+                                 [&]
+                                 {
+                                     value = 21;
+                                 });
+    const auto second = graph.add("transform",
+                                  [&]
+                                  {
+                                      value *= 2;
+                                  });
+    const auto third = graph.add("consume",
+                                 [&]
+                                 {
+                                     EXPECT_EQ(value, 42);
+                                 });
     graph.precedes(first, second);
     graph.precedes(second, third);
     const auto execution = system.submit_graph(graph);
@@ -22,16 +40,22 @@ TEST_F(job_system_fixture, graph_chain_observes_prerequisite_writes)
     EXPECT_NO_THROW(system.wait(execution));
 }
 
+/// @brief Scenario state for graph width tests, isolated per test and released through RAII.
 class graph_width_tests : public testing::TestWithParam<std::size_t>
 {
 };
 
+/// @brief Verify fan out and fan in execute each callback once.
 TEST_P(graph_width_tests, fan_out_and_fan_in_execute_each_callback_once)
 {
     job_system scheduler{GetParam()};
     job_graph graph;
     std::array<int, 64> values{};
-    const auto root = graph.add("root", [&] { values.fill(1); });
+    const auto root = graph.add("root",
+                                [&]
+                                {
+                                    values.fill(1);
+                                });
     const auto join = graph.add("join",
                                 [&]
                                 {
@@ -42,32 +66,50 @@ TEST_P(graph_width_tests, fan_out_and_fan_in_execute_each_callback_once)
                                 });
     for (std::size_t index = 0; index < values.size(); ++index)
     {
-        const auto branch = graph.add("branch", [&, index] { ++values[index]; });
+        const auto branch = graph.add("branch",
+                                      [&, index]
+                                      {
+                                          ++values[index];
+                                      });
         graph.precedes(root, branch);
         graph.precedes(branch, join);
     }
+
     scheduler.wait(scheduler.submit_graph(graph));
     EXPECT_EQ(scheduler.statistics().completed, 66U);
 }
 
 INSTANTIATE_TEST_SUITE_P(worker_counts, graph_width_tests, testing::Values(1U, 2U, 4U));
 
+/// @brief Verify a pending dependency does not occupy the other worker.
 TEST_F(job_system_fixture, a_pending_dependency_does_not_occupy_the_other_worker)
 {
     job_graph graph;
     std::promise<void> started;
     auto observed = started.get_future();
-    const auto root = graph.add("held root", [&] { gate.wait(); });
-    const auto dependent = graph.add("dependent", [] {});
+    const auto root = graph.add("held root",
+                                [&]
+                                {
+                                    gate.wait();
+                                });
+    const auto dependent = graph.add("dependent",
+                                     []
+                                     {
+                                     });
     graph.precedes(root, dependent);
     const auto execution = system.submit_graph(graph);
-    system.submit([&] { started.set_value(); });
+    system.submit(
+        [&]
+        {
+            started.set_value();
+        });
     EXPECT_EQ(observed.wait_for(std::chrono::seconds{3}), std::future_status::ready);
     EXPECT_EQ(execution.status(dependent), job_status::pending);
     gate.open();
     system.wait(execution);
 }
 
+/// @brief Verify empty graph completes without changing job counts.
 TEST_F(job_system_fixture, empty_graph_completes_without_changing_job_counts)
 {
     job_graph graph;
@@ -75,18 +117,27 @@ TEST_F(job_system_fixture, empty_graph_completes_without_changing_job_counts)
     EXPECT_EQ(system.statistics().submitted, 0U);
 }
 
+/// @brief Verify duplicate edges do not duplicate execution or dependency counts.
 TEST_F(job_system_fixture, duplicate_edges_do_not_duplicate_execution_or_dependency_counts)
 {
     job_graph graph;
     std::atomic<int> count{0};
-    const auto root = graph.add("root", [] {});
-    const auto leaf = graph.add("leaf", [&] { ++count; });
+    const auto root = graph.add("root",
+                                []
+                                {
+                                });
+    const auto leaf = graph.add("leaf",
+                                [&]
+                                {
+                                    ++count;
+                                });
     graph.precedes(root, leaf);
     graph.precedes(root, leaf);
     system.wait(system.submit_graph(graph));
     EXPECT_EQ(count.load(), 1);
 }
 
+/// @brief Verify diagnostics distinguish ready running and dependency waiting jobs.
 TEST_F(job_system_fixture, diagnostics_distinguish_ready_running_and_dependency_waiting_jobs)
 {
     job_graph graph;
@@ -106,8 +157,14 @@ TEST_F(job_system_fixture, diagnostics_distinguish_ready_running_and_dependency_
                   second_started.set_value();
                   gate.wait();
               });
-    const auto ready = graph.add("ready", [] {});
-    const auto pending = graph.add("pending", [] {});
+    const auto ready = graph.add("ready",
+                                 []
+                                 {
+                                 });
+    const auto pending = graph.add("pending",
+                                   []
+                                   {
+                                   });
     graph.precedes(held, pending);
     const auto execution = system.submit_graph(graph);
     EXPECT_EQ(first.wait_for(std::chrono::seconds{3}), std::future_status::ready);

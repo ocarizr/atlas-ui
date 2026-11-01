@@ -1,8 +1,15 @@
+/**
+ * @file
+ * @brief Terminal publication, deterministic failure inheritance and descendant joins.
+ */
+
 #include "execution_context.hpp"
 #include "scheduler_state.hpp"
 
 namespace atlas::jobs::detail
 {
+/// @brief Finish task/ancestor joins and perform user cleanup and observation outside scheduler
+/// locks.
 void scheduler::complete_task(std::shared_ptr<task_state> task)
 {
     while (task)
@@ -19,6 +26,7 @@ void scheduler::complete_task(std::shared_ptr<task_state> task)
             current->scratch_usage = current->scratch->statistics();
             current->scratch.reset();
         }
+
         {
             const std::lock_guard lock{mutex};
             task = finalize_task(current);
@@ -27,11 +35,13 @@ void scheduler::complete_task(std::shared_ptr<task_state> task)
         {
             observe_task(current, parent_id);
         }
+
         current->subscribers.clear();
         current->retired_parent = {};
     }
 }
 
+/// @brief Merge prerequisite failure/cancellation without replacing an earlier stable real failure.
 void scheduler::inherit_failure(task_state& destination, const std::shared_ptr<task_state>& source,
                                 std::size_t order, retired_failure& retired)
 {
@@ -51,6 +61,7 @@ void scheduler::inherit_failure(task_state& destination, const std::shared_ptr<t
     }
 }
 
+/// @brief Release successor prerequisite counts and retain deterministic failure selection.
 void scheduler::publish_successors(const std::shared_ptr<task_state>& task)
 {
     for (auto& link : task->subscribers)
@@ -60,6 +71,7 @@ void scheduler::publish_successors(const std::shared_ptr<task_state>& task)
         {
             inherit_failure(*successor, task, link.order, link.retired);
         }
+
         if (--successor->remaining == 0)
         {
             --waiting;
@@ -68,6 +80,8 @@ void scheduler::publish_successors(const std::shared_ptr<task_state>& task)
     }
 }
 
+/// @brief Publish a task's immutable terminal result and release eligible dependents under the pool
+/// lock.
 std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_state>& task)
 {
     auto parent = std::move(task->parent);
@@ -78,7 +92,9 @@ std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_
     task->outcome_cancelled = use_own ? task->own_cancelled : task->inherited_cancelled;
     const auto now = task_clock::now();
     const auto nanoseconds = [](task_clock::duration duration)
-    { return std::chrono::duration_cast<std::chrono::nanoseconds>(duration); };
+    {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
+    };
     task->timing = {nanoseconds(task->queued - task->submitted),
                     nanoseconds(task->started - task->queued),
                     (task->skipped || task->body_suppressed || task->delivery_abandoned)
@@ -96,6 +112,7 @@ std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_
     {
         ++observing;
     }
+
     failed += outcome == job_status::failed ? 1U : 0U;
     skipped += outcome == job_status::skipped ? 1U : 0U;
     cancelled += outcome == job_status::cancelled ? 1U : 0U;
@@ -112,11 +129,13 @@ std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_
             next = std::move(parent);
         }
     }
+
     available.notify_all();
     if (is_idle())
     {
         idle.notify_all();
     }
+
     return next;
 }
 } // namespace atlas::jobs::detail

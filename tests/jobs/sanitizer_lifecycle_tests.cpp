@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for sanitizer lifecycle with isolated scenario ownership and cleanup.
+ */
+
 #include "job_system_fixture.hpp"
 
 #include <array>
@@ -6,12 +11,14 @@
 
 namespace atlas::jobs::tests
 {
+/// @brief Detect whether the declared range type admits mutable write access.
 template <typename Span>
 concept writable_region = requires(Span values) { write_access(values); };
 static_assert(writable_region<std::span<int>>);
 static_assert(!writable_region<std::span<const int>>);
 static_assert(!std::is_copy_constructible_v<access_guard>);
 
+/// @brief Verify moved guards release exactly once and sequenced reuse is valid.
 TEST_F(job_system_fixture, moved_guards_release_exactly_once_and_sequenced_reuse_is_valid)
 {
     std::array<int, 1> value{};
@@ -26,11 +33,15 @@ TEST_F(job_system_fixture, moved_guards_release_exactly_once_and_sequenced_reuse
                                          });
     system.dispatcher()
         .after(first, "next", region,
-               [](job_context& context, memory_access& data) { auto guard = context.access(data); })
+               [](job_context& context, memory_access& data)
+               {
+                   auto guard = context.access(data);
+               })
         .wait();
     EXPECT_TRUE(system.sanitizer_report().diagnostics.empty());
 }
 
+/// @brief Verify overflowing regions and invalid configuration are rejected.
 TEST_F(job_system_fixture, overflowing_regions_and_invalid_configuration_are_rejected)
 {
     EXPECT_THROW((job_system{1, {0, 128}}), std::invalid_argument);
@@ -54,22 +65,38 @@ TEST_F(job_system_fixture, overflowing_regions_and_invalid_configuration_are_rej
         .wait();
 }
 
+/// @brief Verify diagnostic storage is bounded without blocking valid disjoint work.
 TEST_F(job_system_fixture, diagnostic_storage_is_bounded_without_blocking_valid_disjoint_work)
 {
     alignas(128) std::array<int, 4> values{};
     job_system limited{2, {64, 1}};
+
+    /// @brief Scenario state for input, isolated per test and released through RAII.
     struct input
     {
+        /// @brief Scenario-owned values used to observe behavior and cleanup without sharing
+        /// mutable state between tests.
         int* values;
+        /// @brief Scenario-owned gate used to observe behavior and cleanup without sharing mutable
+        /// state between tests.
         signal_gate* gate;
+        /// @brief Scenario-owned started used to observe behavior and cleanup without sharing
+        /// mutable state between tests.
         std::shared_ptr<std::promise<void>> started;
     };
+
     auto started = std::make_shared<std::promise<void>>();
     auto ready = started->get_future();
-    // This guard must release before the local pool destructor on every exit.
+
+    /// This guard must release before the local pool destructor on every exit.
+    /// @brief Scenario state for release on exit, isolated per test and released through RAII.
     struct release_on_exit
     {
+        /// @brief Scenario-owned gate used to observe behavior and cleanup without sharing mutable
+        /// state between tests.
         signal_gate& gate;
+
+        /// @brief Release release on exit resources and complete its scoped cleanup.
         ~release_on_exit() noexcept
         {
             try
@@ -82,6 +109,7 @@ TEST_F(job_system_fixture, diagnostic_storage_is_bounded_without_blocking_valid_
             }
         }
     } release{gate};
+
     auto first = limited.dispatcher().run("held", input{values.data(), &gate, started},
                                           [](job_context& context, input& data)
                                           {

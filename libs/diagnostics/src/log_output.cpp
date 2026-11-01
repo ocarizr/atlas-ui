@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Serialized injected outputs, delegated archive rotation and contained output failures.
+ */
+
 #include "logging_state.hpp"
 
 #include <iostream>
@@ -5,6 +10,8 @@
 
 namespace atlas::diagnostics
 {
+/// @brief Delegate rotation/retention to the output; the base implementation rejects unsupported
+/// rotation.
 void log_output::rotate(std::size_t)
 {
     throw std::logic_error{"Output cannot rotate"};
@@ -14,8 +21,10 @@ namespace detail
 {
 namespace
 {
+/// @brief Default stream output for an explicitly constructed logger; no file paths are opened.
 class console_output final : public log_output
 {
+    /// @brief Write a formatted record to the console stream and report stream failure.
     void append(std::string_view text) override
     {
         std::clog.write(text.data(), static_cast<std::streamsize>(text.size()));
@@ -24,6 +33,8 @@ class console_output final : public log_output
             throw std::runtime_error{"Console write failed"};
         }
     }
+
+    /// @brief Flush the console stream and report output failure.
     void flush() override
     {
         std::clog.flush();
@@ -35,6 +46,7 @@ class console_output final : public log_output
 };
 } // namespace
 
+/// @brief Bind serialized output and validate delegated rotation support before accepting messages.
 output_sink::output_sink(std::shared_ptr<log_output> output, std::shared_ptr<logging_counts> counts,
                          logging_options options)
     : output_{output ? std::move(output) : std::make_shared<console_output>()},
@@ -44,9 +56,11 @@ output_sink::output_sink(std::shared_ptr<log_output> output, std::shared_ptr<log
     {
         throw std::invalid_argument{"Rotation needs a storage-backed rotating output"};
     }
+
     set_pattern("[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] [%n] %v");
 }
 
+/// @brief Format and deliver a record under the sink lock, containing all output exceptions.
 void output_sink::sink_it_(const spdlog::details::log_msg& message)
 {
     output_scope guard;
@@ -63,6 +77,7 @@ void output_sink::sink_it_(const spdlog::details::log_msg& message)
             output_->rotate(options_.retained_files);
             bytes_ = 0;
         }
+
         output_->record({static_cast<log_level>(message.level),
                          {message.logger_name.data(), message.logger_name.size()},
                          {message.payload.data(), message.payload.size()},
@@ -73,6 +88,7 @@ void output_sink::sink_it_(const spdlog::details::log_msg& message)
         {
             bytes_ += text.size();
         }
+
         ++counts_->written;
     }
     catch (...)
@@ -81,6 +97,7 @@ void output_sink::sink_it_(const spdlog::details::log_msg& message)
     }
 }
 
+/// @brief Flush the injected output and always acknowledge completion, including output failures.
 void output_sink::flush_()
 {
     output_scope guard;
@@ -92,6 +109,7 @@ void output_sink::flush_()
     {
         ++counts_->errors;
     }
+
     {
         const std::lock_guard lock{counts_->mutex};
         ++counts_->flush_count;

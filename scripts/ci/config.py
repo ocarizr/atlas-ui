@@ -1,6 +1,7 @@
-"""Shared configuration loading and GitHub output helpers."""
+"""Shared configuration loading, ownership-path matching and GitHub output helpers."""
 
 import copy
+import fnmatch
 import re
 from pathlib import Path
 
@@ -8,6 +9,8 @@ import yaml
 
 
 class ConfigLoader(yaml.SafeLoader):
+    """Load project YAML with duplicate-key rejection instead of silent replacement."""
+
     pass
 
 
@@ -23,6 +26,7 @@ ConfigLoader.add_implicit_resolver(
 
 
 def unique_mapping(loader, node, deep=False):
+    """Construct a YAML mapping and reject duplicate keys with source diagnostics."""
     mapping = {}
     for key_node, value_node in node.value:
         key = loader.construct_object(key_node, deep=deep)
@@ -35,7 +39,13 @@ def unique_mapping(loader, node, deep=False):
 ConfigLoader.add_constructor("tag:yaml.org,2002:map", unique_mapping)
 
 
+def matches(path, patterns):
+    """Match normalized repository-relative paths against case-sensitive ownership patterns."""
+    return any(fnmatch.fnmatchcase(path.replace("\\", "/"), pattern) for pattern in patterns)
+
+
 def read_yaml(path):
+    """Read project configuration using the strict YAML mapping loader."""
     with Path(path).open(encoding="utf-8") as source:
         result = yaml.load(source, Loader=ConfigLoader)
     if not isinstance(result, dict):
@@ -44,6 +54,7 @@ def read_yaml(path):
 
 
 def write_outputs(values, destination):
+    """Emit workflow outputs, normalizing booleans to GitHub-compatible lowercase text."""
     if not destination:
         return
     with Path(destination).open("a", encoding="utf-8") as output:

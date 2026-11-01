@@ -99,6 +99,7 @@ the distinction between internal build artifacts and deliverable packaging.
 | [Scheduler optimization](docs/23_job_scheduler_optimization.md) | Completion storage, measured allocations/timings and candidate decisions |
 | [Diagnostics and packages](docs/24_diagnostics_and_packages.md) | Logging, metrics/telemetry adapters, Chrome trace export, jobs integration and package strategy |
 | [Job-system backlog](docs/25_job_system_backlog.md) | Remaining gaps, priorities, completion criteria and deferred optimizations |
+| [Source style and documentation](docs/26_source_style_and_documentation.md) | Pinned formatters, reference comments, independent CI checks and IDE tools |
 | [Job safety and reuse](libs/jobs/README.md) | Declared-access sanitizer, limitations, standalone build and package |
 | [Job graph usage](docs/17_job_graph_usage.md) | Generic examples, dependencies, errors, ownership and diagnostics |
 

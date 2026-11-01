@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Completion-source validation and separately observable listener registration.
+ */
+
 #include <atlas/jobs/completion_callbacks.hpp>
 
 #include "callback_mailbox.hpp"
@@ -6,6 +11,7 @@
 
 namespace atlas::jobs
 {
+/// @brief Determine whether a terminal source outcome satisfies this notification filter.
 bool detail::matches(completion_event event, job_status status) noexcept
 {
     switch (event)
@@ -21,15 +27,19 @@ bool detail::matches(completion_event event, job_status status) noexcept
         case completion_event::skipped:
             return status == job_status::skipped;
     }
+
     return false;
 }
 
+/// @brief Bind notification registration to the source runtime and optional executing scope.
 completion_callbacks::completion_callbacks(std::weak_ptr<detail::scheduler> scheduler,
                                            job_priority priority)
     : scheduler_{std::move(scheduler)}, priority_{priority}
 {
 }
 
+/// @brief Validate source ownership and origin affinity, then attach a separately observable
+/// notification task.
 task_handle completion_callbacks::subscribe(const task_handle& source, job_label label,
                                             detail::callback_body body) const
 {
@@ -38,14 +48,17 @@ task_handle completion_callbacks::subscribe(const task_handle& source, job_label
     {
         throw std::logic_error{"The job runtime is no longer available"};
     }
+
     if (!source.state_ || source.state_->owner.lock() != runtime->identity)
     {
         throw std::invalid_argument{"Callbacks need a valid source from this runtime"};
     }
+
     if (source.state_->creator_thread != detail::current_thread_identity())
     {
         throw std::logic_error{"Register callbacks on the thread that submitted the source"};
     }
+
     if (source.state_->scoped_child)
     {
         const auto creator = source.state_->creator.lock();
@@ -54,12 +67,14 @@ task_handle completion_callbacks::subscribe(const task_handle& source, job_label
             throw std::logic_error{"Register callbacks inside the source's submitting job"};
         }
     }
+
     std::shared_ptr<detail::task_state> parent;
     if (source.state_->scoped_child && detail::current_task &&
         detail::current_scheduler == runtime.get())
     {
         parent = detail::current_task->marker->task.lock();
     }
+
     auto target = runtime->current_mailbox(true);
     const job_options options{parent ? parent->options.priority : priority_, {}};
     return runtime->submit_task(std::move(label), std::move(body), std::span{&source, 1}, parent,

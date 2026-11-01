@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Format owned sources",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "scripts.ci.format_sources", "--fix"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Check source style and documentation",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "scripts.ci.format_sources"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Format current source file",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "scripts.ci.format_sources", "--fix", "--path", "${file}"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}

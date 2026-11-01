@@ -11,6 +11,7 @@ VERSION = re.compile(r"[vV]((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9
 
 
 def version_from_tag(tag):
+    """Parse a strict v/V semantic-version tag and reject malformed versions."""
     match = VERSION.fullmatch(tag)
     if not match:
         raise ValueError("Expected vMAJOR.MINOR.PATCH or VMAJOR.MINOR.PATCH without leading zeros")
@@ -18,6 +19,7 @@ def version_from_tag(tag):
 
 
 def evaluate_ref(ref, main_ref, root=Path.cwd()):
+    """Permit packaging on main and publishing only for a matching tag in main history."""
     if ref == "refs/heads/main":
         return {"publish": False, "version": "development", "tag": ""}
     if not ref.startswith("refs/tags/"):
@@ -26,6 +28,7 @@ def evaluate_ref(ref, main_ref, root=Path.cwd()):
     version = version_from_tag(tag)
 
     def git(*arguments):
+        """Run a checked Git query in the release repository and return trimmed output."""
         return subprocess.run(
             ["git", *arguments], cwd=root, check=True, capture_output=True, text=True
         ).stdout.strip()
@@ -34,8 +37,10 @@ def evaluate_ref(ref, main_ref, root=Path.cwd()):
     if git("rev-parse", "HEAD") != commit:
         raise ValueError("The checkout does not match the release tag commit")
     result = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", commit, main_ref], cwd=root,
-        capture_output=True, text=True,
+        ["git", "merge-base", "--is-ancestor", commit, main_ref],
+        cwd=root,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         raise ValueError("The tag commit is not in main history (or main could not be resolved)")
@@ -43,6 +48,7 @@ def evaluate_ref(ref, main_ref, root=Path.cwd()):
 
 
 def main():
+    """Evaluate the checked-out ref and emit package/publish permissions for CI."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ref", required=True)
     parser.add_argument("--main-ref", default="origin/main")

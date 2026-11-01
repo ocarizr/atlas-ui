@@ -6,7 +6,10 @@ ContinuationIndentWidth: 4
 ColumnLimit: 100
 UseTab: Never
 BreakBeforeBraces: Allman
-AllowShortFunctionsOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+AllowShortEnumsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 IndentCaseLabels: true
@@ -14,3 +17,13 @@ NamespaceIndentation: None
 PointerAlignment: Left
 DerivePointerAlignment: false
 SortIncludes: CaseSensitive
+InsertBraces: true
+SeparateDefinitionBlocks: Always
+MaxEmptyLinesToKeep: 1
+SpaceBeforeParens: ControlStatements
+---
+Language: Proto
+BasedOnStyle: Google
+IndentWidth: 2
+ColumnLimit: 100
+UseTab: Never

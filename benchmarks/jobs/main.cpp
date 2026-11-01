@@ -1,8 +1,16 @@
+/**
+ * @file
+ * @brief Process entry point for benchmarks/jobs; libraries remain independent of application
+ * composition.
+ */
+
 #include "benchmark.hpp"
 
 #include <iostream>
 #include <string_view>
 
+/// @brief Forward process arguments into this executable's composition root and return its exit
+/// status.
 int main(int argc, char** argv)
 {
     try
@@ -13,6 +21,7 @@ int main(int argc, char** argv)
                          "[--workers N] [--seed N] [--repetitions N] [--machine LABEL]\n";
             return 0;
         }
+
         const auto options = atlas::jobs::workloads::parse_options(argc, argv);
         const auto result = atlas::jobs::workloads::measure(options);
         atlas::jobs::workloads::write_report(std::cout, options, result);
@@ -28,6 +37,7 @@ int main(int argc, char** argv)
         {
             return 3;
         }
+
         return 1;
     }
     catch (...)

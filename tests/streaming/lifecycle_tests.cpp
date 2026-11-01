@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for lifecycle with isolated scenario ownership and cleanup.
+ */
+
 #include <atlas/streaming/asset_streamer.hpp>
 #include <gtest/gtest.h>
 
@@ -6,6 +11,7 @@
 
 namespace atlas::streaming::tests
 {
+/// @brief Verify rejects invalid limits.
 TEST(streamer_lifecycle_tests, rejects_invalid_limits)
 {
     jobs::job_system jobs{1};
@@ -13,20 +19,30 @@ TEST(streamer_lifecycle_tests, rejects_invalid_limits)
     EXPECT_THROW((asset_streamer{jobs, {}, {1, 0}}), std::invalid_argument);
 }
 
+/// @brief Verify rejects invalid requests without callbacks.
 TEST(streamer_lifecycle_tests, rejects_invalid_requests_without_callbacks)
 {
     jobs::job_system jobs{1};
     asset_streamer streamer{jobs, {}, {4, 2}};
     std::atomic<bool> called{false};
     EXPECT_THROW(streamer.read({"missing", 0, 1}, {}), std::invalid_argument);
-    EXPECT_THROW(streamer.read({"missing", 0, 5}, [&](const read_result&) { called = true; }),
+    EXPECT_THROW(streamer.read({"missing", 0, 5},
+                               [&](const read_result&)
+                               {
+                                   called = true;
+                               }),
                  std::length_error);
     streamer.shutdown();
     EXPECT_FALSE(called.load());
-    EXPECT_THROW(streamer.read({"missing", 0, 1}, [](const read_result&) {}), std::logic_error);
+    EXPECT_THROW(streamer.read({"missing", 0, 1},
+                               [](const read_result&)
+                               {
+                               }),
+                 std::logic_error);
     EXPECT_NO_THROW(streamer.shutdown());
 }
 
+/// @brief Verify reports unknown and unbacked memory assets.
 TEST(streamer_lifecycle_tests, reports_unknown_and_unbacked_memory_assets)
 {
     jobs::job_system jobs{1};
@@ -51,25 +67,34 @@ TEST(streamer_lifecycle_tests, reports_unknown_and_unbacked_memory_assets)
         .get();
 }
 
+/// @brief Verify propagates callback exceptions and drains outstanding work.
 TEST(streamer_lifecycle_tests, propagates_callback_exceptions_and_drains_outstanding_work)
 {
     jobs::job_system jobs{1};
     asset_streamer streamer{jobs, {}};
-    auto completion = streamer.read({"unknown", 0, 0}, [](const read_result&)
-                                    { throw std::runtime_error{"consumer failed"}; });
+    auto completion = streamer.read({"unknown", 0, 0},
+                                    [](const read_result&)
+                                    {
+                                        throw std::runtime_error{"consumer failed"};
+                                    });
     EXPECT_THROW(completion.get(), std::runtime_error);
     EXPECT_NO_THROW(streamer.shutdown());
 }
 
+/// @brief Verify rejects shutdown inside a completion job.
 TEST(streamer_lifecycle_tests, rejects_shutdown_inside_a_completion_job)
 {
     jobs::job_system jobs{1};
     asset_streamer streamer{jobs, {}};
-    auto completion =
-        streamer.read({"unknown", 0, 0}, [&](const read_result&) { streamer.shutdown(); });
+    auto completion = streamer.read({"unknown", 0, 0},
+                                    [&](const read_result&)
+                                    {
+                                        streamer.shutdown();
+                                    });
     EXPECT_THROW(completion.get(), std::logic_error);
 }
 
+/// @brief Verify reports scheduler shutdown without calling the consumer on the wrong thread.
 TEST(streamer_lifecycle_tests,
      reports_scheduler_shutdown_without_calling_the_consumer_on_the_wrong_thread)
 {
@@ -77,25 +102,46 @@ TEST(streamer_lifecycle_tests,
     asset_streamer streamer{jobs, {}};
     jobs.shutdown();
     bool called = false;
-    auto completion = streamer.read({"unknown", 0, 0}, [&](const read_result&) { called = true; });
+    auto completion = streamer.read({"unknown", 0, 0},
+                                    [&](const read_result&)
+                                    {
+                                        called = true;
+                                    });
     EXPECT_THROW(completion.get(), std::logic_error);
     EXPECT_FALSE(called);
 }
 
+/// @brief Verify rejects excess requests without calling their consumers.
 TEST(streamer_lifecycle_tests, rejects_excess_requests_without_calling_their_consumers)
 {
     // Open the gate before streamer destruction even if an assertion aborts.
     jobs::job_system jobs{2};
     asset_streamer streamer{jobs, {}, {4, 1}};
+
+    /// @brief Scenario state for release gate, isolated per test and released through RAII.
     struct release_gate
     {
+        /// @brief Scenario-owned promise used to observe behavior and cleanup without sharing
+        /// mutable state between tests.
         std::promise<void> promise;
+        /// @brief Scenario-owned ready used to observe behavior and cleanup without sharing mutable
+        /// state between tests.
         std::shared_future<void> ready{promise.get_future().share()};
+        /// @brief Scenario-owned opened used to observe behavior and cleanup without sharing
+        /// mutable state between tests.
         std::once_flag opened;
+
+        /// @brief Release the controlled gate without relying on timing sleeps.
         void open()
         {
-            std::call_once(opened, [this] { promise.set_value(); });
+            std::call_once(opened,
+                           [this]
+                           {
+                               promise.set_value();
+                           });
         }
+
+        /// @brief Release release gate resources and complete its scoped cleanup.
         ~release_gate()
         {
             try
@@ -108,12 +154,19 @@ TEST(streamer_lifecycle_tests, rejects_excess_requests_without_calling_their_con
             }
         }
     } release;
+
     auto accepted = streamer.read({"unknown", 0, 0},
-                                  [ready = release.ready](const read_result&) { ready.wait(); });
+                                  [ready = release.ready](const read_result&)
+                                  {
+                                      ready.wait();
+                                  });
     std::atomic<bool> rejected_callback{false};
-    EXPECT_THROW(
-        streamer.read({"unknown", 0, 0}, [&](const read_result&) { rejected_callback = true; }),
-        std::overflow_error);
+    EXPECT_THROW(streamer.read({"unknown", 0, 0},
+                               [&](const read_result&)
+                               {
+                                   rejected_callback = true;
+                               }),
+                 std::overflow_error);
     release.open();
     accepted.get();
     streamer.shutdown();

@@ -1,9 +1,15 @@
+/**
+ * @file
+ * @brief Sealed-graph eligibility publication and stable failure propagation.
+ */
+
 #include "graph_state.hpp"
 
 #include <utility>
 
 namespace atlas::jobs::detail
 {
+/// @brief Splice a prepared eligible node into the ready queue while retaining its graph execution.
 void graph_state::make_ready(const std::shared_ptr<graph_state>& self, std::size_t index,
                              ready_queue& ready)
 {
@@ -13,6 +19,7 @@ void graph_state::make_ready(const std::shared_ptr<graph_state>& self, std::size
     ready.splice(ready.end(), pending, node.entry);
 }
 
+/// @brief Publish prepared zero-prerequisite graph nodes into the ready queue.
 std::size_t graph_state::publish(const std::shared_ptr<graph_state>& self, ready_queue& ready)
 {
     std::size_t roots = 0;
@@ -24,9 +31,12 @@ std::size_t graph_state::publish(const std::shared_ptr<graph_state>& self, ready
             ++roots;
         }
     }
+
     return roots;
 }
 
+/// @brief Commit one node result, propagate blocked successors and complete the aggregate graph
+/// when terminal.
 graph_completion graph_state::finish(const std::shared_ptr<graph_state>& self, std::size_t index,
                                      const std::exception_ptr& error, queue_transition queues)
 {
@@ -48,6 +58,7 @@ graph_completion graph_state::finish(const std::shared_ptr<graph_state>& self, s
             {
                 continue;
             }
+
             ++result.released;
             if (node.blocked)
             {
@@ -64,6 +75,7 @@ graph_completion graph_state::finish(const std::shared_ptr<graph_state>& self, s
             }
         }
     }
+
     result.finished = terminal == nodes.size();
     return result;
 }

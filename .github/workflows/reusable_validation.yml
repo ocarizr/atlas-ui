@@ -19,6 +19,12 @@ jobs:
     with:
       tooling: ${{ needs.plan.outputs.tooling == 'true' }}
       configure: ${{ needs.plan.outputs.configure == 'true' }}
+  format:
+    needs: plan
+    if: ${{ needs.plan.outputs.has-formatting == 'true' }}
+    uses: ./.github/workflows/reusable_format.yml
+    with:
+      matrix: ${{ needs.plan.outputs.formatting }}
   vendor-testing:
     needs:
     - plan
@@ -230,6 +236,7 @@ jobs:
     needs:
     - plan
     - quality
+    - format
     - vendor-testing
     - vendor-content
     - vendor-media
@@ -260,6 +267,7 @@ jobs:
           if ($task_entry.Value.result -notin @('success', 'skipped')) { throw "Failed check: $($task_entry.Key)" }
         }
         if ($task_results.plan.result -ne 'success' -or $task_results.quality.result -ne 'success') { throw 'Planning or quality failed.' }
+        if ($task_results.plan.outputs.'has-formatting' -eq 'true' -and $task_results.format.result -ne 'success') { throw 'Selected formatting checks did not pass.' }
         $task_selected = $task_results.plan.outputs.components | ConvertFrom-Json
         foreach ($task_name in $task_selected) {
           if ($task_results[$task_name].result -ne 'success') { throw "Required component did not pass: $task_name" }

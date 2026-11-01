@@ -1,28 +1,26 @@
 """Select changed components and transitive consumers for Windows validation."""
 
 import argparse
-import fnmatch
 import json
 import re
 import subprocess
 from pathlib import Path
 
-from scripts.ci.config import read_yaml, write_outputs
+from scripts.ci.config import matches, read_yaml, write_outputs
+from scripts.ci.format_selection import formatting_plan
 from scripts.ci.parallel_plan import plan_components
 from scripts.ci.vendor_products import fingerprint, toolchain_identity
 
 SOURCE_SUFFIXES = {".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hxx", ".inl", ".ixx", ".proto"}
 
 
-def matches(path, patterns):
-    return any(fnmatch.fnmatchcase(path.replace("\\", "/"), pattern) for pattern in patterns)
-
-
 def validate_components(config):
+    """Reject unknown dependencies, invalid component names and dependency cycles."""
     components = config["components"]
     visited, active = set(), set()
 
     def visit(name):
+        """Traverse dependency edges while detecting cycles and retaining deterministic selection."""
         if name not in components:
             raise ValueError(f"Unknown component dependency: {name}")
         if name in active:
@@ -42,13 +40,17 @@ def validate_components(config):
 
 
 def select_components(config, paths, full=False):
+    """Select direct owners and transitive consumers; reject unmapped C++/Protobuf sources."""
     validate_components(config)
     components = config["components"]
     selected = set(components) if full else set()
     for path in paths:
         owners = {name for name, item in components.items() if matches(path, item["paths"])}
-        if (Path(path).suffix.lower() in SOURCE_SUFFIXES and not owners
-                and not path.startswith(("third_party/", "tests/support/"))):
+        if (
+            Path(path).suffix.lower() in SOURCE_SUFFIXES
+            and not owners
+            and not path.startswith(("third_party/", "tests/support/"))
+        ):
             raise ValueError(f"Unmapped source file: {path}")
         if matches(path, config.get("global_paths", [])):
             selected.update(components)
@@ -62,7 +64,8 @@ def select_components(config, paths, full=False):
             selected.update(components)  # Unknown infrastructure is conservatively global.
     while True:
         consumers = {
-            name for name, item in components.items()
+            name
+            for name, item in components.items()
             if selected.intersection(item.get("depends_on", []))
         }
         if consumers <= selected:
@@ -71,6 +74,7 @@ def select_components(config, paths, full=False):
 
 
 def build_matrix(config, selected, source_files):
+    """Expand selected buildable components into supported profiles, targets and test labels."""
     components_to_build = []
     for name in sorted(selected):
         item = config["components"][name]
@@ -95,20 +99,30 @@ def build_matrix(config, selected, source_files):
             raise ValueError("Profile excludes an unknown component")
         names = [name for name in components_to_build if name not in excluded]
         for name in names:
-            entries.append({"components": [name], "configure": profile["configure"],
-                            "configuration": profile["configuration"]})
+            entries.append(
+                {
+                    "components": [name],
+                    "configure": profile["configure"],
+                    "configuration": profile["configuration"],
+                }
+            )
     return {"include": entries}
 
 
 def repository_files(root):
+    """List existing tracked and unignored sources without including generated/local-only files."""
     result = subprocess.run(
         ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-        cwd=root, check=True, capture_output=True, text=True,
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
     )
     return [path for path in result.stdout.splitlines() if (root / path).is_file()]
 
 
 def main():
+    """Compute affected build and formatting plans and emit workflow matrices and product keys."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base")
     parser.add_argument("--head", default="HEAD")
@@ -122,25 +136,32 @@ def main():
     elif args.base:
         paths = subprocess.run(
             ["git", "diff", "--name-only", "--no-renames", f"{args.base}...{args.head}", "--"],
-            check=True, capture_output=True, text=True,
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout.splitlines()
     else:
         parser.error("Provide --base for a PR or --all for full validation")
     selected = select_components(config, paths, args.all)
     files = repository_files(root)
     # Detect newly introduced source outside every registered context as well.
-    select_components(config, [path for path in files if Path(path).suffix.lower() in SOURCE_SUFFIXES])
+    select_components(
+        config, [path for path in files if Path(path).suffix.lower() in SOURCE_SUFFIXES]
+    )
     matrix = build_matrix(config, selected, files)
     plan = plan_components(config, selected)
-    keys = {group: fingerprint(root, group, toolchain_identity()) for group in plan['groups']}
+    formatting = formatting_plan(config, paths, files, args.all)
+    keys = {group: fingerprint(root, group, toolchain_identity()) for group in plan["groups"]}
     outputs = {
         "has-build": bool(matrix["include"]),
         "configure": bool(selected) or args.all,
         "tooling": args.all or any(matches(path, config["global_paths"]) for path in paths),
-        "components": json.dumps(plan['components']),
-        "matrices": json.dumps(plan['matrices']),
-        "groups": json.dumps(plan['groups']),
+        "components": json.dumps(plan["components"]),
+        "matrices": json.dumps(plan["matrices"]),
+        "groups": json.dumps(plan["groups"]),
         "keys": json.dumps(keys),
+        "has-formatting": bool(formatting),
+        "formatting": json.dumps({"include": [{"component": name} for name in formatting]}),
     }
     write_outputs(outputs, args.github_output)
     print(json.dumps({"selected": sorted(selected), **outputs}, indent=2))

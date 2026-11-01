@@ -1,3 +1,5 @@
+"""Exercise component build commands and owned-product export contracts."""
+
 import sys
 
 import pytest
@@ -7,34 +9,52 @@ from scripts.ci import build_component
 
 @pytest.fixture
 def selected_build(monkeypatch):
+    """Provide a minimal component build configuration with reusable mocked execution records."""
     config = {
         "profiles": [{"configure": "windows-msvc", "configuration": "Debug"}],
         "components": {
-            "jobs": {"build_targets": ["atlas_jobs", "atlas_jobs_tests"],
-                     "test_labels": ["jobs"]},
-            "ui": {"build_targets": ["atlas_jobs", "atlas_ui_tests"],
-                   "test_labels": ["ui.behavior", "jobs"]},
+            "jobs": {"build_targets": ["atlas_jobs", "atlas_jobs_tests"], "test_labels": ["jobs"]},
+            "ui": {
+                "build_targets": ["atlas_jobs", "atlas_ui_tests"],
+                "test_labels": ["ui.behavior", "jobs"],
+            },
         },
     }
     commands = []
     monkeypatch.setattr(build_component, "read_yaml", lambda _: config)
-    monkeypatch.setattr(build_component.subprocess, "run", lambda command, **_: commands.append(command))
-    monkeypatch.setattr(sys, "argv", [
-        "build_component", "--component", "jobs", "ui",
-        "--configure", "windows-msvc", "--configuration", "Debug",
-    ])
+    monkeypatch.setattr(
+        build_component.subprocess, "run", lambda command, **_: commands.append(command)
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "build_component",
+            "--component",
+            "jobs",
+            "ui",
+            "--configure",
+            "windows-msvc",
+            "--configuration",
+            "Debug",
+        ],
+    )
     return commands
 
 
 def test_selected_components_build_shared_targets_once(selected_build):
+    """Verify selected components build shared targets once."""
     build_component.main()
     command = next(item for item in selected_build if item[:2] == ["cmake", "--build"])
-    assert command[command.index("--target") + 1:] == [
-        "atlas_jobs", "atlas_jobs_tests", "atlas_ui_tests",
+    assert command[command.index("--target") + 1 :] == [
+        "atlas_jobs",
+        "atlas_jobs_tests",
+        "atlas_ui_tests",
     ]
 
 
 def test_ctest_label_union_uses_cmake_supported_groups(selected_build):
+    """Verify ctest label union uses cmake supported groups."""
     build_component.main()
     command = next(item for item in selected_build if item[0] == "ctest")
     assert command[command.index("-L") + 1] == r"^(jobs|ui\.behavior)$"
@@ -42,6 +62,7 @@ def test_ctest_label_union_uses_cmake_supported_groups(selected_build):
 
 
 def test_profile_rejects_excluded_components_before_building(selected_build):
+    """Verify profile rejects excluded components before building."""
     build_component.read_yaml(None)["profiles"][0]["exclude_components"] = ["ui"]
     with pytest.raises(ValueError, match="excluded by this profile"):
         build_component.main()
@@ -49,13 +70,15 @@ def test_profile_rejects_excluded_components_before_building(selected_build):
 
 
 def test_export_rejects_multiple_components_before_any_build(selected_build, monkeypatch):
-    monkeypatch.setattr(sys, 'argv', [*sys.argv, '--export-products'])
-    with pytest.raises(ValueError, match='exactly one component'):
+    """Verify export rejects multiple components before any build."""
+    monkeypatch.setattr(sys, "argv", [*sys.argv, "--export-products"])
+    with pytest.raises(ValueError, match="exactly one component"):
         build_component.main()
     assert selected_build == []
 
 
 def test_delivery_version_reaches_component_configuration(selected_build, monkeypatch):
-    monkeypatch.setenv('ATLAS_BUILD_VERSION', '1.2.3')
+    """Verify delivery version reaches component configuration."""
+    monkeypatch.setenv("ATLAS_BUILD_VERSION", "1.2.3")
     build_component.main()
-    assert '-DATLAS_VERSION=1.2.3' in selected_build[0]
+    assert "-DATLAS_VERSION=1.2.3" in selected_build[0]

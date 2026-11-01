@@ -1,8 +1,14 @@
+/**
+ * @file
+ * @brief Behavioral coverage for settings with isolated scenario ownership and cleanup.
+ */
+
 #include <atlas/diagnostics/settings.hpp>
 #include <gtest/gtest.h>
 
 namespace atlas::diagnostics::tests
 {
+/// @brief Verify yaml configures metrics without enabling sampling or transport.
 TEST(settings_tests, yaml_configures_metrics_without_enabling_sampling_or_transport)
 {
     const auto settings = parse_settings("metrics: {enabled: false, max_series: 3, "
@@ -13,6 +19,7 @@ TEST(settings_tests, yaml_configures_metrics_without_enabling_sampling_or_transp
     EXPECT_EQ(settings.metrics.max_text_bytes, 32U);
 }
 
+/// @brief Verify yaml configures logging and profiling without opening files.
 TEST(settings_tests, yaml_configures_logging_and_profiling_without_opening_files)
 {
     const auto settings = parse_settings("logging:\n  level: warning\n  asynchronous: false\n"
@@ -26,13 +33,17 @@ TEST(settings_tests, yaml_configures_logging_and_profiling_without_opening_files
     EXPECT_EQ(settings.profiling.max_events, 42U);
 }
 
+/// @brief Scenario state for invalid settings tests, isolated per test and released through RAII.
 class invalid_settings_tests : public testing::TestWithParam<const char*>
 {
 };
+
+/// @brief Verify unknown keys types and invalid limits are rejected.
 TEST_P(invalid_settings_tests, unknown_keys_types_and_invalid_limits_are_rejected)
 {
     EXPECT_THROW((void)parse_settings(GetParam()), std::invalid_argument);
 }
+
 INSTANTIATE_TEST_SUITE_P(documents, invalid_settings_tests,
                          testing::Values("logging: {level: loud}", "logging: {queue_capacity: 0}",
                                          "profiling: {max_events: -1}", "unknown: true",

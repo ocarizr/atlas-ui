@@ -6,6 +6,7 @@ from pathlib import Path, PurePosixPath
 
 
 def read_xml(path):
+    """Parse application XML while rejecting unsupported document-type declarations."""
     content = path.read_bytes()
     # XML application data does not use DTDs or entity declarations.
     text = content.decode("utf-8-sig")
@@ -18,6 +19,7 @@ def read_xml(path):
 
 
 def validate_assets(root):
+    """Validate mapped asset IDs, paths, XML and dependencies; reject unmapped source assets."""
     asset_root = (Path(root) / "assets").resolve()
     if not asset_root.exists():
         return 0
@@ -32,7 +34,7 @@ def validate_assets(root):
             read_xml(path)
     document = read_xml(manifest)
     if document.tag != "Assets" or document.attrib.get("schemaVersion") != "1":
-        raise ValueError("Expected <Assets schemaVersion=\"1\"> inventory")
+        raise ValueError('Expected <Assets schemaVersion="1"> inventory')
     ids, mapped_paths, dependencies = set(), set(), []
     for asset in document:
         if asset.tag != "Asset":
@@ -59,8 +61,7 @@ def validate_assets(root):
         if dependency not in ids or dependency == identity:
             raise ValueError(f"Invalid dependency {identity} -> {dependency}")
     unmapped = {
-        path.relative_to(asset_root).as_posix().casefold()
-        for path in files if path != manifest
+        path.relative_to(asset_root).as_posix().casefold() for path in files if path != manifest
     } - mapped_paths
     if unmapped:
         raise ValueError(f"Unmapped asset files: {sorted(unmapped)}")
@@ -68,6 +69,7 @@ def validate_assets(root):
 
 
 def main():
+    """Validate the current asset tree and fail with actionable inventory diagnostics."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     args = parser.parse_args()

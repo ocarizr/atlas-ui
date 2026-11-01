@@ -1,3 +1,5 @@
+"""Test changed-file ownership and affected-consumer build selection."""
+
 import pytest
 
 from scripts.ci.impact import build_matrix, select_components, validate_components
@@ -5,6 +7,7 @@ from scripts.ci.impact import build_matrix, select_components, validate_componen
 
 @pytest.fixture
 def component_config():
+    """Provide an isolated ownership graph for impact-selection tests."""
     return {
         "components": {
             "shared": {"paths": ["libs/ui/**"], "depends_on": []},
@@ -30,15 +33,18 @@ def component_config():
     ],
 )
 def test_changes_select_affected_consumers(component_config, path, expected):
+    """Verify changes select affected consumers."""
     assert select_components(component_config, [path]) == expected
 
 
 def test_unknown_source_fails(component_config):
+    """Verify unknown source fails."""
     with pytest.raises(ValueError, match="Unmapped"):
         select_components(component_config, ["NewModule/source.cpp"])
 
 
 def test_global_rule_cannot_hide_unmapped_source(component_config):
+    """Verify global rule cannot hide unmapped source."""
     component_config["global_paths"].append("NewModule/**")
     with pytest.raises(ValueError, match="Unmapped"):
         select_components(component_config, ["NewModule/source.cpp"])
@@ -46,64 +52,87 @@ def test_global_rule_cannot_hide_unmapped_source(component_config):
 
 @pytest.mark.parametrize(
     "dependency, message",
-    [pytest.param("missing", "Unknown component", id="unknown-dependency"),
-     pytest.param("editor", "dependency cycle", id="cyclic-dependency")],
+    [
+        pytest.param("missing", "Unknown component", id="unknown-dependency"),
+        pytest.param("editor", "dependency cycle", id="cyclic-dependency"),
+    ],
 )
 def test_invalid_dependencies_fail(component_config, dependency, message):
+    """Verify invalid dependencies fail."""
     component_config["components"]["shared"]["depends_on"] = [dependency]
     with pytest.raises(ValueError, match=message):
         validate_components(component_config)
 
 
 def test_empty_foundation_has_no_fake_build_matrix(component_config):
+    """Verify empty foundation has no fake build matrix."""
     assert build_matrix(component_config, {"shared"}, []) == {"include": []}
 
 
 def test_unwired_cpp_source_fails(component_config):
+    """Verify unwired cpp source fails."""
     with pytest.raises(ValueError, match="build_targets"):
         build_matrix(component_config, {"shared"}, ["libs/ui/Layout.cpp"])
 
 
 def test_matrix_uses_named_targets_and_test_labels(component_config):
+    """Verify matrix uses named targets and test labels."""
     component_config["components"]["editor"].update(
         build_targets=["atlas_editor", "atlas_editor_tests"], test_labels=["editor"]
     )
     assert build_matrix(component_config, {"editor"}, []) == {
-        "include": [{"components": ["editor"], "configure": "windows-msvc", "configuration": "Debug"}]
+        "include": [
+            {"components": ["editor"], "configure": "windows-msvc", "configuration": "Debug"}
+        ]
     }
 
 
 def test_shared_consumers_have_independent_profile_jobs(component_config):
+    """Verify shared consumers have independent profile jobs."""
     for name in ("game", "editor"):
         component_config["components"][name].update(
             build_targets=[f"atlas_{name}"], test_labels=[name]
         )
     assert build_matrix(component_config, {"game", "editor"}, []) == {
-        "include": [{"components": [name], "configure": "windows-msvc", "configuration": "Debug"}
-                    for name in ('editor', 'game')]
+        "include": [
+            {"components": [name], "configure": "windows-msvc", "configuration": "Debug"}
+            for name in ("editor", "game")
+        ]
     }
 
 
 def test_portable_profile_omits_native_components(component_config):
+    """Verify portable profile omits native components."""
     for name in ("game", "editor"):
         component_config["components"][name].update(
             build_targets=[f"atlas_{name}"], test_labels=[name]
         )
-    component_config["profiles"].append({
-        "configure": "windows-portable", "configuration": "Debug", "exclude_components": ["editor"],
-    })
+    component_config["profiles"].append(
+        {
+            "configure": "windows-portable",
+            "configuration": "Debug",
+            "exclude_components": ["editor"],
+        }
+    )
     matrix = build_matrix(component_config, {"game", "editor"}, [])["include"]
-    assert [row['components'] for row in matrix[:2]] == [['editor'], ['game']]
+    assert [row["components"] for row in matrix[:2]] == [["editor"], ["game"]]
     assert matrix[2] == {
-        "components": ["game"], "configure": "windows-portable", "configuration": "Debug",
+        "components": ["game"],
+        "configure": "windows-portable",
+        "configuration": "Debug",
     }
 
 
 def test_native_only_changes_do_not_start_an_empty_portable_build(component_config):
+    """Verify native only changes do not start an empty portable build."""
     component_config["components"]["editor"].update(
         build_targets=["atlas_editor"], test_labels=["editor"]
     )
-    component_config["profiles"] = [{
-        "configure": "windows-portable", "configuration": "Debug", "exclude_components": ["editor"],
-    }]
+    component_config["profiles"] = [
+        {
+            "configure": "windows-portable",
+            "configuration": "Debug",
+            "exclude_components": ["editor"],
+        }
+    ]
     assert build_matrix(component_config, {"editor"}, []) == {"include": []}

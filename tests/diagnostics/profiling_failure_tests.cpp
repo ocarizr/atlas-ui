@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for profiling failure with isolated scenario ownership and cleanup.
+ */
+
 #include <atlas/diagnostics/profiling.hpp>
 #include <gtest/gtest.h>
 
@@ -7,19 +12,32 @@
 
 namespace atlas::diagnostics::tests
 {
+/// @brief Scenario state for encoding case, isolated per test and released through RAII.
 struct encoding_case
 {
+    /// @brief Scenario-owned name used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     const char* name;
+    /// @brief Scenario-owned text used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::string text;
+    /// @brief Scenario-owned accepted used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     bool accepted;
 };
+
+/// @brief Print a readable parameter-case description for GoogleTest failure diagnostics.
 std::ostream& operator<<(std::ostream& stream, const encoding_case& value)
 {
     return stream << value.name;
 }
+
+/// @brief Scenario state for encoding tests, isolated per test and released through RAII.
 class encoding_tests : public testing::TestWithParam<encoding_case>
 {
 };
+
+/// @brief Verify accepts valid utf8 and escapes control characters.
 TEST_P(encoding_tests, accepts_valid_utf8_and_escapes_control_characters)
 {
     profiler capture;
@@ -41,6 +59,7 @@ TEST_P(encoding_tests, accepts_valid_utf8_and_escapes_control_characters)
         }
     }
 }
+
 INSTANTIATE_TEST_SUITE_P(encodings, encoding_tests,
                          testing::Values(encoding_case{"Latin", "\xc3\xa9", true},
                                          encoding_case{"Chinese", "\xe7\x95\x8c", true},
@@ -53,8 +72,11 @@ INSTANTIATE_TEST_SUITE_P(encodings, encoding_tests,
                                          encoding_case{"Surrogate", "\xed\xa0\x80", false},
                                          encoding_case{"TooLarge", "\xf4\x90\x80\x80", false}),
                          [](const testing::TestParamInfo<encoding_case>& info)
-                         { return info.param.name; });
+                         {
+                             return info.param.name;
+                         });
 
+/// @brief Verify invalid utf8 nonfinite counters and string limits are observable.
 TEST(profiling_failure_tests, invalid_utf8_nonfinite_counters_and_string_limits_are_observable)
 {
     profiling_options options;
@@ -72,6 +94,7 @@ TEST(profiling_failure_tests, invalid_utf8_nonfinite_counters_and_string_limits_
     EXPECT_NE(stream.str().find("\"value\":42"), std::string::npos);
 }
 
+/// @brief Verify failed export preserves the capture and disabled capture is empty.
 TEST(profiling_failure_tests, failed_export_preserves_the_capture_and_disabled_capture_is_empty)
 {
     profiler capture;
@@ -86,6 +109,7 @@ TEST(profiling_failure_tests, failed_export_preserves_the_capture_and_disabled_c
     EXPECT_EQ(disabled.statistics().recorded, 0U);
 }
 
+/// @brief Verify scope owns temporary labels until completion.
 TEST(profiling_failure_tests, scope_owns_temporary_labels_until_completion)
 {
     profiler capture;

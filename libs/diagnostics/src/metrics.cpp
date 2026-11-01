@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Bounded numeric counter/gauge aggregation and explicit transport-neutral snapshots.
+ */
+
 #include "metrics_state.hpp"
 #include "profiling_state.hpp"
 
@@ -9,13 +14,19 @@ namespace atlas::diagnostics
 {
 namespace
 {
+/// @brief Validate bounded UTF-8 metric identifiers/attributes and reject ASCII controls.
 bool valid_text(std::string_view text, std::size_t limit, bool allow_empty)
 {
     return (allow_empty || !text.empty()) && text.size() <= limit && detail::valid_utf8(text) &&
            std::none_of(text.begin(), text.end(),
-                        [](unsigned char byte) { return byte < 0x20 || byte == 0x7f; });
+                        [](unsigned char byte)
+                        {
+                            return byte < 0x20 || byte == 0x7f;
+                        });
 }
 } // namespace
+
+/// @brief Reject invalid configuration, handles or descriptors before mutating execution state.
 void validate(const metrics_options& options)
 {
     if (!options.max_series || !options.max_text_bytes)
@@ -24,9 +35,17 @@ void validate(const metrics_options& options)
     }
 }
 
-metrics::metrics(metrics_options options) : impl_{std::make_unique<impl>(options)} {}
+/// @brief Create an empty bounded numeric registry; observations and reporting are explicit caller
+/// operations.
+metrics::metrics(metrics_options options) : impl_{std::make_unique<impl>(options)}
+{
+}
+
+/// @brief Release metrics resources and complete its scoped cleanup.
 metrics::~metrics() = default;
 
+/// @brief Validate and canonicalize one numeric observation before applying a bounded registry
+/// update.
 bool metrics::impl::record(std::string_view name, double number,
                            const metric_attributes& attributes, metric_kind kind) noexcept
 {
@@ -34,6 +53,7 @@ bool metrics::impl::record(std::string_view name, double number,
     {
         return false;
     }
+
     try
     {
         if (!std::isfinite(number) || (kind == metric_kind::counter && number < 0) ||
@@ -43,6 +63,7 @@ bool metrics::impl::record(std::string_view name, double number,
             ++rejected;
             return false;
         }
+
         for (const auto& [attribute, text] : attributes)
         {
             if (!valid_text(attribute, options.max_text_bytes, false) ||
@@ -52,15 +73,19 @@ bool metrics::impl::record(std::string_view name, double number,
                 return false;
             }
         }
+
         key identity{std::string{name}, attributes};
         std::sort(identity.second.begin(), identity.second.end());
         if (std::adjacent_find(identity.second.begin(), identity.second.end(),
                                [](const auto& left, const auto& right)
-                               { return left.first == right.first; }) != identity.second.end())
+                               {
+                                   return left.first == right.first;
+                               }) != identity.second.end())
         {
             ++rejected;
             return false;
         }
+
         return update(std::move(identity), number, kind);
     }
     catch (...)
@@ -70,6 +95,8 @@ bool metrics::impl::record(std::string_view name, double number,
     }
 }
 
+/// @brief Apply one canonical metric update under the registry lock, enforcing type and series
+/// limits.
 bool metrics::impl::update(key identity, double number, metric_kind kind)
 {
     const std::lock_guard lock{mutex};
@@ -79,6 +106,7 @@ bool metrics::impl::update(key identity, double number, metric_kind kind)
         ++rejected;
         return false;
     }
+
     const auto found = values.find(identity);
     if (found == values.end())
     {
@@ -87,6 +115,7 @@ bool metrics::impl::update(key identity, double number, metric_kind kind)
             ++dropped;
             return false;
         }
+
         values.emplace(std::move(identity), value{kind, number});
     }
     else
@@ -97,22 +126,29 @@ bool metrics::impl::update(key identity, double number, metric_kind kind)
             ++rejected;
             return false;
         }
+
         found->second.number = next;
     }
+
     ++accepted;
     return true;
 }
 
+/// @brief Add a finite nonnegative amount to a cumulative counter; invalid/overflowing updates
+/// preserve its value.
 bool metrics::increment(std::string_view name, double amount,
                         const metric_attributes& attributes) noexcept
 {
     return impl_->record(name, amount, attributes, metric_kind::counter);
 }
+
+/// @brief Replace a gauge with a finite value while preserving stable instrument kind per name.
 bool metrics::set(std::string_view name, double value, const metric_attributes& attributes) noexcept
 {
     return impl_->record(name, value, attributes, metric_kind::gauge);
 }
 
+/// @brief Copy a consistent owning cumulative registry view without resetting counters or gauges.
 metric_snapshot metrics::snapshot() const
 {
     const std::lock_guard lock{impl_->mutex};
@@ -124,20 +160,27 @@ metric_snapshot metrics::snapshot() const
     {
         result.points.push_back({identity.first, identity.second, value.kind, value.number});
     }
+
     return result;
 }
+
+/// @brief Return an observational snapshot of this instance's counters without resetting them.
 metrics_statistics metrics::statistics() const
 {
     const std::lock_guard lock{impl_->mutex};
     return {impl_->values.size(),  impl_->accepted.load(), impl_->rejected.load(),
             impl_->dropped.load(), impl_->exported.load(), impl_->export_errors.load()};
 }
+
+/// @brief Synchronously publish one cumulative owning snapshot outside registry locks; failures
+/// never consume values.
 bool metrics::report(metrics_output& output) noexcept
 {
     if (!impl_->options.enabled)
     {
         return false;
     }
+
     try
     {
         const auto batch = snapshot();

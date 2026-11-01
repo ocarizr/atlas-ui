@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for metrics with isolated scenario ownership and cleanup.
+ */
+
 #include <atlas/diagnostics/metrics.hpp>
 #include <gtest/gtest.h>
 
@@ -7,6 +12,7 @@
 
 namespace atlas::diagnostics::tests
 {
+/// @brief Verify counters accumulate and gauges replace without profile events.
 TEST(metrics_tests, counters_accumulate_and_gauges_replace_without_profile_events)
 {
     metrics collection;
@@ -28,6 +34,7 @@ TEST(metrics_tests, counters_accumulate_and_gauges_replace_without_profile_event
     EXPECT_EQ(collection.snapshot().points[1].value, 3);
 }
 
+/// @brief Verify attributes are owned and canonicalized.
 TEST(metrics_tests, attributes_are_owned_and_canonicalized)
 {
     metrics collection;
@@ -44,6 +51,7 @@ TEST(metrics_tests, attributes_are_owned_and_canonicalized)
     EXPECT_EQ(collection.snapshot().points.size(), 2U);
 }
 
+/// @brief Verify type changes and counter overflow preserve previous values.
 TEST(metrics_tests, type_changes_and_counter_overflow_preserve_previous_values)
 {
     metrics collection;
@@ -59,6 +67,7 @@ TEST(metrics_tests, type_changes_and_counter_overflow_preserve_previous_values)
     EXPECT_EQ(collection.statistics().rejected, 3U);
 }
 
+/// @brief Verify capacity rejects new series but existing series keep progressing.
 TEST(metrics_tests, capacity_rejects_new_series_but_existing_series_keep_progressing)
 {
     metrics_options options;
@@ -73,6 +82,7 @@ TEST(metrics_tests, capacity_rejects_new_series_but_existing_series_keep_progres
     EXPECT_DOUBLE_EQ(collection.snapshot().points.front().value, 3);
 }
 
+/// @brief Verify concurrent increments and snapshots are consistent.
 TEST(metrics_tests, concurrent_increments_and_snapshots_are_consistent)
 {
     metrics collection;
@@ -90,6 +100,7 @@ TEST(metrics_tests, concurrent_increments_and_snapshots_are_consistent)
                 }
             });
     }
+
     producers.clear();
     EXPECT_DOUBLE_EQ(collection.snapshot().points.front().value, 400);
     EXPECT_EQ(collection.statistics().accepted, 400U);

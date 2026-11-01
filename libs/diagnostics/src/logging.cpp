@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Explicit structured logging, filtering and bounded producer/backend lifecycle.
+ */
+
 #include "logging_state.hpp"
 
 #include <algorithm>
@@ -6,6 +11,7 @@
 
 namespace atlas::diagnostics
 {
+/// @brief Reject invalid configuration, handles or descriptors before mutating execution state.
 void validate(const logging_options& options)
 {
     if (options.level > log_level::off || !options.queue_capacity || !options.max_categories ||
@@ -14,6 +20,7 @@ void validate(const logging_options& options)
     {
         throw std::invalid_argument{"Invalid logging level or capacity"};
     }
+
     for (std::size_t index = 0; index < options.category_levels.size(); ++index)
     {
         const auto& [name, level] = options.category_levels[index];
@@ -21,6 +28,7 @@ void validate(const logging_options& options)
         {
             throw std::invalid_argument{"Invalid logging category"};
         }
+
         for (std::size_t previous = 0; previous < index; ++previous)
         {
             if (options.category_levels[previous].first == name)
@@ -31,6 +39,8 @@ void validate(const logging_options& options)
     }
 }
 
+/// @brief Validate logging options and create an explicitly owned sink and optional private
+/// backend.
 logger::impl::impl(logging_options configuration, std::shared_ptr<log_output> output)
     : options{std::move(configuration)}
 {
@@ -40,19 +50,23 @@ logger::impl::impl(logging_options configuration, std::shared_ptr<log_output> ou
     {
         pool = std::make_shared<spdlog::details::thread_pool>(options.queue_capacity, 1);
     }
+
     (void)category("diagnostics");
 }
 
+/// @brief Borrow the diagnostic category associated with this task or create its logging backend.
 std::shared_ptr<spdlog::logger> logger::impl::category(std::string_view name)
 {
     if (const auto found = categories.find(name); found != categories.end())
     {
         return found->second;
     }
+
     if (categories.size() > options.max_categories)
     {
         throw std::length_error{"Logging category capacity exhausted"};
     }
+
     std::shared_ptr<spdlog::logger> result;
     if (pool)
     {
@@ -63,35 +77,51 @@ std::shared_ptr<spdlog::logger> logger::impl::category(std::string_view name)
     {
         result = std::make_shared<spdlog::logger>(std::string{name}, sink);
     }
+
     result->set_level(spdlog::level::trace);
-    result->set_error_handler([state = counts](const std::string&) { ++state->errors; });
+    result->set_error_handler(
+        [state = counts](const std::string&)
+        {
+            ++state->errors;
+        });
     categories.emplace(name, result);
     return result;
 }
 
+/// @brief Create an owned logger with explicit limits and an optional injected output.
 logger::logger(logging_options options, std::shared_ptr<log_output> output)
     : impl_{std::make_unique<impl>(std::move(options), std::move(output))}
 {
 }
+
+/// @brief Drain accepted work and release persistent resources; callers must obey the enclosing
+/// coordinator/lifetime contract.
 logger::~logger()
 {
     shutdown();
 }
 
+/// @brief Check immutable severity/category configuration before constructing an expensive message.
 bool logger::enabled(log_level level, std::string_view category) const noexcept
 {
     if (level >= log_level::off || category.empty() || category.size() > 256)
     {
         return false;
     }
+
     const auto found =
         std::find_if(impl_->options.category_levels.begin(), impl_->options.category_levels.end(),
-                     [&](const auto& entry) { return entry.first == category; });
+                     [&](const auto& entry)
+                     {
+                         return entry.first == category;
+                     });
     const auto minimum =
         found == impl_->options.category_levels.end() ? impl_->options.level : found->second;
     return level >= minimum && minimum != log_level::off;
 }
 
+/// @brief Submit an owned log message to the configured backend; asynchronous overflow may still
+/// discard it.
 bool logger::write(log_level level, std::string_view category, std::string_view message) noexcept
 {
     if (detail::inside_output)
@@ -99,6 +129,7 @@ bool logger::write(log_level level, std::string_view category, std::string_view 
         ++impl_->counts->errors;
         return false;
     }
+
     try
     {
         const std::lock_guard lock{impl_->admission};
@@ -106,20 +137,26 @@ bool logger::write(log_level level, std::string_view category, std::string_view 
         {
             return false;
         }
+
         if (impl_->flushing)
         {
             ++impl_->paused_dropped;
             return false;
         }
+
         if (level > log_level::off || category.empty() || category.size() > 256 ||
             message.size() > impl_->options.max_message_bytes)
         {
             ++impl_->counts->errors;
             return false;
         }
+
         const auto found = std::find_if(impl_->options.category_levels.begin(),
                                         impl_->options.category_levels.end(),
-                                        [&](const auto& entry) { return entry.first == category; });
+                                        [&](const auto& entry)
+                                        {
+                                            return entry.first == category;
+                                        });
         const auto minimum =
             found == impl_->options.category_levels.end() ? impl_->options.level : found->second;
         if (level == log_level::off || level < minimum || minimum == log_level::off)
@@ -127,6 +164,7 @@ bool logger::write(log_level level, std::string_view category, std::string_view 
             ++impl_->counts->filtered;
             return false;
         }
+
         impl_->category(category)->log(static_cast<spdlog::level::level_enum>(level),
                                        spdlog::string_view_t{message.data(), message.size()});
         ++impl_->counts->submitted;
@@ -139,6 +177,8 @@ bool logger::write(log_level level, std::string_view category, std::string_view 
     }
 }
 
+/// @brief Post a non-droppable control flush and wait for backend acknowledgement outside admission
+/// locks.
 bool logger::impl::flush_backend() noexcept
 {
     const auto errors = counts->errors.load();
@@ -151,7 +191,11 @@ bool logger::impl::flush_backend() noexcept
             pool->post_flush(
                 std::static_pointer_cast<spdlog::async_logger>(categories.at("diagnostics")),
                 spdlog::async_overflow_policy::block);
-            counts->flushed.wait(lock, [&] { return counts->flush_count >= target; });
+            counts->flushed.wait(lock,
+                                 [&]
+                                 {
+                                     return counts->flush_count >= target;
+                                 });
         }
         else
         {
@@ -162,9 +206,11 @@ bool logger::impl::flush_backend() noexcept
     {
         ++counts->errors;
     }
+
     return counts->errors.load() == errors;
 }
 
+/// @brief Drain admitted output from a coordinator; output failures remain observable.
 bool logger::flush() noexcept
 {
     if (detail::inside_output)
@@ -172,6 +218,7 @@ bool logger::flush() noexcept
         ++impl_->counts->errors;
         return false;
     }
+
     const std::lock_guard lifecycle{impl_->lifecycle};
     {
         const std::lock_guard lock{impl_->admission};
@@ -179,6 +226,7 @@ bool logger::flush() noexcept
         {
             return true;
         }
+
         impl_->flushing = true;
     }
     const auto result = impl_->flush_backend();
@@ -189,6 +237,8 @@ bool logger::flush() noexcept
     return result;
 }
 
+/// @brief Stop accepting new roots, drain accepted work and join owned workers; never call from a
+/// job.
 void logger::shutdown() noexcept
 {
     if (detail::inside_output)
@@ -196,6 +246,7 @@ void logger::shutdown() noexcept
         ++impl_->counts->errors;
         return;
     }
+
     const std::lock_guard lifecycle{impl_->lifecycle};
     {
         const std::lock_guard lock{impl_->admission};
@@ -203,6 +254,7 @@ void logger::shutdown() noexcept
         {
             return;
         }
+
         impl_->accepting = false;
         impl_->flushing = true;
     }
@@ -212,16 +264,19 @@ void logger::shutdown() noexcept
     {
         impl_->retired_dropped = impl_->pool->overrun_counter();
     }
+
     impl_->categories.clear();
     impl_->pool.reset();
 }
 
+/// @brief Return an observational snapshot of this instance's counters without resetting them.
 log_statistics logger::statistics() const
 {
     if (detail::inside_output)
     {
         throw std::logic_error{"Output cannot reenter its logger"};
     }
+
     const std::lock_guard lock{impl_->admission};
     return {impl_->counts->submitted.load(), impl_->counts->filtered.load(),
             impl_->counts->written.load(),

@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Behavioral coverage for callback parallel with isolated scenario ownership and cleanup.
+ */
+
 #include "job_system_fixture.hpp"
 
 #include <algorithm>
@@ -7,33 +12,52 @@
 
 namespace atlas::jobs::tests
 {
+/// @brief Scenario state for callback range case, isolated per test and released through RAII.
 struct callback_range_case
 {
+    /// @brief Scenario-owned size used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::size_t size;
+    /// @brief Scenario-owned grain used to observe behavior and cleanup without sharing mutable
+    /// state between tests.
     std::size_t grain;
 };
+
+/// @brief Print a readable parameter-case description for GoogleTest failure diagnostics.
 std::ostream& operator<<(std::ostream& output, const callback_range_case& value)
 {
     return output << "size=" << value.size << ", grain=" << value.grain;
 }
+
+/// @brief Scenario state for callback parallel tests, isolated per test and released through RAII.
 class callback_parallel_tests : public testing::TestWithParam<callback_range_case>
 {
 };
 
+/// @brief Verify success notifications observe every completed chunk.
 TEST_P(callback_parallel_tests, success_notifications_observe_every_completed_chunk)
 {
     job_system runtime{4};
     auto jobs = runtime.dispatcher();
     const auto parameters = GetParam();
     std::vector<int> values(parameters.size, 0);
-    auto source =
-        jobs.parallel_for("map", std::span{values}, parameters.grain,
-                          [](job_context&, std::span<int>& chunk) { std::ranges::fill(chunk, 1); });
+    auto source = jobs.parallel_for("map", std::span{values}, parameters.grain,
+                                    [](job_context&, std::span<int>& chunk)
+                                    {
+                                        std::ranges::fill(chunk, 1);
+                                    });
+
+    /// @brief Scenario state for input, isolated per test and released through RAII.
     struct input
     {
+        /// @brief Scenario-owned values used to observe behavior and cleanup without sharing
+        /// mutable state between tests.
         std::span<const int> values;
+        /// @brief Scenario-owned owner used to observe behavior and cleanup without sharing mutable
+        /// state between tests.
         std::thread::id owner;
     };
+
     auto notification = jobs.callbacks().on_success(
         source, "consume", input{values, std::this_thread::get_id()},
         [](job_context&, const task_handle& result, input& data)

@@ -33,6 +33,13 @@ Split code by responsibility and tests by behavioral context, including successf
 
 Follow `.editorconfig`, `.clang-format`, and `.clang-tidy`. Build outside the source tree. Apply project warnings and instrumentation to owned targets, not third-party libraries.
 
+Use the pinned C++/Protobuf/Python formatters and document owned source contracts
+with Doxygen comments or Python docstrings, including internal helpers and test
+fixtures. Run `python -m scripts.ci.format_sources --fix` to apply style, then the
+same command without `--fix` to check it. Missing contracts require authored prose;
+the formatter does not synthesize documentation. See [source style and documentation](docs/26_source_style_and_documentation.md)
+for component/file selection, control-block spacing, IDE tasks and CI gates.
+
 Run the relevant [Windows checks](docs/10_windows_development.md). Report actual results; no discovered tests must never be described as a passing suite. Coverage includes lines and branches but does not prove correctness or absence of races.
 
 ASan is available on the Windows toolchain. Native LLVM ThreadSanitizer is unavailable; retain explicit ownership, static analysis, dependency tests, and stress coverage without presenting these as equivalent race detection.

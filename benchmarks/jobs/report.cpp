@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief XML serialization of workload provenance, samples and bounded traces.
+ */
+
 #include "benchmark.hpp"
 
 #include <algorithm>
@@ -10,6 +15,7 @@ namespace atlas::jobs::workloads
 {
 namespace
 {
+/// @brief Escape text for the benchmark's XML report without opening storage.
 std::string xml(std::string_view value)
 {
     std::string result;
@@ -46,14 +52,20 @@ std::string xml(std::string_view value)
                 break;
         }
     }
+
     return result;
 }
+
+/// @brief Select the middle measured duration without treating it as a portable performance
+/// guarantee.
 std::uint64_t median(const std::vector<std::uint64_t>& values)
 {
     auto ordered = values;
     std::ranges::sort(ordered);
     return ordered[ordered.size() / 2];
 }
+
+/// @brief Serialize sequential/parallel sample durations into the benchmark XML report.
 void write_samples(std::ostream& output, const benchmark_result& result)
 {
     output << "<samples>\n";
@@ -62,8 +74,11 @@ void write_samples(std::ostream& output, const benchmark_result& result)
         output << "<sample sequential_ns=\"" << result.sequential_ns[index] << "\" parallel_ns=\""
                << result.parallel_ns[index] << "\"/>\n";
     }
+
     output << "</samples>\n";
 }
+
+/// @brief Serialize one task's identity, outcome and execution/join timing.
 void write_task(std::ostream& output, const task_trace& task)
 {
     output << "<task id=\"" << task.id << "\" parent_id=\"" << task.parent_id << "\" name=\""
@@ -81,8 +96,11 @@ void write_task(std::ostream& output, const task_trace& task)
     {
         output << "<prerequisite id=\"" << prerequisite << "\"/>\n";
     }
+
     output << "</task>\n";
 }
+
+/// @brief Serialize bounded task trace metadata into the workload report.
 void write_trace(std::ostream& output, const job_trace_report& trace)
 {
     std::unordered_set<std::uint64_t> parents;
@@ -90,6 +108,7 @@ void write_trace(std::ostream& output, const job_trace_report& trace)
     {
         parents.insert(task.parent_id);
     }
+
     std::vector<std::uint64_t> busy(trace.worker_count);
     std::array<std::uint64_t, 3> critical{};
     std::chrono::nanoseconds first = std::chrono::nanoseconds::max();
@@ -102,6 +121,7 @@ void write_trace(std::ostream& output, const job_trace_report& trace)
         {
             busy.at(task.worker_index) += execution;
         }
+
         first = std::min(first, task.submitted);
         last = std::max(last, task.completed);
         if (!task.caller_thread && !parents.contains(task.id))
@@ -110,6 +130,7 @@ void write_trace(std::ostream& output, const job_trace_report& trace)
             critical[category] = std::max(critical[category], execution);
         }
     }
+
     output << "<profile elapsed_ns=\"" << (last - first).count()
            << "\" leaf_critical_path_lower_bound_ns=\"" << critical[0] + critical[1] + critical[2]
            << "\" dropped=\"" << trace.dropped << "\" pending=\"" << trace.pending << "\">\n";
@@ -117,14 +138,17 @@ void write_trace(std::ostream& output, const job_trace_report& trace)
     {
         output << "<worker index=\"" << index << "\" callback_ns=\"" << busy[index] << "\"/>\n";
     }
+
     for (const auto& task : trace.tasks)
     {
         write_task(output, task);
     }
+
     output << "</profile>\n";
 }
 } // namespace
 
+/// @brief Write benchmark measurements, provenance, allocations and bounded trace metadata as XML.
 void write_report(std::ostream& output, const benchmark_options& options,
                   const benchmark_result& result)
 {

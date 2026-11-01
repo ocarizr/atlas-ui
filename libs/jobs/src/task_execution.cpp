@@ -1,18 +1,26 @@
+/**
+ * @file
+ * @brief Worker-side invocation, cooperative cancellation and scoped cleanup.
+ */
+
 #include "execution_context.hpp"
 #include "scheduler_state.hpp"
 
 namespace atlas::jobs::detail
 {
+/// @brief Execute a task body and preserve its original failure while retiring access guards.
 std::exception_ptr scheduler::invoke_task(const std::shared_ptr<task_state>& task)
 {
     if (task->delivery_abandoned)
     {
         return task->delivery_error;
     }
+
     if (task->skipped || task->body_suppressed)
     {
         return task->body_suppressed ? task->cancellation_error : std::exception_ptr{};
     }
+
     job_context context{weak_from_this(), task};
     std::exception_ptr error;
     auto* previous_task = current_task;
@@ -32,6 +40,7 @@ std::exception_ptr scheduler::invoke_task(const std::shared_ptr<task_state>& tas
     {
         error = std::current_exception();
     }
+
     current_task = previous_task;
     current_scheduler = previous_scheduler;
     try
@@ -55,9 +64,12 @@ std::exception_ptr scheduler::invoke_task(const std::shared_ptr<task_state>& tas
             error = std::current_exception();
         }
     }
+
     return error;
 }
 
+/// @brief Run ready work, apply cancellation/failure policy and release its body contribution to
+/// the join.
 void scheduler::execute_task(const std::shared_ptr<task_state>& task)
 {
     const auto error = invoke_task(task);

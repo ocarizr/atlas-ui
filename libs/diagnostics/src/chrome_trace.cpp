@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief UTF-8 validation and Chrome Trace Event JSON serialization to caller-owned streams.
+ */
+
 #include "profiling_state.hpp"
 
 #include <charconv>
@@ -8,6 +13,8 @@
 
 namespace atlas::diagnostics::detail
 {
+/// @brief Validate complete UTF-8 sequences, rejecting truncation, overlong forms and invalid code
+/// points.
 bool valid_utf8(std::string_view text) noexcept
 {
     std::uint32_t code = 0, minimum = 0;
@@ -20,6 +27,7 @@ bool valid_utf8(std::string_view text) noexcept
             {
                 return false;
             }
+
             code = (code << 6U) | (byte & 0x3fU);
             if (--remaining == 0 &&
                 (code < minimum || code > 0x10ffffU || (code >= 0xd800U && code <= 0xdfffU)))
@@ -54,9 +62,11 @@ bool valid_utf8(std::string_view text) noexcept
             return false;
         }
     }
+
     return remaining == 0;
 }
 
+/// @brief Escape a validated UTF-8 string for JSON without changing caller stream formatting.
 void write_json_string(std::ostream& output, std::string_view value)
 {
     static constexpr char digits[] = "0123456789abcdef";
@@ -91,16 +101,21 @@ void write_json_string(std::ostream& output, std::string_view value)
                 }
         }
     }
+
     output.put('"');
 }
+
 namespace
 {
+/// @brief Serialize nanosecond timestamps as microseconds without losing fractional precision.
 void write_microseconds(std::ostream& output, std::int64_t nanoseconds)
 {
     const auto fraction = nanoseconds % 1000;
     output << nanoseconds / 1000 << '.' << fraction / 100 << (fraction / 10) % 10 << fraction % 10;
 }
 } // namespace
+
+/// @brief Serialize one captured event with phase-specific fields and timing metadata.
 void write_event(std::ostream& output, const captured_event& event, std::uint32_t process)
 {
     output << "{\"name\":";
@@ -115,10 +130,12 @@ void write_event(std::ostream& output, const captured_event& event, std::uint32_
         output << ",\"dur\":";
         write_microseconds(output, event.duration);
     }
+
     if (event.phase == 'i')
     {
         output << ",\"s\":\"t\"";
     }
+
     output << ",\"args\":{";
     if (event.phase == 'C')
     {
@@ -128,6 +145,7 @@ void write_event(std::ostream& output, const captured_event& event, std::uint32_
         {
             throw std::runtime_error{"Counter serialization failed"};
         }
+
         output << "\"value\":";
         output.write(buffer, result.ptr - buffer);
     }
@@ -140,12 +158,15 @@ void write_event(std::ostream& output, const captured_event& event, std::uint32_
                << ",\"queue_wait_ns\":" << event.queue_wait.count()
                << ",\"join_ns\":" << event.join.count() << ",\"total_ns\":" << event.total.count();
     }
+
     output << "}}";
 }
 } // namespace atlas::diagnostics::detail
 
 namespace atlas::diagnostics
 {
+/// @brief Copy bounded capture state and serialize Chrome Trace Event JSON to a caller-owned
+/// stream.
 void profiler::write_chrome_trace(std::ostream& output) const
 {
     std::vector<detail::captured_event> events;
@@ -166,9 +187,11 @@ void profiler::write_chrome_trace(std::ostream& output) const
         {
             document << ',';
         }
+
         first = false;
         detail::write_event(document, event, impl_->options.process_id);
     }
+
     document << "],\"displayTimeUnit\":\"ms\",\"metadata\":{\"dropped\":" << counts.dropped
              << ",\"errors\":" << counts.errors << "}}";
     output << document.str();

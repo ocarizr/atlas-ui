@@ -2,17 +2,19 @@
 
 
 def plan_components(config, selected):
-    components = config['components']
+    """Resolve real link prerequisites and independently schedulable profile matrices."""
+    components = config["components"]
     needed = set()
 
     def visit(name, active):
+        """Traverse dependency edges while detecting cycles and retaining deterministic selection."""
         if name not in components:
-            raise ValueError(f'Unknown component: {name}')
+            raise ValueError(f"Unknown component: {name}")
         if name in active:
-            raise ValueError(f'Build prerequisite cycle: {name}')
-        if not components[name].get('build_targets') or name in needed:
+            raise ValueError(f"Build prerequisite cycle: {name}")
+        if not components[name].get("build_targets") or name in needed:
             return
-        for parent in components[name].get('build_requires', []):
+        for parent in components[name].get("build_requires", []):
             visit(parent, active | {name})
         needed.add(name)
 
@@ -20,20 +22,31 @@ def plan_components(config, selected):
         visit(name, set())
 
     def ancestors(name):
-        result = set(components[name].get('build_requires', []))
+        """Collect transitive prebuilt link prerequisites for one component."""
+        result = set(components[name].get("build_requires", []))
         for parent in tuple(result):
             result.update(ancestors(parent))
         return sorted(result)
 
     matrices, vendors, prerequisites = {}, {}, {}
     for name in sorted(needed):
-        matrices[name] = {'include': [
-            {'components': [name], 'configure': profile['configure'],
-             'configuration': profile['configuration']}
-            for profile in config['profiles'] if name not in profile.get('exclude_components', [])
-        ]}
+        matrices[name] = {
+            "include": [
+                {
+                    "components": [name],
+                    "configure": profile["configure"],
+                    "configuration": profile["configuration"],
+                }
+                for profile in config["profiles"]
+                if name not in profile.get("exclude_components", [])
+            ]
+        }
         prerequisites[name] = ancestors(name)
-        vendors[name] = sorted(set(components[name].get('vendors', [])))
-    return {'components': sorted(needed), 'matrices': matrices, 'vendors': vendors,
-            'prerequisites': prerequisites,
-            'groups': sorted({group for groups in vendors.values() for group in groups})}
+        vendors[name] = sorted(set(components[name].get("vendors", [])))
+    return {
+        "components": sorted(needed),
+        "matrices": matrices,
+        "vendors": vendors,
+        "prerequisites": prerequisites,
+        "groups": sorted({group for groups in vendors.values() for group in groups}),
+    }
