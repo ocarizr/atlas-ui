@@ -26,6 +26,12 @@ Keep large media as content rather than embedding it into generated source by de
 
 Proposed stages: source validation, dependency/import resolution, constructor/data generation, package assembly, compatibility checks, and standalone loading. Incremental cooking, compression, package granularity and deterministic-output requirements need contracts.
 
+The asset-bundle format is not defined. Bundle-aware cooking, assembly and runtime
+reading are deferred until a reviewed format specification establishes the shared
+writer/reader contract. Continue using loose assets through the streamer in the
+meantime; executable packaging is separate from asset-bundle assembly. Track format
+decisions and acceptance criteria in the [bundle dependency plan](15_streamer_and_media_jobs.md#bundle-dependency-and-interim-scope).
+
 ## Streaming
 
 ```text

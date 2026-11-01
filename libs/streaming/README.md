@@ -175,6 +175,11 @@ Further work includes bundle indexes/ranges, request generations, storage priori
 cache/prefetch policy, handle reuse, storage timing/telemetry adapters and a
 workload-specific performance gate. Bounded concurrency is not a measured disk
 speedup claim; tune the cap on representative devices and assets.
+The bundle format has not been defined: bundle reading and bundle-aware cooking/
+assembly depend on a reviewed format contract and are deferred. Continue with
+registered loose assets; memory sources remain supported. Do not assume a temporary
+bundle layout in consumers. Format decisions and independent follow-ups are tracked
+in the bundle dependency section of the design below.
 See the [design and implementation sequence](../../docs/15_streamer_and_media_jobs.md).
 
 ## Validation and remaining gates

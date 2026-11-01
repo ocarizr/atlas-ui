@@ -62,9 +62,41 @@ Combined playback additionally needs a common clock, timestamps, buffering/under
 ## Implementation sequence and acceptance
 
 1. **Current base:** memory/loose ranges, selected native/reference backends, persistent I/O, current direct jobs and child-copy grain policy, CPU priorities, cooperative cancellation, retained-byte budgets, shared PMR payload allocation, counters, errors and draining. Tests cover bounds, missing/unknown assets, callback/allocation failures, concurrent producers, reentrant requests, allocator/output lifetime and cleanup. The streamed Opus decode test remains.
-2. **Storage concurrency implemented; performance gate remains:** bounded Windows IOCP, specific-operation `CancelIoEx`, safe completion/drain ownership, active/peak/cancellation counters and controlled latency/fault fixtures. Tests prove pending I/O leaves CPU workers available and queued cancellation does not need a native slot. Handles are bounded per active request and closed after completion; idle reuse remains deferred until loose-file identity/invalidation is defined. Storage priority, generations and explicit retry policy remain open. Measure queued/read/decode latency, bytes, failures and allocations on representative assets before claiming speedups; preserve SDK-free tests. The next functional increment is bundles.
-3. **Bundles:** versioned cooked index, IDs, entry offsets/lengths, integrity/compression metadata. Translate ranges with overflow-safe bounds and decoded-size budgets. Compare loose, memory and bundle results through the same API/tests. No bundle backend is implemented yet.
+2. **Storage concurrency implemented; performance gate remains:** bounded Windows IOCP, specific-operation `CancelIoEx`, safe completion/drain ownership, active/peak/cancellation counters and controlled latency/fault fixtures. Tests prove pending I/O leaves CPU workers available and queued cancellation does not need a native slot. Handles are bounded per active request and closed after completion; idle reuse remains deferred until loose-file identity/invalidation is defined. Storage priority, generations and explicit retry policy remain open. Measure queued/read/decode latency, bytes, failures and allocations on representative assets before claiming speedups; preserve SDK-free tests. Bundle implementation is deferred until its format contract is defined; continue with loose assets in the meantime.
+3. **Bundles (blocked by format design):** first define and review the bundle format; only then implement a versioned cooked index, IDs, entry offsets/lengths and integrity/compression metadata. Translate ranges with overflow-safe bounds and decoded-size budgets. Compare loose, memory and bundle results through the same API/tests. No bundle backend is implemented yet.
 4. **Media adapters:** streamer-backed WebM parsing/seek, real AV1/Opus fixtures, corruption, stale completions, packet ordering, decoder errors and buffer lifetimes. Containers/codecs never open files.
 5. **Playback/performance:** device-loss/underrun recovery, seek cancellation, consumption-driven PCM reclamation, startup/loop/scrub and measured synchronization. Compare sequential and jobified processing on reference assets/hardware before claiming speedups.
 
 Production UI may use the validated memory/loose streamer before bundles or full playback exist, after the scheduler's [UI-readiness gate](14_job_system_implementation_plan.md). The exclusive storage boundary and job-based consumers apply from the first resource-loading UI.
+
+## Bundle dependency and interim scope
+
+The bundle format is not defined. The items above describe future requirements,
+not an agreed on-disk specification. Bundle reading, bundle-aware cooking and bundle
+assembly depend on that format contract and remain deferred. The current executable
+packaging pipeline does not establish an asset-bundle format.
+
+Continue developing and validating with registered loose assets. Memory sources
+remain useful for tests and preloaded bytes. Consumers keep using logical asset IDs,
+exact ranges and immutable buffers through the streamer; they must not introduce
+filesystem access or assume a provisional bundle layout.
+
+Before implementing bundles, record and review these decisions:
+
+- Container header, format identification, versioning, byte order and compatibility rules.
+- Stable asset identity, index layout, entry offsets/lengths, alignment and overflow-safe bounds.
+- Integrity checks, corrupt/truncated input behavior and optional compression/chunking policy,
+  including random-range access and decoded-memory budgets.
+- Deterministic writer/cooker output, reader/writer ownership and validation fixtures.
+
+After that dependency is resolved, implement the writer/index and streamer adapter
+against the same contract. Require loose/memory/bundle result equivalence, malformed
+index and range rejection, cancellation, memory bounds and cleanup tests before
+accepting bundle loading. The consumer-facing read API should remain independent
+of physical storage layout.
+
+Work that does not require bundles can continue on loose assets: representative
+queued/read/decode latency and allocation measurements, storage priority, resource
+generations, explicit retry/backpressure policy and timing/telemetry adapters.
+Handle caching additionally depends on a loose-file identity/invalidation policy.
+These follow-ups can be planned independently while bundle implementation remains deferred.
