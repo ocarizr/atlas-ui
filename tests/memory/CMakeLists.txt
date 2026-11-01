@@ -1,0 +1,11 @@
+add_executable(atlas_memory_tests resource_tests.cpp concurrency_tests.cpp)
+target_link_libraries(atlas_memory_tests PRIVATE atlas::memory GTest::gtest_main)
+atlas_configure_test(atlas_memory_tests)
+target_compile_definitions(atlas_memory_tests PRIVATE ATLAS_EXPECTED_MEMORY_BACKEND="${atlas_memory_backend}")
+if(ATLAS_TARGET_PLATFORM STREQUAL "windows" AND ATLAS_BUILD_WINDOWS_INTEGRATION)
+    target_sources(atlas_memory_tests PRIVATE ../platform/windows/memory/redirection_tests.cpp)
+    target_compile_definitions(atlas_memory_tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+    target_link_libraries(atlas_memory_tests PRIVATE kernel32)
+endif()
+gtest_discover_tests(atlas_memory_tests DISCOVERY_MODE PRE_TEST
+    PROPERTIES LABELS memory TIMEOUT 20)

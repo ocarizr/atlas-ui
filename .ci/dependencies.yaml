@@ -1,5 +1,6 @@
 groups:
   testing: [gtest]
+  memory: [mimalloc]
   content: [entt, pugixml, yaml-cpp, spdlog]
   media: [dav1d, libwebm, opus]
   ipc: [grpc, protobuf]

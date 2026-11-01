@@ -4,7 +4,7 @@
 
 PRs and main/tag delivery share `reusable_validation.yml`. It starts independent
 formatting/documentation checks, repository quality checks,
-five dependency-product producers and independently named component pipelines.
+six dependency-product producers and independently named component pipelines.
 There is no global dependency-preparation or quality barrier before native builds.
 Each component waits only for its own external groups and compiled Atlas prerequisites.
 
@@ -22,6 +22,9 @@ flowchart LR
   plan --> media[Media product]
   plan --> transport[gRPC / Protobuf product]
   plan --> content[Content / logging product]
+  plan --> allocator[Memory product]
+  allocator --> memory[PMR memory library]
+  testing --> memory
   testing --> jobs
   jobs --> streaming
   media --> streaming
@@ -30,6 +33,9 @@ flowchart LR
   jobs --> application
   ipc --> application
   content --> application
+  memory --> application
+  memory --> memory_integration[Memory consumer checks]
+  streaming --> memory_integration
   application --> game
   application --> editor
   application --> tools

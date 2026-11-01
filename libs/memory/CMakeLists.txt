@@ -1,0 +1,11 @@
+add_library(atlas_memory STATIC src/memory_resource.cpp)
+add_library(atlas::memory ALIAS atlas_memory)
+target_include_directories(atlas_memory PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+target_compile_features(atlas_memory PUBLIC cxx_std_20)
+if(atlas_memory_backend STREQUAL "mimalloc")
+    target_link_libraries(atlas_memory PRIVATE $<IF:$<TARGET_EXISTS:mimalloc-static>,mimalloc-static,mimalloc>)
+    target_compile_definitions(atlas_memory PRIVATE ATLAS_MEMORY_MIMALLOC=1)
+endif()
+atlas_configure_target(atlas_memory)
+atlas_export_library(atlas_memory memory memory)

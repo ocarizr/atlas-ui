@@ -146,6 +146,8 @@ Budget exhaustion throws `std::bad_alloc`, with normal task failure propagation.
 The upstream resource must outlive all work using it and support concurrent
 allocation/deallocation from different workers when shared by several scopes. The budget counts block
 storage, not allocator metadata or the sum of every task in the application.
+The application may supply [Atlas memory](../memory/README.md) as this upstream;
+jobs retain their standard PMR contract and do not link mimalloc themselves.
 `handle.scratch_usage()` becomes available after completion and reports successful
 allocation calls, requested bytes, block count and the scope's reserved high-water
 mark. Memory is already released when these terminal statistics are read.

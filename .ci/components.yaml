@@ -1,4 +1,39 @@
 components:
+  memory:
+    paths:
+    - libs/memory/**
+    - tests/memory/**
+    - tests/platform/windows/memory/**
+    - benchmarks/memory/**
+    depends_on: []
+    build_targets:
+    - atlas_memory
+    - atlas_memory_tests
+    - atlas_memory_benchmark
+    test_labels:
+    - memory
+    build_requires: []
+    vendors:
+    - testing
+    - memory
+  memory-integration:
+    paths:
+    - tests/memory_integration/**
+    depends_on:
+    - memory
+    - jobs
+    - streaming
+    build_targets:
+    - atlas_memory_integration_tests
+    test_labels:
+    - memory-integration
+    build_requires:
+    - memory
+    - jobs
+    - streaming
+    vendors:
+    - testing
+    - memory
   diagnostics:
     paths:
     - libs/diagnostics/**
@@ -111,6 +146,7 @@ components:
     build_requires:
     - application
     vendors:
+    - memory
     - ipc
     - content
   editor:
@@ -127,6 +163,7 @@ components:
     build_requires:
     - application
     vendors:
+    - memory
     - ipc
     - content
   tools:
@@ -144,6 +181,7 @@ components:
     build_requires:
     - application
     vendors:
+    - memory
     - ipc
     - content
   jobs:
@@ -212,6 +250,7 @@ components:
     - libs/application/**
     - tests/application/**
     depends_on:
+    - memory
     - jobs
     - jobs-diagnostics
     - ipc
@@ -222,9 +261,11 @@ components:
     test_labels:
     - application
     build_requires:
+    - memory
     - jobs-diagnostics
     - ipc
     vendors:
+    - memory
     - testing
     - ipc
     - content

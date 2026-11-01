@@ -36,6 +36,13 @@ jobs:
     with:
       group: testing
       key: ${{ fromJSON(needs.plan.outputs.keys).testing }}
+  vendor-memory:
+    needs: plan
+    if: ${{ contains(fromJSON(needs.plan.outputs.groups), 'memory') }}
+    uses: ./.github/workflows/reusable_dependencies.yml
+    with:
+      group: memory
+      key: ${{ fromJSON(needs.plan.outputs.keys).memory }}
   vendor-content:
     needs:
     - plan
@@ -78,6 +85,35 @@ jobs:
       component: jobs
       version: ${{ inputs.version }}
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).jobs) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  memory:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-memory
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'memory') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: memory
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).memory) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  memory-integration:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-memory
+    - memory
+    - jobs
+    - streaming
+    if: ${{ contains(fromJSON(needs.plan.outputs.components), 'memory-integration') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: memory-integration
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['memory-integration']) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
   diagnostics:
@@ -154,6 +190,8 @@ jobs:
     - vendor-testing
     - vendor-ipc
     - vendor-content
+    - vendor-memory
+    - memory
     - jobs-diagnostics
     - ipc
     if: ${{ contains(fromJSON(needs.plan.outputs.components), 'application') }}
@@ -196,6 +234,7 @@ jobs:
     - plan
     - vendor-ipc
     - vendor-content
+    - vendor-memory
     - application
     if: ${{ contains(fromJSON(needs.plan.outputs.components), 'game') }}
     uses: ./.github/workflows/reusable_build.yml
@@ -210,6 +249,7 @@ jobs:
     - plan
     - vendor-ipc
     - vendor-content
+    - vendor-memory
     - application
     if: ${{ contains(fromJSON(needs.plan.outputs.components), 'editor') }}
     uses: ./.github/workflows/reusable_build.yml
@@ -224,6 +264,7 @@ jobs:
     - plan
     - vendor-ipc
     - vendor-content
+    - vendor-memory
     - application
     if: ${{ contains(fromJSON(needs.plan.outputs.components), 'tools') }}
     uses: ./.github/workflows/reusable_build.yml
@@ -242,11 +283,14 @@ jobs:
     - format
     - reference
     - vendor-testing
+    - vendor-memory
     - vendor-content
     - vendor-media
     - vendor-ipc
     - vendor-graphics
     - jobs
+    - memory
+    - memory-integration
     - diagnostics
     - jobs-diagnostics
     - jobs-benchmark
