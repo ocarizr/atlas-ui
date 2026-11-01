@@ -8,6 +8,7 @@ void scheduler::complete_task(std::shared_ptr<task_state> task)
     while (task)
     {
         auto current = std::move(task);
+        const auto parent_id = observer && current->parent ? current->parent->id : 0;
         // Keep the parent's payload alive until every child is terminal. User
         // cleanup runs outside scheduler locks and before publishing completion.
         task_body retired;
@@ -21,6 +22,10 @@ void scheduler::complete_task(std::shared_ptr<task_state> task)
         {
             const std::lock_guard lock{mutex};
             task = finalize_task(current);
+        }
+        if (observer)
+        {
+            observe_task(current, parent_id);
         }
         current->subscribers.clear();
         current->retired_parent = {};
@@ -87,6 +92,10 @@ std::shared_ptr<task_state> scheduler::finalize_task(const std::shared_ptr<task_
     finish_trace(*task, outcome, now);
     --waiting;
     ++completed;
+    if (observer)
+    {
+        ++observing;
+    }
     failed += outcome == job_status::failed ? 1U : 0U;
     skipped += outcome == job_status::skipped ? 1U : 0U;
     cancelled += outcome == job_status::cancelled ? 1U : 0U;

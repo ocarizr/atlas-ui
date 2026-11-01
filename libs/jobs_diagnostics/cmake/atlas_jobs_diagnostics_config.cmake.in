@@ -1,0 +1,5 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+find_dependency(atlas_jobs 0.2.0 CONFIG)
+find_dependency(atlas_diagnostics 0.1.0 CONFIG)
+include("${CMAKE_CURRENT_LIST_DIR}/../atlas/jobs_diagnostics.cmake")

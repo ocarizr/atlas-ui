@@ -4,6 +4,12 @@
 
 Use spdlog for console/file output, rotation, asynchronous logging, categories, verbosity and scopes. The editor log window consumes shared logging infrastructure. YAML config is read at startup; reloadable settings and precedence need explicit contracts.
 
+The [diagnostics library and jobs adapter](24_diagnostics_and_packages.md) now implement
+structured logging, bounded async queues, injected rotation, YAML parsing and
+bounded Chrome trace export. Console output is available; physical file persistence
+requires a storage write adapter. Editor visualization, configuration hot reload and
+full causal profiling remain future integration work.
+
 Profiling covers CPU/frame/job timings, memory, streaming, dependencies, frame/job timelines and asset loads, with immediate editor visualization. Proposed extra metrics include queue time, barrier waits, dirty-region counts and render-data cost. Measure instrumentation overhead separately.
 
 ## Testing discipline

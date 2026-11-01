@@ -9,7 +9,9 @@ from scripts.ci import verify_vendor_inputs
 @pytest.mark.parametrize('component,groups,pattern', [
     pytest.param('jobs', ['testing'], '@()', id='independent-library'),
     pytest.param('streaming', ['testing', 'media'], '@(jobs)', id='single-prerequisite'),
-    pytest.param('editor', ['ipc', 'content'], '@(application|ipc|jobs)', id='transitive-prerequisites'),
+    pytest.param('editor', ['ipc', 'content'],
+                 '@(application|diagnostics|ipc|jobs|jobs-diagnostics)',
+                 id='transitive-prerequisites'),
 ])
 def test_input_plan_restores_only_required_products(tmp_path, monkeypatch, component, groups, pattern):
     destination = tmp_path / 'outputs'

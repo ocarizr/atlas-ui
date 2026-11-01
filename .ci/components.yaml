@@ -1,4 +1,36 @@
 components:
+  diagnostics:
+    paths:
+    - libs/diagnostics/**
+    - tests/diagnostics/**
+    depends_on: []
+    build_targets:
+    - atlas_diagnostics
+    - atlas_diagnostics_tests
+    test_labels:
+    - diagnostics
+    build_requires: []
+    vendors:
+    - testing
+    - content
+  jobs-diagnostics:
+    paths:
+    - libs/jobs_diagnostics/**
+    - tests/jobs_diagnostics/**
+    depends_on:
+    - jobs
+    - diagnostics
+    build_targets:
+    - atlas_jobs_diagnostics
+    - atlas_jobs_diagnostics_tests
+    test_labels:
+    - jobs-diagnostics
+    build_requires:
+    - jobs
+    - diagnostics
+    vendors:
+    - testing
+    - content
   jobs-benchmark:
     paths:
     - benchmarks/jobs/**
@@ -178,6 +210,7 @@ components:
     - tests/application/**
     depends_on:
     - jobs
+    - jobs-diagnostics
     - ipc
     - dependencies
     build_targets:
@@ -186,7 +219,7 @@ components:
     test_labels:
     - application
     build_requires:
-    - jobs
+    - jobs-diagnostics
     - ipc
     vendors:
     - testing
@@ -211,6 +244,8 @@ global_paths:
 - vcpkg-configuration.json
 - dependencies/**
 documentation_paths:
+- libs/diagnostics/README.md
+- libs/jobs_diagnostics/README.md
 - libs/jobs/README.md
 - README.md
 - CONTRIBUTING.md

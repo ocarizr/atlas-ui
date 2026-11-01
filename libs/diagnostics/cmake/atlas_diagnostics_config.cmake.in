@@ -1,0 +1,6 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+find_dependency(spdlog 1.17 CONFIG)
+find_dependency(yaml-cpp 0.9 CONFIG)
+include("${CMAKE_CURRENT_LIST_DIR}/../atlas/diagnostics.cmake")

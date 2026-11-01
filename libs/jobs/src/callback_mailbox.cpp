@@ -35,9 +35,9 @@ struct callback_owner
 thread_local std::list<callback_owner> owners;
 } // namespace
 
-std::shared_ptr<const void> current_thread_identity()
+std::shared_ptr<const thread_identity> current_thread_identity()
 {
-    thread_local auto identity = std::make_shared<const int>(0);
+    thread_local auto identity = std::make_shared<const thread_identity>();
     return identity;
 }
 

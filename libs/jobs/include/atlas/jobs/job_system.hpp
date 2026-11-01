@@ -2,6 +2,7 @@
 
 #include <atlas/jobs/job_dispatcher.hpp>
 #include <atlas/jobs/job_graph.hpp>
+#include <atlas/jobs/job_observer.hpp>
 
 #include <array>
 #include <cstddef>
@@ -18,6 +19,7 @@ struct job_system_options
     job_sanitizer_options sanitizer;
     scratch_options scratch;
     std::size_t trace_capacity{0};
+    std::shared_ptr<job_observer> observer;
 };
 
 class job_system;

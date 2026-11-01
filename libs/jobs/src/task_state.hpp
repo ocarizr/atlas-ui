@@ -7,11 +7,16 @@
 #include <atomic>
 #include <chrono>
 #include <limits>
+#include <thread>
 
 namespace atlas::jobs::detail
 {
 struct callback_mailbox;
-std::shared_ptr<const void> current_thread_identity();
+struct thread_identity
+{
+    std::thread::id value{std::this_thread::get_id()};
+};
+std::shared_ptr<const thread_identity> current_thread_identity();
 
 using task_clock = std::chrono::steady_clock;
 
@@ -39,7 +44,7 @@ struct task_marker
 struct task_state
 {
     std::weak_ptr<scheduler> runtime;
-    std::shared_ptr<const void> creator_thread;
+    std::shared_ptr<const thread_identity> creator_thread;
     std::weak_ptr<task_state> creator;
     bool scoped_child{false};
     bool observes_completion{false};

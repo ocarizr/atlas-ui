@@ -19,12 +19,12 @@ job_handle::job_handle(std::shared_future<void> completion, std::weak_ptr<const 
 }
 
 job_system::job_system(std::size_t worker_count, job_sanitizer_options sanitizer)
-    : job_system{job_system_options{worker_count, sanitizer, {}, 0}}
+    : job_system{job_system_options{worker_count, sanitizer, {}, 0, {}}}
 {
 }
 
 job_system::job_system(job_system_options options)
-    : impl_{std::make_shared<detail::scheduler>(options)}
+    : impl_{std::make_shared<detail::scheduler>(std::move(options))}
 {
 }
 

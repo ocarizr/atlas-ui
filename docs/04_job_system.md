@@ -26,7 +26,11 @@ Idle workers may park and wake. Scheduler synchronization is acceptable; long bl
 
 Start with a persistent pool, short runnable jobs, and dependency counters. Work stealing can be added if profiling shows queue contention or imbalance. Fibers and C++20 coroutines are not required just to represent A -> B.
 
-Worker count is configured by the composition root; shutdown drains admitted work. Affinity, main-thread participation, priorities, fairness, cancellation and allocation optimization remain open. The original 16-worker configuration was an example, not a fixed hardware requirement. Worker configuration uses YAML.
+Worker count is configured by the composition root; shutdown drains admitted work.
+Weighted priorities, cooperative cancellation and caller/worker-affine notifications
+are implemented. General CPU affinity, work stealing and further allocation tuning
+remain measurement-driven. The original 16-worker configuration was an example,
+not a fixed hardware requirement. Worker configuration uses YAML.
 
 ## Frame boundaries
 
@@ -61,6 +65,9 @@ Measure, Arrange, Geometry, and RenderData have deterministic synchronization bo
 
 ## Remaining low-level contracts
 
+See the [tracked gaps and acceptance criteria](25_job_system_backlog.md) for the
+prioritized follow-up backlog, including bounded admission and diagnostics coverage.
+
 | Area | Open decisions |
 | --- | --- |
 | Queues | Weighted FIFO priorities/fairness implemented; local queues and work stealing remain measurement-driven |
@@ -80,3 +87,6 @@ See [completion callbacks](22_job_completion_callbacks.md) for unconditional and
 Direct task completion now reuses terminal publication and scheduler signaling,
 removing per-task future storage. See the [Milestone 5 optimization report](23_job_scheduler_optimization.md)
 for measurements and the criteria for further queue/allocator changes.
+
+An optional terminal observer integrates the [diagnostics package](24_diagnostics_and_packages.md)
+outside scheduler locks while retaining jobs' standard-library-only dependencies.

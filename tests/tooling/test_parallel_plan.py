@@ -17,9 +17,23 @@ def test_jobs_producer_needs_testing_but_not_grpc(configuration):
 
 def test_editor_requires_link_inputs_without_selecting_game(configuration):
     plan = plan_components(configuration, {'editor'})
-    assert set(plan['components']) == {'editor', 'application', 'ipc', 'jobs'}
+    assert set(plan['components']) == {'editor', 'application', 'ipc', 'jobs',
+                                       'diagnostics', 'jobs-diagnostics'}
     assert 'game' not in plan['components']
-    assert plan['prerequisites']['editor'] == ['application', 'ipc', 'jobs']
+    assert plan['prerequisites']['editor'] == ['application', 'diagnostics', 'ipc',
+                                               'jobs', 'jobs-diagnostics']
+
+
+def test_diagnostics_producer_needs_content_but_not_grpc(configuration):
+    plan = plan_components(configuration, {'diagnostics'})
+    assert plan['vendors']['diagnostics'] == ['content', 'testing']
+    assert plan['prerequisites']['diagnostics'] == []
+
+
+def test_jobs_adapter_imports_independent_packages(configuration):
+    plan = plan_components(configuration, {'jobs-diagnostics'})
+    assert set(plan['components']) == {'jobs', 'diagnostics', 'jobs-diagnostics'}
+    assert plan['prerequisites']['jobs-diagnostics'] == ['diagnostics', 'jobs']
 
 
 def test_each_matrix_row_validates_one_component(configuration):

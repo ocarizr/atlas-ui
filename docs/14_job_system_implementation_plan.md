@@ -136,4 +136,9 @@ options. Consumer-specific profiling remains the gate for more invasive changes.
 
 ## Validation strategy
 
+The [job-system backlog](25_job_system_backlog.md) tracks remaining production
+contracts, validation limits, diagnostics/API gaps and measurement-driven options.
+Implemented milestones do not imply that every consumer integration or optimization
+is complete; use the backlog's acceptance evidence to close follow-up work.
+
 Use GoogleTest fixtures/parameterized cases and controlled synchronization, with finite CTest timeouts for deadlock diagnostics. Run Debug/Release, ASan, MSVC analysis, clang-tidy and LLVM coverage on Windows. Stress dependency/lifecycle races with reproducible schedules and repeated runs. Native TSan remains unavailable on the selected Windows toolchain; do not claim race freedom from ASan or coverage.

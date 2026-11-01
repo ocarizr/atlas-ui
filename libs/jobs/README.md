@@ -10,6 +10,16 @@ handle waits avoid the scheduler mutex; pending waits still cooperate with the
 caller's notification queue. See the [measured optimization report](../../docs/23_job_scheduler_optimization.md)
 for allocation/timing evidence and the limits of the current scheduler.
 
+The [follow-up backlog](../../docs/25_job_system_backlog.md) records outstanding
+production contracts, safety/observability limits and deferred optimization gates.
+
+Version 0.2 adds an optional `job_system_options::observer` for terminal direct-task
+events outside scheduler locks. `wait_idle()` and `shutdown()` drain these deliveries;
+source handles may become observable before delivery finishes. Observer callbacks
+are noexcept and cannot wait, reuse saved contexts or perform external I/O. The
+[diagnostics adapter](../jobs_diagnostics/README.md) integrates logging and Chrome
+traces without adding spdlog to jobs. Rebuild matching clients after this layout change.
+
 ## Three explicit dispatch relationships
 
 The application creates one `job_system` and injects copyable `job_dispatcher`
@@ -192,7 +202,7 @@ cmake --install build/jobs --config Debug --prefix build/jobs-install
 In the consuming project's CMake:
 
 ```cmake
-find_package(atlas_jobs CONFIG REQUIRED)
+find_package(atlas_jobs 0.2.0 CONFIG REQUIRED)
 target_link_libraries(my_application PRIVATE atlas::jobs)
 ```
 
