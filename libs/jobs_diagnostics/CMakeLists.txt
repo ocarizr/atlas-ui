@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    project(atlas_jobs_diagnostics VERSION 0.1.0 LANGUAGES CXX)
+    project(atlas_jobs_diagnostics VERSION 0.2.0 LANGUAGES CXX)
     find_package(atlas_jobs 0.2.0 CONFIG REQUIRED)
-    find_package(atlas_diagnostics 0.1.0 CONFIG REQUIRED)
+    find_package(atlas_diagnostics 0.2.0 CONFIG REQUIRED)
 endif()
 add_library(atlas_jobs_diagnostics STATIC src/observer.cpp)
 add_library(atlas::jobs_diagnostics ALIAS atlas_jobs_diagnostics)
@@ -28,7 +28,7 @@ include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/atlas_jobs_diagnostics_config.cmake.in
     "${CMAKE_CURRENT_BINARY_DIR}/atlas_jobs_diagnosticsConfig.cmake" INSTALL_DESTINATION share/atlas_jobs_diagnostics)
 write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/atlas_jobs_diagnosticsConfigVersion.cmake"
-    VERSION 0.1.0 COMPATIBILITY SameMinorVersion)
+    VERSION 0.2.0 COMPATIBILITY SameMinorVersion)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/atlas_jobs_diagnosticsConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/atlas_jobs_diagnosticsConfigVersion.cmake" DESTINATION share/atlas_jobs_diagnostics)
 install(FILES README.md DESTINATION share/atlas_jobs_diagnostics)

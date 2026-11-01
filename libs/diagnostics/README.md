@@ -1,9 +1,106 @@
 # Atlas Diagnostics
 
-A reusable C++20 library for structured logging and bounded profiling capture.
+A reusable C++20 library for structured logging, bounded profiling and numeric metrics.
 Public headers expose standard C++ types only. spdlog and yaml-cpp are private
 implementation dependencies; no Atlas application, jobs, storage or Windows SDK
 dependency is required.
+
+## Metrics
+
+Metrics are aggregated numeric series, separate from logs and profiler counter
+events. Applications explicitly create an instance and record observations; the
+library does not sample CPU, discover application events, collect user data, start
+timers/threads, install a global registry or send anything automatically.
+
+```cpp
+#include <atlas/diagnostics/metrics.hpp>
+
+atlas::diagnostics::metrics collection;
+collection.increment("menu.visits", 1, {{"screen", "settings"}});
+collection.set("cpu.percent", 12.5); // The caller supplies any sampled value.
+auto snapshot = collection.snapshot();
+```
+
+`increment` adds a finite nonnegative double to a cumulative counter; `set` replaces
+a gauge with any finite double, including negative values. A name has one kind per
+instance, even across attributes. Both return false for invalid/rejected observations
+without changing existing values. Counter overflow is rejected. Doubles do not
+preserve every integer above 2^53; this is not an exact accounting ledger. Gauges
+represent the last accepted update in lock order, not an average or distribution.
+Concurrent arrival order can affect gauges and floating-point sums; these
+observations are not deterministic application state or replay input.
+
+A series is its case-sensitive UTF-8 name plus sorted key/value attributes.
+Attribute order does not create duplicate series; duplicate keys are rejected.
+Names/keys must be nonempty; values may be empty. ASCII control characters and
+invalid UTF-8 are rejected. Values and labels are copied and owned. Choose stable
+names that include units where useful, such as `cpu.percent` or `io.bytes`.
+
+`metrics_options` bounds series (1024), attributes per series (8), and bytes per
+name/key/value (256) by default. Zero attributes is allowed; series/text limits
+must be positive. New series beyond capacity return false and increment `dropped`;
+existing series remain writable. Invalid values/identities, type mismatches and
+allocation failures increment `rejected`. `accepted` counts applied observations.
+Statistics counters are observational and are not transactional export receipts.
+
+Concurrent recording/snapshots are synchronized. Snapshots own a consistent copy
+and remain usable after the collection is destroyed. Stop/join all callers before
+destroying the collection. Points are
+sorted by name/attributes, with cumulative values and system-clock start/capture
+timestamps. Wall-clock adjustments can affect those timestamps; they are not latency
+measurements or unique registry IDs. Repeated snapshots do not consume/reset data.
+There is no eviction/reset or histogram/distribution instrument in this increment.
+Avoid high-cardinality labels such as user IDs, request IDs or arbitrary asset paths.
+Configured capacity bounds retained series/payload, not all allocator overhead,
+caller-owned snapshots or temporary recording allocations. This is not a lock-free
+or allocation-free real-time API; do not use it from a device callback.
+
+### Reporting and telemetry adapters
+
+Implement `metrics_output::publish(const metric_snapshot&)` to map snapshots into
+an application telemetry transport, platform analytics SDK or test recorder:
+
+```cpp
+class memory_metrics_output final : public atlas::diagnostics::metrics_output
+{
+  public:
+    void publish(const atlas::diagnostics::metric_snapshot& snapshot) override
+    {
+        saved = snapshot; // Copy if the adapter needs the data after this call.
+    }
+    atlas::diagnostics::metric_snapshot saved;
+};
+
+memory_metrics_output output;
+collection.report(output); // Explicit, synchronous, on this calling thread.
+```
+
+`report` snapshots first, releases the collection lock, then calls the output once.
+Output failure (including nonstandard exceptions) returns false, increments
+`export_errors` and preserves the cumulative data. Successful return increments
+`exported`; it means the adapter returned, not that a remote server persisted data.
+There are no automatic retries, delta temporality, network connections or background
+delivery. Disabled instances reject recording/reporting without invoking outputs.
+Direct `snapshot()` may throw on allocation failure; `report()` contains such failures.
+Adapters must interpret counters as cumulative, not add every snapshot as a new
+increment. Delta translation, source identity and restart detection belong to the
+adapter/application contract.
+
+An output may record new observations; they belong to a later snapshot. Do not
+recursively call `report` from an output. Concurrent reports require a thread-safe
+output and application-defined ordering; the collection does not serialize transport
+delivery. Async adapters must copy/queue owned snapshots, define bounded queues,
+flush/shutdown/retry policies, and outlive their accepted deliveries. Perform blocking
+transport work outside CPU-job workers. Storage writes stay behind the streamer.
+
+Telemetry transport can be a separate library; analytics names, user/session identity,
+consent and event-to-metric mappings belong to the application. A numeric cumulative
+counter is not an analytics event stream. No Unity Analytics, Grafana/Prometheus or
+other vendor integration is provided or configured here. Histograms, exporter formats
+and platform adapters require their own contracts and validation when needed.
+
+Version 0.2 adds metrics and extends `diagnostics_settings`. Rebuild matching clients
+and use the matching jobs-diagnostics 0.2 package; do not mix compiled 0.1 interfaces.
 
 ## Logging
 
@@ -121,6 +218,11 @@ profiling:
   enabled: true
   max_events: 65536
   max_string_bytes: 8388608
+metrics:
+  enabled: true
+  max_series: 1024
+  max_attributes: 8
+  max_text_bytes: 256
 ```
 
 ## Standalone package
@@ -131,7 +233,7 @@ cmake --build build/diagnostics --config Debug
 cmake --install build/diagnostics --config Debug --prefix build/diagnostics-install
 ```
 
-Consumers use `find_package(atlas_diagnostics 0.1.0 CONFIG REQUIRED)` and link
+Consumers use `find_package(atlas_diagnostics 0.2.0 CONFIG REQUIRED)` and link
 `atlas::diagnostics`. Provide spdlog 1.17+, yaml-cpp 0.9+ compatible packages and matching
 compiler/CRT/configuration. Validation uses the repository's pinned versions.
 Package compatibility follows the same minor version while the API is 0.x.

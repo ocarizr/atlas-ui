@@ -97,7 +97,7 @@ the distinction between internal build artifacts and deliverable packaging.
 | [Job scheduling and cancellation](docs/21_job_scheduling_and_cancellation.md) | Priority clients, fairness bounds, cooperative stop and lifecycle |
 | [Job completion callbacks](docs/22_job_completion_callbacks.md) | Outcome filters, caller pumping, worker affinity and joined listener scopes |
 | [Scheduler optimization](docs/23_job_scheduler_optimization.md) | Completion storage, measured allocations/timings and candidate decisions |
-| [Diagnostics and packages](docs/24_diagnostics_and_packages.md) | Logging, Chrome trace export, jobs integration and repository strategy |
+| [Diagnostics and packages](docs/24_diagnostics_and_packages.md) | Logging, metrics/telemetry adapters, Chrome trace export, jobs integration and package strategy |
 | [Job-system backlog](docs/25_job_system_backlog.md) | Remaining gaps, priorities, completion criteria and deferred optimizations |
 | [Job safety and reuse](libs/jobs/README.md) | Declared-access sanitizer, limitations, standalone build and package |
 | [Job graph usage](docs/17_job_graph_usage.md) | Generic examples, dependencies, errors, ownership and diagnostics |

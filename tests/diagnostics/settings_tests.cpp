@@ -3,6 +3,16 @@
 
 namespace atlas::diagnostics::tests
 {
+TEST(settings_tests, yaml_configures_metrics_without_enabling_sampling_or_transport)
+{
+    const auto settings = parse_settings("metrics: {enabled: false, max_series: 3, "
+                                         "max_attributes: 0, max_text_bytes: 32}");
+    EXPECT_FALSE(settings.metrics.enabled);
+    EXPECT_EQ(settings.metrics.max_series, 3U);
+    EXPECT_EQ(settings.metrics.max_attributes, 0U);
+    EXPECT_EQ(settings.metrics.max_text_bytes, 32U);
+}
+
 TEST(settings_tests, yaml_configures_logging_and_profiling_without_opening_files)
 {
     const auto settings = parse_settings("logging:\n  level: warning\n  asynchronous: false\n"
@@ -27,5 +37,9 @@ INSTANTIATE_TEST_SUITE_P(documents, invalid_settings_tests,
                          testing::Values("logging: {level: loud}", "logging: {queue_capacity: 0}",
                                          "profiling: {max_events: -1}", "unknown: true",
                                          "logging: []", "logging: {asynchronous: maybe}",
-                                         "logging: {typo: true}"));
+                                         "logging: {typo: true}", "metrics: {max_series: 0}",
+                                         "metrics: {max_attributes: -1}",
+                                         "metrics: {max_text_bytes: 0}",
+                                         "metrics: {enabled: maybe}", "metrics: {unknown: true}",
+                                         "metrics: {enabled: true, enabled: false}"));
 } // namespace atlas::diagnostics::tests
