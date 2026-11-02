@@ -46,9 +46,10 @@ now uses immutable passes; no resource loading is performed here. See the
 [six-phase plan](../../docs/28_renderer_implementation_plan.md) for resources,
 passes, job recording, content orchestration and production-readiness gates.
 
-After building, run `atlas_game` or `atlas_editor` for a visible triangle, `--warp`
+After building, run `atlas_game` or `atlas_editor` for a streamed textured quad, `--warp`
 for software presentation, `--graphics-smoke-test` for three hidden WARP frames,
-or `--smoke-test` for the existing headless bootstrap. There are no widgets yet.
+or `--smoke-test` for the existing headless bootstrap. Graphics smoke checks require
+a textured frame to reach presentation. There are no widgets yet.
 
 See [library diagnostics and build policy](../../docs/29_library_diagnostics.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.
 
@@ -66,3 +67,7 @@ application dispatcher; core rendering remains independent of jobs. See
 [parallel recording](../../docs/32_renderer_recording.md) for ownership, failure
 atomicity, cancellation, profiling, benchmarking and the separate application
 main/render-thread integration gate.
+
+Phase five adds the separate [renderer content consumer](../renderer_content/README.md):
+streamer-fed image/HLSL preparation, native buffer decoding, fenced texture ownership
+and device-local pipeline caching. Core rendering still performs no file access.

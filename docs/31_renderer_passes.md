@@ -141,7 +141,8 @@ custom shaders and swapchain copies. Queue gates exercise capacity and retiremen
 without sleeps. Invalid-input tests check that fences and initialization remain
 unchanged. These checks do not establish hardware throughput or device recovery.
 
-The next gates are phase five content orchestration and phase six hardening,
-including the separate application main/render-thread lifecycle. Indexed/instanced geometry, additional formats/MSAA, flexible
+[Phase five](33_renderer_content.md) adds content orchestration in a separate
+consumer library. The remaining readiness gate is phase six hardening, including
+the separate application main/render-thread lifecycle. Indexed/instanced geometry, additional formats/MSAA, flexible
 material layouts, lighting/Forward+, UI semantics and world rendering extensions
 remain outside this initial fixed primitive ABI.

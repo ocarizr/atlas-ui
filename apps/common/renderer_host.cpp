@@ -13,6 +13,54 @@
 
 namespace atlas::application
 {
+namespace
+{
+/// @brief Poll native events and present bounded frames while content progresses asynchronously.
+void run_frames(window::window& target, renderer::presentation_surface& surface,
+                primitive_scene& scene, bool smoke)
+{
+    std::uint32_t frames = 0;
+    const auto started = std::chrono::steady_clock::now();
+    for (;;)
+    {
+        const auto state = target.poll_events();
+        if (state.close_requested)
+        {
+            break;
+        }
+
+        surface.resize({state.width, state.height});
+        auto result = renderer::frame_result::suspended;
+        if (state.width != 0 && state.height != 0 && !state.minimized)
+        {
+            result = scene.render(surface, {state.width, state.height}, frames);
+            ++frames;
+        }
+
+        if (result == renderer::frame_result::surface_closed)
+        {
+            break;
+        }
+
+        if (smoke && frames >= 3 && scene.content_presented())
+        {
+            break;
+        }
+
+        if (smoke && std::chrono::steady_clock::now() - started > std::chrono::seconds{10})
+        {
+            throw std::runtime_error("streamed graphics smoke test timed out");
+        }
+
+        if (result == renderer::frame_result::suspended ||
+            result == renderer::frame_result::occluded)
+        {
+            target.wait_for_events();
+        }
+    }
+}
+} // namespace
+
 /// @brief Compose shared services and run the owner-thread graphics loop or bounded smoke check.
 int run_renderer_host(application_kind kind, int argc, char** argv)
 {
@@ -57,46 +105,24 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
         job_options.scratch.upstream = memory.get();
         jobs::job_system workers{job_options};
         renderer_jobs::executor recording{workers.dispatcher()};
-        primitive_scene scene{graphics, recording};
+        const auto content_root = std::filesystem::absolute(argv[0]).parent_path() / "content";
+        streaming::asset_streamer streamer{
+            workers,
+            {{"renderer.checker", streaming::loose_file_asset{content_root / "checker.bmp"}},
+             {"renderer.quad", streaming::loose_file_asset{content_root / "quad.hlsl"}}},
+            {},
+            memory,
+            {log, {}}};
+        renderer_content::content_loader content{
+            streamer, renderer_content::make_image_decoder(), memory, {log, {}}};
+        primitive_scene scene{graphics, recording, content, {log, {}}};
         const auto information = graphics.info();
         (void)log->write(diagnostics::log_level::info, "renderer",
                          information.adapter_name +
                              (information.debug_layer_active
                                   ? "; debug layer active"
                                   : "; debug layer unavailable or disabled"));
-        std::uint32_t frames = 0;
-        for (;;)
-        {
-            const auto state = target.poll_events();
-            if (state.close_requested)
-            {
-                break;
-            }
-
-            surface.resize({state.width, state.height});
-            auto result = renderer::frame_result::suspended;
-            if (state.width != 0 && state.height != 0 && !state.minimized)
-            {
-                result = scene.render(surface, {state.width, state.height}, frames);
-                ++frames;
-            }
-
-            if (result == renderer::frame_result::surface_closed)
-            {
-                break;
-            }
-
-            if (smoke && frames == 3)
-            {
-                break;
-            }
-
-            if (result == renderer::frame_result::suspended ||
-                result == renderer::frame_result::occluded)
-            {
-                target.wait_for_events();
-            }
-        }
+        run_frames(target, surface, scene, smoke);
 
         graphics.wait_idle();
         if (graphics.debug_error_count() != 0)

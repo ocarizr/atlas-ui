@@ -52,6 +52,11 @@ recording through the application's existing job pool; see
 [graphics passes](docs/31_renderer_passes.md) and
 [recording ownership and measurement](docs/32_renderer_recording.md).
 
+Phase five adds a separate content consumer for streamer-fed image/HLSL preparation,
+bounded native decoding, fenced texture ownership and device-local pipeline reuse.
+Game and editor now demonstrate this path with loose assets and a textured quad;
+see [renderer content integration](docs/33_renderer_content.md).
+
 ## Component validation
 
 Each row has independently named CI checks and uses compiled prerequisite artifacts.
@@ -63,6 +68,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | [Window](libs/window/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Renderer](libs/renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Renderer jobs](libs/renderer_jobs/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Executor contracts |
+| [Renderer content](libs/renderer_content/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Injected decode contracts |
 | [Jobs](libs/jobs/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Memory](libs/memory/CMakeLists.txt) | Yes | Yes | System backend | Yes | Yes | Yes | Yes |
 | [Memory consumers](tests/memory_integration/CMakeLists.txt) | Yes | Yes | System backend | Yes | Yes | Yes | Yes |
@@ -95,6 +101,7 @@ HTML output, CI validation and automatic wiki synchronization.
 | [GPU resources](docs/30_renderer_resources.md) | Typed resources, GPU allocation, staging, descriptors, fences and job preparation boundaries |
 | [Graphics passes](docs/31_renderer_passes.md) | Immutable draw packets, shader ABI, attachments, blending/depth and ordered submission |
 | [Parallel recording](docs/32_renderer_recording.md) | Joined batches, job adapter, synchronization and measured grain policy |
+| [Renderer content](docs/33_renderer_content.md) | Streamed image/shader preparation, fenced uploads and device-local pipeline cache |
 | [Library diagnostics](docs/29_library_diagnostics.md) | Optional logging/profiling destinations, auto/on/off build policy and trace boundaries |
 | [Renderer foundation](docs/28_renderer_implementation_plan.md) | Six phases, D3D12 ownership, jobs/streamer boundaries and future world rendering |
 | [Scope](docs/01_scope.md) | Goals, boundaries, supported features |
