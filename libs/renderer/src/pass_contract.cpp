@@ -66,7 +66,8 @@ std::span<const pass_description> frame_plan::passes() const noexcept
 void pass_limits::validate() const
 {
     if (max_pipelines == 0 || max_pipelines > 4096 || max_passes == 0 || max_passes > 1024 ||
-        max_draws == 0 || max_draws > 1048576 || max_frames == 0 || max_frames > 64)
+        max_draws == 0 || max_draws > 1048576 || max_frames == 0 || max_frames > 64 ||
+        max_recording_batches == 0 || max_recording_batches > 64)
     {
         throw std::invalid_argument("pass capacities must be positive and bounded");
     }

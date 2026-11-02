@@ -3,6 +3,7 @@
  * @brief Immutable generic draw packets, fixed shader ABI and ordered offscreen passes.
  */
 #pragma once
+#include <atlas/renderer/recording.hpp>
 #include <atlas/renderer/resources.hpp>
 #include <optional>
 
@@ -138,11 +139,12 @@ class frame_plan
 /// @brief Hard limits include retired pipelines and in-flight command batches.
 struct pass_limits
 {
-    std::uint32_t max_pipelines = 64; ///< Pipeline slots.
-    std::uint32_t max_passes = 32;    ///< Passes per submission.
-    std::uint32_t max_draws = 4096;   ///< Draws across one submission.
-    std::uint32_t max_frames = 3;     ///< In-flight submissions, with nonblocking admission.
-    void validate() const;            ///< Reject unbounded or empty capacities.
+    std::uint32_t max_pipelines = 64;        ///< Pipeline slots.
+    std::uint32_t max_passes = 32;           ///< Passes per submission.
+    std::uint32_t max_draws = 4096;          ///< Draws across one submission.
+    std::uint32_t max_frames = 3;            ///< In-flight submissions, with nonblocking admission.
+    std::uint32_t max_recording_batches = 8; ///< Exclusive contexts per in-flight frame.
+    void validate() const;                   ///< Reject unbounded or empty capacities.
 };
 
 /// @brief Device-coordinator pass execution retaining resources through queue completion.
@@ -160,6 +162,10 @@ class pass_renderer
     void collect(); ///< Reclaim completed pipeline and command storage without waiting.
     completion_token
     submit(const frame_plan& frame); ///< Validate the whole frame before executing.
+    completion_token
+    submit(const frame_plan& frame, recording_executor& executor,
+           recording_options options = {}); ///< Join coarse batches before stable GPU submission.
+    recording_statistics last_recording() const; ///< Last successful recording, coordinator only.
   private:
     class impl;                  ///< Platform-neutral registry and selected native pass backend.
     std::unique_ptr<impl> impl_; ///< Coordinator-owned state.

@@ -58,5 +58,11 @@ Phase three provides `pass_renderer` and `frame_plan` in
 `<atlas/renderer/passes.hpp>`. See [pipelines and ordered passes](../../docs/31_renderer_passes.md)
 for builtins/custom in-memory shaders, fixed vertex ABI, color/depth targets,
 blending, viewport/scissor, transactional validation and presentation. Editor and
-game render their foundation triangle through this shared path. Parallel command
-recording, content orchestration and hardening remain later phases.
+game render their foundation triangle through this shared path. Content orchestration and hardening remain later phases.
+
+Phase four adds a joined `recording_executor` interface and bounded contiguous
+command batches. The optional `atlas::renderer_jobs` adapter reuses an injected
+application dispatcher; core rendering remains independent of jobs. See
+[parallel recording](../../docs/32_renderer_recording.md) for ownership, failure
+atomicity, cancellation, profiling, benchmarking and the separate application
+main/render-thread integration gate.

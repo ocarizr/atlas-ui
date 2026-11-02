@@ -9,7 +9,8 @@ class primitive_scene
 {
   public:
     /// @brief Create reusable geometry and pipeline on the application's existing device.
-    explicit primitive_scene(renderer::device& graphics) : resources_(graphics), passes_(resources_)
+    explicit primitive_scene(renderer::device& graphics, renderer::recording_executor& executor)
+        : resources_(graphics), passes_(resources_), executor_(executor)
     {
         const std::array<renderer::vertex, 3> triangle{{{{0, 0.7F, 0}, {1, 0, 0, 1}, {}},
                                                         {{0.7F, -0.7F, 0}, {0, 1, 0, 1}, {}},
@@ -48,17 +49,19 @@ class primitive_scene
         draw.vertex_count = 3;
         pass.draws.push_back(draw);
         const std::array descriptions{pass};
-        in_flight_[frame % in_flight_.size()] = passes_.submit(renderer::frame_plan{descriptions});
+        in_flight_[frame % in_flight_.size()] =
+            passes_.submit(renderer::frame_plan{descriptions}, executor_);
         return surface.present(resources_, output_);
     }
 
   private:
-    renderer::resource_store resources_; ///< Fence-retained geometry and output storage.
-    renderer::pass_renderer passes_;     ///< Bounded generic pass executor.
-    renderer::buffer_handle geometry_;   ///< Immutable uploaded triangle vertices.
-    renderer::pipeline_handle pipeline_; ///< Reusable colored pipeline.
-    renderer::texture_handle output_;    ///< Current offscreen color target.
-    renderer::surface_extent extent_;    ///< Current allocated output dimensions.
+    renderer::resource_store resources_;     ///< Fence-retained geometry and output storage.
+    renderer::pass_renderer passes_;         ///< Bounded generic pass executor.
+    renderer::recording_executor& executor_; ///< Borrowed application scheduling policy.
+    renderer::buffer_handle geometry_;       ///< Immutable uploaded triangle vertices.
+    renderer::pipeline_handle pipeline_;     ///< Reusable colored pipeline.
+    renderer::texture_handle output_;        ///< Current offscreen color target.
+    renderer::surface_extent extent_;        ///< Current allocated output dimensions.
     std::array<renderer::completion_token, 2> in_flight_{}; ///< At most two CPU submissions ahead.
 };
 } // namespace atlas::application

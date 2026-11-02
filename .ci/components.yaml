@@ -148,6 +148,7 @@ components:
     - ui
     - application
     - renderer
+    - renderer-jobs
     build_targets:
     - atlas_game
     test_labels:
@@ -155,6 +156,7 @@ components:
     build_requires:
     - application
     - renderer
+    - renderer-jobs
     vendors:
     - memory
     - ipc
@@ -169,6 +171,7 @@ components:
     - ui
     - application
     - renderer
+    - renderer-jobs
     build_targets:
     - atlas_editor
     test_labels:
@@ -176,6 +179,7 @@ components:
     build_requires:
     - application
     - renderer
+    - renderer-jobs
     vendors:
     - memory
     - ipc
@@ -323,6 +327,29 @@ components:
     - testing
     - graphics
     - content
+  renderer-jobs:
+    paths:
+    - libs/renderer_jobs/**
+    - tests/renderer_jobs/**
+    - tests/platform/windows/renderer_jobs/**
+    - benchmarks/renderer/**
+    depends_on:
+    - renderer
+    - jobs
+    build_targets:
+    - atlas_renderer_jobs
+    - atlas_renderer_jobs_tests
+    - atlas_renderer_benchmark
+    test_labels:
+    - renderer-jobs
+    build_requires:
+    - renderer
+    - jobs
+    vendors:
+    - testing
+    - graphics
+    - content
+
 formatting_contexts:
   tooling:
   - scripts/**/*.py
@@ -374,6 +401,7 @@ documentation_paths:
 - docs/**
 - libs/window/README.md
 - libs/renderer/README.md
+- libs/renderer_jobs/README.md
 asset_paths:
 - assets/**
 profiles:

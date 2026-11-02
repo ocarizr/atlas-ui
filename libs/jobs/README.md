@@ -1,5 +1,11 @@
 # Atlas Jobs
 
+Adapters that admit borrowed work and then wait for it can call
+`jobs::require_coordinator_thread()` from `<atlas/jobs/execution.hpp>` **before**
+admission. It rejects worker, executing-callback and terminal-observer contexts,
+preventing an invalid wait from leaving accepted work using released input storage.
+This is a generic preflight check; existing wait APIs retain their own validation.
+
 A reusable C++20 CPU-job library with persistent workers, dependency handles,
 scoped children, parallel ranges and an optional declared-access sanitizer.
 Windows x64 is currently validated. Public APIs and scheduling code are platform

@@ -60,10 +60,20 @@ class resource_store::impl
                            "GPU resource store drained");
     } ///< Drain before member destruction releases any allocation.
 
+    /// @brief Reject foreign threads and callbacks reentering a resolved submission.
+    void check_access() const
+    {
+        device->check_owner();
+        if (submitting)
+        {
+            throw std::logic_error("GPU resource store is recording a submission");
+        }
+    }
+
     /// @brief Validate owner, kind, generation and live state before resolving a slot.
     template <class Tag> resource_entry& get(resource_handle<Tag> handle) const
     {
-        device->check_owner();
+        check_access();
         constexpr bool texture = std::is_same_v<Tag, texture_tag>;
         if (handle.owner != identity || handle.index >= entries.size())
         {
@@ -82,7 +92,7 @@ class resource_store::impl
     /// @brief Validate owner, kind, generation and live state before resolving a slot.
     descriptor_entry& get(descriptor_handle handle) const
     {
-        device->check_owner();
+        check_access();
         if (handle.owner != identity || handle.index >= descriptors.size())
         {
             throw std::invalid_argument("foreign descriptor handle");
@@ -100,7 +110,7 @@ class resource_store::impl
     /// @brief Accept only empty or already-issued completion values from this device.
     std::uint64_t token(completion_token value) const
     {
-        device->check_owner();
+        check_access();
         if (value.owner == 0 && value.value == 0)
         {
             return 0;
@@ -117,7 +127,7 @@ class resource_store::impl
     /// @brief Allocate only after slot and aligned-byte admission checks have succeeded.
     template <class Tag, class Description> resource_handle<Tag> create(Description description)
     {
-        device->check_owner();
+        check_access();
         description.validate();
         const diagnostics::operation_scope scope{destinations, {"resource.create", "renderer.cpu"}};
         const auto found =
@@ -247,6 +257,7 @@ class resource_store::impl
         return backend->readback(entry.allocation, entry.state);
     }
 
+    bool submitting = false; ///< Coordinator-only transaction guard across joined recording.
     std::shared_ptr<detail::device_backend> device;    ///< Pins queue provenance and native owner.
     std::shared_ptr<detail::resource_backend> backend; ///< Destroyed after registry entries.
     resource_limits limits;                            ///< Fixed capacities and charged byte quota.

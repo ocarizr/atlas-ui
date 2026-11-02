@@ -1,11 +1,15 @@
 /** @file @brief Owner-thread native loop, shared by editor and game composition roots. */
 #include "renderer_host.hpp"
 #include "primitive_scene.hpp"
+#include <algorithm>
 #include <atlas/diagnostics/logging.hpp>
+#include <atlas/jobs/job_system.hpp>
 #include <atlas/memory/memory_resource.hpp>
 #include <atlas/renderer/passes.hpp>
+#include <atlas/renderer_jobs/executor.hpp>
 #include <atlas/window/window.hpp>
 #include <string_view>
+#include <thread>
 
 namespace atlas::application
 {
@@ -48,7 +52,12 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
 
         renderer::device graphics{options, memory, {log, {}}};
         renderer::presentation_surface surface{graphics, target};
-        primitive_scene scene{graphics};
+        jobs::job_system_options job_options;
+        job_options.worker_count = std::clamp(std::thread::hardware_concurrency(), 1U, 4U);
+        job_options.scratch.upstream = memory.get();
+        jobs::job_system workers{job_options};
+        renderer_jobs::executor recording{workers.dispatcher()};
+        primitive_scene scene{graphics, recording};
         const auto information = graphics.info();
         (void)log->write(diagnostics::log_level::info, "renderer",
                          information.adapter_name +

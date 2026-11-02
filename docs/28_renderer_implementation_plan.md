@@ -15,9 +15,9 @@ Windows. The SDK-free validation profile reports native graphics as unavailable.
 | 1. Device and presentation | Independent window/device/surface ownership, hardware or WARP selection, real clear and triangle, fenced frame reuse, resize/minimize, DPI, clean shutdown and pixel readback tests; both applications exercise the same implementation | Implemented |
 | 2. Resources and transfers | Typed generation-checked buffer/texture handles, GPU memory allocation, upload staging, descriptor allocation, explicit resource states and fence-based deferred destruction; test exhaustion, reuse and in-flight lifetimes | Implemented |
 | 3. Pipelines and passes | Shader/pipeline descriptions, immutable draw packets, offscreen targets, depth/blend/scissor, ordered passes and explicit attachments; validate generic 2D/3D primitives without UI semantics | Implemented |
-| 4. Render thread and job recording | Persistent render coordinator separate from the main thread, bounded immutable frame handoff, one application-owned scheduler, coarse parallel preparation and exclusively owned command allocators/lists, deterministic submission order, sequential small-work path and measured scheduling thresholds | Planned |
+| 4. Job recording | Optional joined executor, one application-owned scheduler, exclusive bounded command contexts, contiguous pass sections, deterministic submission, sequential small-work path and measured grain policy | Implemented |
 | 5. Content integration | Consumer orchestration from streamer buffers through decoding to upload-ready data, shader construction/cache policy, cancellation and retention until upload fences complete; loose assets first | Planned |
-| 6. Hardening and readiness | Device-removal reporting/recovery policy, GPU timestamp profiling and expanded diagnostics, resize/occlusion soak, multi-surface behavior, memory/descriptor pressure and measured budgets on WARP and hardware | Planned |
+| 6. Hardening and readiness | Device-removal reporting/recovery policy, GPU timestamp profiling and expanded diagnostics, resize/occlusion soak, multi-surface behavior, application thread integration, memory/descriptor pressure and measured budgets on WARP and hardware | Planned |
 
 The production UI gate requires all six phases. A triangle proves presentation,
 not readiness for widgets. The resource API and render-pass vocabulary must remain
@@ -64,44 +64,51 @@ backend interfaces over requiring consumers to inherit native device classes.
 
 ## Jobs and streaming boundaries
 
-Through phase three, the application main thread also serves as the graphics
-coordinator. Phase four will introduce a persistent render thread. The main thread
-will retain window events, input and application-state updates; the render thread
-will create, use and destroy graphics objects and coordinate recording, submission
-and presentation. This preserves the renderer's existing creating-thread ownership
-contract rather than moving live native objects between threads.
-
-Main-to-render communication will use immutable frame snapshots and a bounded
-queue with explicit frame identities, synchronization points and backpressure.
-The implementation must define maximum frame lead and latency, propagate rendering
-failures to the application, coordinate resize/minimize/close and drain/join the
-render thread before releasing its resources or native window. A frame's required
-CPU preparation and recording must finish before that frame is submitted; any
-intentional overlap between application and rendering frames must be explicit.
-These lifecycle and ordering contracts require controlled concurrency tests and
-diagnostics that distinguish main-thread, render-thread and worker activity.
+Through phase four, game/editor main also serves as graphics coordinator. The
+renderer library does not own the application's main/render-thread policy.
+It requires a single creating-thread coordinator and supports exclusively owned
+worker recording contexts through an optional executor. The dedicated-thread
+window/presentation lifecycle is a separate application integration gate below.
 
 Phase one records a tiny clear/triangle workload directly on the owner thread;
 dispatching it to workers would add scheduling and ownership transfers without a
 useful parallel workload. The renderer does not create another scheduler.
 
-Phase four will receive the existing application-owned dispatcher for pure CPU
-preparation and coarse recording batches. Each recording task owns its allocator,
-command list and scratch data exclusively. Submission remains deterministic and
-owner-controlled. CPU workers never wait for storage, swapchain presentation or
-GPU fences. Measure a sequential threshold using representative work; do not infer
-one from triangle timings or hardware thread count alone.
-
-The persistent render coordinator and parallel command recording are separate
-parts of this gate. Workers use exclusively owned recording contexts; final queue
-submission and presentation remain on the render thread. No additional job
-scheduler is created for rendering.
+Phase four accepts the existing application dispatcher through `atlas::renderer_jobs`.
+Each coarse task exclusively records its assigned command list and attachment
+descriptors. All accepted work joins before deterministic coordinator submission.
+Workers never wait for storage, presentation or GPU fences. Small workloads bypass
+job admission. Calibrate the configurable grain with representative CPU timings;
+see [parallel recording and measurement](32_renderer_recording.md). Core rendering
+does not link jobs or create another scheduler.
 
 The streamer is the only application-managed storage boundary. UI/world/media
 consumers request bytes, decode via ready jobs and provide upload-ready buffers
 to the renderer. The renderer retains those bytes until the appropriate transfer
 fence completes. It never opens shader, image or media files. Bundle format and
 packaging remain a separate dependency; loose assets suffice for the next stages.
+
+## Application thread integration gate
+
+Creating and managing a persistent render thread belongs to application composition,
+not an implicit thread inside the renderer library. Main will retain window events,
+input and application-state updates; the render coordinator will create, use and
+destroy graphics services and submit/present ordered work. Create graphics objects
+on their final coordinator rather than moving live native objects between threads.
+
+Main-to-render handoff needs immutable snapshots, explicit frame identities,
+bounded queue/backpressure, maximum frame lead and latency, failure propagation,
+resize/minimize/close coordination and drain/join before native-window release.
+Required CPU work finishes before its frame is submitted; any application/render
+frame overlap must be explicit. The current native surface reads its owner-thread
+window backend, so cross-thread presentation additionally requires a native
+window-state handoff contract. The offscreen dedicated-coordinator test is not
+evidence that this full window lifecycle is already implemented.
+
+Complete this composition gate alongside phase-six readiness, before production
+UI. Keep the one shared application job pool; dedicated coordination and parallel
+recording are distinct mechanisms. Controlled concurrency tests and diagnostics
+must distinguish main, render and worker activity.
 
 ## Future rendering strategies
 
