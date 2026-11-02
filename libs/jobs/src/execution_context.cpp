@@ -4,6 +4,7 @@
  */
 
 #include "execution_context.hpp"
+#include <atlas/jobs/execution.hpp>
 
 #include <stdexcept>
 
@@ -31,3 +32,12 @@ void require_coordinator()
     }
 }
 } // namespace atlas::jobs::detail
+
+namespace atlas::jobs
+{
+/// @brief Reuse the wait restriction as an admission precondition for joined adapters.
+void require_coordinator_thread()
+{
+    detail::require_coordinator();
+}
+} // namespace atlas::jobs

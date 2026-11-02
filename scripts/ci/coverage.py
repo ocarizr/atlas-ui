@@ -10,8 +10,14 @@ def collect_coverage(build, configuration, labels, profiles):
     if not files:
         raise ValueError("Tests produced no LLVM coverage profiles")
     merged = profiles / "merged.profdata"
+    # Basenames plus cwd avoid Windows argument limits and weighted-list parsing of parent commas.
+    (profiles / "inputs.txt").write_text(
+        "\n".join(path.name for path in files) + "\n", encoding="utf-8"
+    )
     subprocess.run(
-        ["llvm-profdata", "merge", "-sparse", *map(str, files), "-o", str(merged)], check=True
+        ["llvm-profdata", "merge", "-sparse", "--input-files=inputs.txt", "-o", "merged.profdata"],
+        cwd=profiles,
+        check=True,
     )
     inventory = subprocess.run(
         [

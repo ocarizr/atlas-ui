@@ -35,12 +35,18 @@ class pass_renderer::impl
           pipelines(resources->backend->memory())
     {
         pipelines.resize(limits.max_pipelines);
+        software = resources->device->info().software;
         diagnostics::write(resources->destinations, diagnostics::log_level::info, "renderer.passes",
                            "Pass renderer initialized");
     } ///< Reserve the registry.
 
     ~impl()
     {
+        if (active)
+        {
+            std::terminate();
+        }
+
         const diagnostics::operation_scope scope{resources->destinations,
                                                  {"pass_renderer.shutdown", "renderer.cpu_wait"}};
         resources->backend->drain();
@@ -48,7 +54,28 @@ class pass_renderer::impl
                            "Pass renderer drained");
     } ///< Complete work before native state release.
 
+    /// @brief Keep the resource transaction exclusively owned across callbacks and worker joins.
+    struct submission_guard
+    {
+        explicit submission_guard(impl& owner) : owner_(owner)
+        {
+            owner_.resources->submitting = true;
+            owner_.active = true;
+        } ///< Begin non-reentrant recording.
+
+        ~submission_guard()
+        {
+            owner_.resources->submitting = false;
+            owner_.active = false;
+        } ///< Release on success or failure.
+
+        impl& owner_; ///< Coordinating renderer and its shared resource-store transaction.
+    };
+
     pipeline_entry& get(pipeline_handle handle); ///< Check provenance, generation and coordinator.
+    completion_token
+    submit(const frame_plan& frame, recording_executor* executor,
+           recording_options options); ///< Shared validation and transactional commit path.
     detail::resolved_draw resolve_draw(
         const draw_packet& draw, const detail::resolved_pass& pass,
         std::vector<scheduled_resource>& states,
@@ -61,5 +88,7 @@ class pass_renderer::impl
     std::unique_ptr<detail::pass_backend> backend;   ///< Selected platform adapter.
     std::pmr::vector<pipeline_entry> pipelines;      ///< Includes fence-retired entries.
     std::uint64_t identity = detail::next_identity(); ///< Pipeline provenance.
+    bool active = false;   ///< Destruction during this renderer's own submission is forbidden.
+    bool software = false; ///< Immutable device capability cached outside frame submission.
 };
 } // namespace atlas::renderer

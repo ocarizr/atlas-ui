@@ -207,7 +207,7 @@ void resource_store::wait(completion_token value)
 /// @brief Reclaim completed staging and retired slots without blocking for GPU completion.
 void resource_store::collect()
 {
-    impl_->device->check_owner();
+    impl_->check_access();
     const diagnostics::operation_scope scope{impl_->destinations,
                                              {"resource.collect", "renderer.cpu"}};
     const auto complete = impl_->backend->completed();
@@ -250,7 +250,7 @@ std::vector<std::byte> resource_store::readback(texture_handle value)
 /// @brief Report occupied allocation ranges and staging separately from allocator heap reservation.
 resource_statistics resource_store::statistics() const
 {
-    impl_->device->check_owner();
+    impl_->check_access();
     auto result = impl_->backend->statistics();
     result.allocation_bytes = impl_->allocation_bytes;
     for (const auto& entry : impl_->entries)

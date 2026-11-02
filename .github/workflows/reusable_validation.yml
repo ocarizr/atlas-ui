@@ -244,6 +244,7 @@ jobs:
     - application
     - vendor-graphics
     - renderer
+    - renderer-jobs
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'game') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -261,6 +262,7 @@ jobs:
     - application
     - vendor-graphics
     - renderer
+    - renderer-jobs
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'editor') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -312,6 +314,22 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).renderer) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  renderer-jobs:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - vendor-graphics
+    - renderer
+    - jobs
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'renderer-jobs') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: renderer-jobs
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['renderer-jobs']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   required:
     name: Component validation
     if: always()
@@ -342,6 +360,7 @@ jobs:
     - tools
     - window
     - renderer
+    - renderer-jobs
     runs-on: windows-2022
     timeout-minutes: 5
     steps:

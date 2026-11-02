@@ -6,7 +6,7 @@ namespace atlas::renderer
 /// @brief Reject foreign and retired pipeline identities before native use.
 pipeline_entry& pass_renderer::impl::get(pipeline_handle handle)
 {
-    resources->device->check_owner();
+    resources->check_access();
     if (handle.owner != identity || handle.index >= pipelines.size())
     {
         throw std::invalid_argument("foreign pipeline handle");
@@ -24,7 +24,7 @@ pipeline_entry& pass_renderer::impl::get(pipeline_handle handle)
 /// @brief Retain the selected resource store and its coordinator.
 pass_renderer::pass_renderer(resource_store& resources, pass_limits limits)
 {
-    resources.impl_->device->check_owner();
+    resources.impl_->check_access();
     limits.validate();
     impl_ = std::make_unique<impl>(resources.impl_, limits);
 }
@@ -35,7 +35,7 @@ pass_renderer::~pass_renderer() = default;
 /// @brief Compile only after capacity admission; failed compilation publishes no handle.
 pipeline_handle pass_renderer::create_pipeline(const pipeline_description& description)
 {
-    impl_->resources->device->check_owner();
+    impl_->resources->check_access();
     description.validate();
     const diagnostics::operation_scope scope{impl_->resources->destinations,
                                              {"pass.create_pipeline", "renderer.cpu"}};
@@ -70,7 +70,7 @@ void pass_renderer::release(pipeline_handle pipeline)
 /// @brief Reclaim only fence-completed pipeline slots and recording storage.
 void pass_renderer::collect()
 {
-    impl_->resources->device->check_owner();
+    impl_->resources->check_access();
     impl_->backend->collect();
     const auto done = impl_->resources->backend->completed();
     for (auto& entry : impl_->pipelines)
@@ -87,15 +87,28 @@ void pass_renderer::collect()
 }
 
 /// @brief Validate all references and prospective states before executing any command list.
-completion_token pass_renderer::submit(const frame_plan& frame)
+completion_token pass_renderer::impl::submit(const frame_plan& frame, recording_executor* executor,
+                                             recording_options options)
 {
-    impl_->resources->device->check_owner();
-    const diagnostics::operation_scope scope{impl_->resources->destinations,
+    resources->check_access();
+    const diagnostics::operation_scope scope{resources->destinations,
                                              {"pass.submit", "renderer.cpu"}};
     std::vector<scheduled_resource> states;
     std::vector<std::uint32_t> descriptors;
-    auto resolved = impl_->resolve(frame, states, descriptors);
-    const auto fence = impl_->backend->submit(resolved);
+    options.validate();
+    if (options.max_batches > limits.max_recording_batches)
+    {
+        throw std::invalid_argument("recording policy exceeds renderer batch capacity");
+    }
+
+    auto resolved = resolve(frame, states, descriptors);
+    if (software && !options.allow_software_parallel)
+    {
+        options.max_batches = 1;
+    }
+
+    submission_guard transaction{*this};
+    const auto fence = backend->submit(resolved, executor, options, resources->destinations);
     for (std::size_t index = 0; index < states.size(); ++index)
     {
         if (!states[index].touched)
@@ -103,7 +116,7 @@ completion_token pass_renderer::submit(const frame_plan& frame)
             continue;
         }
 
-        auto& entry = impl_->resources->entries[index];
+        auto& entry = resources->entries[index];
         entry.last_use = fence;
         entry.state = states[index].state;
         entry.initialized = states[index].initialized;
@@ -115,17 +128,37 @@ completion_token pass_renderer::submit(const frame_plan& frame)
 
     for (const auto index : descriptors)
     {
-        impl_->resources->descriptors[index].last_use = fence;
+        resources->descriptors[index].last_use = fence;
     }
 
     for (const auto& pass : frame.passes())
     {
         for (const auto& draw : pass.draws)
         {
-            impl_->pipelines[draw.pipeline.index].last_use = fence;
+            pipelines[draw.pipeline.index].last_use = fence;
         }
     }
 
-    return {impl_->resources->device->identity, fence};
+    return {resources->device->identity, fence};
+}
+
+/// @brief Preserve the sequential path when no executor is supplied.
+completion_token pass_renderer::submit(const frame_plan& frame)
+{
+    return impl_->submit(frame, nullptr, {4096, 1});
+}
+
+/// @brief Borrow the application's executor only through this joined submission.
+completion_token pass_renderer::submit(const frame_plan& frame, recording_executor& executor,
+                                       recording_options options)
+{
+    return impl_->submit(frame, &executor, options);
+}
+
+/// @brief Observe recording without entering native APIs from another thread.
+recording_statistics pass_renderer::last_recording() const
+{
+    impl_->resources->check_access();
+    return impl_->backend->last_recording();
 }
 } // namespace atlas::renderer

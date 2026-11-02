@@ -47,8 +47,10 @@ ctest --preset windows-debug
 
 Phase three adds immutable draw packets, builtin/custom in-memory shaders,
 ordered color/depth passes, blending, viewport/scissor and target presentation.
-Editor and game exercise this shared path. Parallel recording is the next renderer
-increment; see [graphics passes](docs/31_renderer_passes.md).
+Editor and game exercise this shared path. Phase four adds optional parallel
+recording through the application's existing job pool; see
+[graphics passes](docs/31_renderer_passes.md) and
+[recording ownership and measurement](docs/32_renderer_recording.md).
 
 ## Component validation
 
@@ -60,6 +62,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | [Window](libs/window/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Renderer](libs/renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
+| [Renderer jobs](libs/renderer_jobs/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Executor contracts |
 | [Jobs](libs/jobs/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Memory](libs/memory/CMakeLists.txt) | Yes | Yes | System backend | Yes | Yes | Yes | Yes |
 | [Memory consumers](tests/memory_integration/CMakeLists.txt) | Yes | Yes | System backend | Yes | Yes | Yes | Yes |
@@ -91,6 +94,7 @@ HTML output, CI validation and automatic wiki synchronization.
 | --- | --- |
 | [GPU resources](docs/30_renderer_resources.md) | Typed resources, GPU allocation, staging, descriptors, fences and job preparation boundaries |
 | [Graphics passes](docs/31_renderer_passes.md) | Immutable draw packets, shader ABI, attachments, blending/depth and ordered submission |
+| [Parallel recording](docs/32_renderer_recording.md) | Joined batches, job adapter, synchronization and measured grain policy |
 | [Library diagnostics](docs/29_library_diagnostics.md) | Optional logging/profiling destinations, auto/on/off build policy and trace boundaries |
 | [Renderer foundation](docs/28_renderer_implementation_plan.md) | Six phases, D3D12 ownership, jobs/streamer boundaries and future world rendering |
 | [Scope](docs/01_scope.md) | Goals, boundaries, supported features |

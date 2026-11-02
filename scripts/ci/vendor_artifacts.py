@@ -3,6 +3,8 @@
 import argparse
 import json
 import os
+from time import sleep
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
@@ -59,7 +61,7 @@ def find_product(fetch, repository, group, key, current_run):
 
 
 def github_fetch(path):
-    """Request authenticated GitHub JSON for artifact discovery without logging credentials."""
+    """Request GitHub JSON with bounded transient retries and no credential logging."""
     request = Request(
         "https://api.github.com" + path,
         headers={
@@ -68,8 +70,19 @@ def github_fetch(path):
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
-    with urlopen(request, timeout=60) as response:
-        return json.load(response)
+    for attempt in range(4):
+        try:
+            with urlopen(request, timeout=60) as response:
+                return json.load(response)
+        except (URLError, TimeoutError) as error:
+            if isinstance(error, HTTPError) and error.code not in {429, 500, 502, 503, 504}:
+                raise
+            if attempt == 3:
+                raise
+            delay = 2**attempt
+            reason = f"HTTP {error.code}" if isinstance(error, HTTPError) else "transport failure"
+            print(f"Artifact discovery {reason}; retry {attempt + 2}/4 in {delay}s", flush=True)
+            sleep(delay)
 
 
 def main():

@@ -133,15 +133,15 @@ Jobs can prepare exclusively owned CPU geometry and immutable pass descriptions.
 Wait for CPU readiness before coordinator submission; do not call the GPU API or
 wait for GPU fences from a CPU worker. The integration test now samples an asset
 prepared with attached jobs and uploaded through the normal resource store.
-Recording remains sequential: phase four will measure coarse parallel preparation
-and exclusive command-list recording using the existing application scheduler.
+The default submission stays sequential. [Phase four](32_renderer_recording.md)
+adds optional joined command recording through the existing application scheduler.
 
 WARP tests inspect pixels for color, textures, depth, blending, viewport/scissor,
 custom shaders and swapchain copies. Queue gates exercise capacity and retirement
 without sleeps. Invalid-input tests check that fences and initialization remain
 unchanged. These checks do not establish hardware throughput or device recovery.
 
-The next gates are phase four job recording, phase five content orchestration and
-phase six hardening. Indexed/instanced geometry, additional formats/MSAA, flexible
+The next gates are phase five content orchestration and phase six hardening,
+including the separate application main/render-thread lifecycle. Indexed/instanced geometry, additional formats/MSAA, flexible
 material layouts, lighting/Forward+, UI semantics and world rendering extensions
 remain outside this initial fixed primitive ABI.

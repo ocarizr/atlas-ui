@@ -46,8 +46,11 @@ class pass_backend
     virtual std::shared_ptr<gpu_pipeline>
     create(const pipeline_description& description) = 0; ///< Compile and reflect.
     virtual std::uint64_t
-    submit(std::span<const resolved_pass> passes) = 0; ///< Record after complete validation.
-    virtual void collect() = 0;                        ///< Reuse only completed command objects.
+    submit(std::span<const resolved_pass> passes, recording_executor* executor,
+           recording_options options,
+           const diagnostics::services& destinations) = 0;   ///< Join recording before execution.
+    virtual recording_statistics last_recording() const = 0; ///< Last successful native recording.
+    virtual void collect() = 0; ///< Reuse only completed command objects.
 };
 
 std::unique_ptr<pass_backend>

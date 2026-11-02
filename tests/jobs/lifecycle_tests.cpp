@@ -4,6 +4,7 @@
  */
 
 #include "job_system_fixture.hpp"
+#include <atlas/jobs/execution.hpp>
 
 #include <atomic>
 #include <stdexcept>
@@ -11,6 +12,21 @@
 
 namespace atlas::jobs::tests
 {
+/// @brief Adapters can validate a coordinator before accepting borrowed work that requires a join.
+TEST(execution_context_tests, preflight_rejects_workers_and_accepts_coordinators)
+{
+    EXPECT_NO_THROW(require_coordinator_thread());
+    job_system system{1};
+    auto task =
+        system.dispatcher().run("preflight",
+                                [](job_context&)
+                                {
+                                    EXPECT_THROW(require_coordinator_thread(), std::logic_error);
+                                });
+    task.wait();
+    EXPECT_NO_THROW(require_coordinator_thread());
+}
+
 /// @brief Verify shutdown drains accepted jobs and rejects new work.
 TEST_F(job_system_fixture, shutdown_drains_accepted_jobs_and_rejects_new_work)
 {

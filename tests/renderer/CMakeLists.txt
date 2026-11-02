@@ -1,4 +1,6 @@
 add_executable(atlas_renderer_tests renderer_contract_tests.cpp resource_contract_tests.cpp pass_contract_tests.cpp)
+target_sources(atlas_renderer_tests PRIVATE recording_plan_tests.cpp)
+target_include_directories(atlas_renderer_tests PRIVATE ${PROJECT_SOURCE_DIR}/libs/renderer/src)
 target_link_libraries(atlas_renderer_tests PRIVATE atlas::renderer GTest::gtest_main)
 if(ATLAS_BUILD_WINDOWS_INTEGRATION)
     target_sources(atlas_renderer_tests PRIVATE ../platform/windows/renderer/presentation_tests.cpp

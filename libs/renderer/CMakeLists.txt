@@ -1,4 +1,5 @@
 add_library(atlas_renderer STATIC src/renderer.cpp src/resource_store.cpp)
+target_sources(atlas_renderer PRIVATE src/recording.cpp src/recording_plan.cpp)
 target_sources(atlas_renderer PRIVATE src/pass_contract.cpp src/pass_renderer.cpp src/pass_validation.cpp)
 target_sources(atlas_renderer PRIVATE src/resource_presentation.cpp)
 add_library(atlas::renderer ALIAS atlas_renderer)
@@ -17,6 +18,8 @@ if(ATLAS_TARGET_PLATFORM STREQUAL "windows" AND ATLAS_BUILD_WINDOWS_INTEGRATION)
     target_sources(atlas_renderer PRIVATE ../platform/windows/renderer/pass_pipeline.cpp
         ../platform/windows/renderer/pass_execution.cpp ../platform/windows/renderer/pass_shaders.cpp)
     target_sources(atlas_renderer PRIVATE ../platform/windows/renderer/surface_copy.cpp)
+    target_sources(atlas_renderer PRIVATE ../platform/windows/renderer/recording_pool.cpp
+        ../platform/windows/renderer/parallel_recording.cpp)
     target_compile_definitions(atlas_renderer PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
     target_compile_definitions(atlas_renderer PRIVATE D3D12MA_D3D12_HEADERS_ALREADY_INCLUDED)
     target_link_libraries(atlas_renderer PRIVATE d3d12 dxgi dxguid Microsoft::DirectXShaderCompiler)

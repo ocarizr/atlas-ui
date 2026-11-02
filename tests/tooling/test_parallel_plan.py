@@ -19,6 +19,22 @@ def test_jobs_producer_needs_testing_but_not_grpc(configuration):
     assert plan["prerequisites"]["jobs"] == []
 
 
+def test_renderer_jobs_adapter_preserves_independent_renderer(configuration):
+    """Only the optional adapter requires jobs; neither path acquires streaming or IPC."""
+    renderer = plan_components(configuration, {"renderer"})
+    assert "jobs" not in renderer["components"]
+    adapter = plan_components(configuration, {"renderer-jobs"})
+    assert set(adapter["components"]) == {
+        "renderer-jobs",
+        "renderer",
+        "jobs",
+        "window",
+        "diagnostics",
+    }
+    assert "streaming" not in adapter["components"]
+    assert "ipc" not in adapter["components"]
+
+
 def test_editor_requires_link_inputs_without_selecting_game(configuration):
     """Verify editor requires link inputs without selecting game."""
     plan = plan_components(configuration, {"editor"})
@@ -31,6 +47,7 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
         "jobs-diagnostics",
         "memory",
         "renderer",
+        "renderer-jobs",
         "window",
     }
     assert "game" not in plan["components"]
@@ -42,6 +59,7 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
         "jobs-diagnostics",
         "memory",
         "renderer",
+        "renderer-jobs",
         "window",
     ]
 
