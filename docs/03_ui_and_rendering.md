@@ -35,7 +35,7 @@ Direct3D 12 is the sole graphics backend. Support textures, materials, custom sh
 
 The [renderer foundation plan](28_renderer_implementation_plan.md) separates six phases before production UI. Phase one implements independent window/device/surface ownership, D3D12 presentation, fenced frame reuse, resize and diagnostic pixel readback. Resource uploads, descriptors, passes, batching, transparency, clipping and parallel recording follow through explicit gates; UI must not depend on the startup triangle workload.
 
-The editor draws its own interface; the atlas_game preview process produces the preview image. gRPC carries control and state messages. The image/frame transport remains open: gRPC control does not imply copying every frame through Protobuf.
+The editor will draw its own interface using Atlas UI and preview authored documents in an independent in-process runtime session. Optional isolated preview may use gRPC for control/state; its image transport remains a separate future contract. The [UI phases](36_ui_implementation_plan.md) supersede the earlier mandatory two-process plan.
 
 ## Animation
 

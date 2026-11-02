@@ -16,8 +16,8 @@ The job system and asset streamer are implementation prerequisites. Validate gen
 | Audio | Opus/libopus, decoded to PCM for XAudio2 2.9 (Windows SDK) |
 | Serialized content | XML, including UI and ViewModel documents |
 | Configuration | YAML |
-| Interprocess communication | gRPC with Protocol Buffers |
-| Behavior extensions | C++, with rebuild and process restart |
+| Interprocess communication | gRPC/Protocol Buffers available; isolated preview optional |
+| Behavior extensions | Planned Lua behaviors; native C++ types remain extensible |
 | Testing | GoogleTest for C++; fixtures, parameterized cases, isolated resources |
 
 Tool-owned formats such as CMake presets and GitHub Actions matrix JSON follow their respective tool specifications. They do not change the application's serialization policy.
@@ -25,11 +25,11 @@ Tool-owned formats such as CMake presets and GitHub Actions matrix JSON follow t
 ## Applications and libraries
 
 - **atlas_game** hosts the UI runtime. A separate gameplay library may be linked in the future; gameplay is outside the current scope.
-- **atlas_editor** uses Atlas UI for its own interface and manages an atlas_game process that produces the preview.
+- **atlas_editor** will use Atlas UI for its own interface and an independent in-process runtime session for preview. Isolated IPC preview remains optional future work.
 - **Shared libraries** provide UI, layout, MVVM, jobs, ECS integration, assets, streaming, rendering, and diagnostics.
 - **Content tools** validate assets, cook content, generate construction functions, and create packages.
 
-The editor owns the authoring document. C++ changes may stop the preview, trigger a rebuild, restart the process, and reconstruct the editing session. Debuggers can attach to the preview process.
+The editor owns its authoring document separately from preview execution. Applications remain reusable-technology hosts; no game-specific UI or gameplay is implemented. Lua behavior and native extension reload policies are planned in the [UI phases](docs/36_ui_implementation_plan.md). Existing IPC bootstrap linkage remains until host integration is migrated.
 
 ## Development
 
@@ -63,6 +63,8 @@ counters and lifecycle/pressure validation. Next is a controlled shared UI runti
 [readiness](docs/34_renderer_readiness.md) and [remaining gaps](docs/35_renderer_and_streaming_backlog.md)
 define the current limits.
 
+The first shared UI phase adds an independent `atlas::ui` command foundation: bounded serial production, immutable batches, deterministic absolute-write merging and conflict diagnostics. Tree/layout/painting and Lua are subsequent [UI phases](docs/36_ui_implementation_plan.md).
+
 ## Component validation
 
 Each row has independently named CI checks and uses compiled prerequisite artifacts.
@@ -71,6 +73,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 
 | Component | Debug/tests | Release/tests | ASan | MSVC analysis | clang-tidy | Coverage | SDK-free |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| [UI](libs/ui/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Command contracts |
 | [Window](libs/window/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Renderer](libs/renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Render host](libs/render_host/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Handoff contracts |
@@ -109,6 +112,7 @@ HTML output, CI validation and automatic wiki synchronization.
 | [GPU resources](docs/30_renderer_resources.md) | Typed resources, GPU allocation, staging, descriptors, fences and job preparation boundaries |
 | [Graphics passes](docs/31_renderer_passes.md) | Immutable draw packets, shader ABI, attachments, blending/depth and ordered submission |
 | [Parallel recording](docs/32_renderer_recording.md) | Joined batches, job adapter, synchronization and measured grain policy |
+| [UI implementation](docs/36_ui_implementation_plan.md) | Focused runtime/editor phases, serial dispatch, joined jobs and command conflicts |
 | [Renderer readiness](docs/34_renderer_readiness.md) | Main/render ownership, device loss, GPU timing and validation |
 | [Renderer and streaming gaps](docs/35_renderer_and_streaming_backlog.md) | Priorities, optimization evidence and the next bounded UI slice |
 | [Renderer content](docs/33_renderer_content.md) | Streamed image/shader preparation, fenced uploads and device-local pipeline cache |
@@ -120,7 +124,7 @@ HTML output, CI validation and automatic wiki synchronization.
 | [Job system](docs/04_job_system.md) | Persistent workers, DAGs, synchronization, frame boundaries |
 | [MVVM and events](docs/05_mvvm_and_events.md) | Source of truth, bindings, commands, generated wiring |
 | [Assets and pipelines](docs/06_assets_and_pipelines.md) | XML content, streaming, cooking, packaging |
-| [Editor and extensions](docs/07_editor_and_extensions.md) | Two-process preview, gRPC, C++ extensions, debugging |
+| [Editor and extensions](docs/07_editor_and_extensions.md) | Shared UI, local preview sessions, optional isolated preview and extensions |
 | [Quality and milestones](docs/08_quality_and_milestones.md) | TDD, fixtures, coverage, delivery sequence |
 | [Open design questions](docs/09_open_design_questions.md) | Remaining contracts |
 | [Windows development](docs/10_windows_development.md) | Build profiles, analysis, sanitizers, coverage |

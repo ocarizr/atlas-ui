@@ -2,7 +2,7 @@
 
 ## Established decisions
 
-Cross-platform architecture with Windows x64 currently supported/validated; C++20; Direct3D 12 as the Windows graphics backend; EnTT; XML content/ViewModels; YAML configuration; gRPC/Protobuf IPC; reusable libraries and separate editor/game apps; persistent workers; streaming across frames; same-frame visual phases; deterministic presentation; C++ extensions with rebuild/restart; DDD and TDD.
+Cross-platform architecture with Windows x64 currently supported/validated; C++20; Direct3D 12 as the Windows graphics backend; EnTT; XML content/ViewModels; YAML configuration; optional gRPC/Protobuf IPC; reusable libraries and separate editor/game apps; persistent workers; streaming across frames; same-frame visual phases; deterministic presentation; planned Lua behavior and native C++ extension types; DDD and TDD.
 
 These choices are closed unless an explicit design change reopens them.
 

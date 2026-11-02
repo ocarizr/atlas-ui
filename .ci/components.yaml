@@ -112,17 +112,19 @@ components:
   ui:
     paths:
     - libs/ui/**
-    - libs/mvvm/**
-    - libs/animation/**
-    - libs/video/**
-    - libs/localization/**
     - tests/ui/**
     depends_on:
-    - core
+    - diagnostics
+    build_targets:
+    - atlas_ui
+    - atlas_ui_tests
+    test_labels:
+    - ui
+    build_requires:
+    - diagnostics
+    vendors:
+    - testing
     - content
-    - renderer
-    build_targets: []
-    test_labels: []
   ipc:
     paths:
     - protocols/**
@@ -145,7 +147,6 @@ components:
     - tests/game/**
     - apps/common/**
     depends_on:
-    - ui
     - application
     - renderer
     - renderer-jobs
@@ -173,7 +174,6 @@ components:
     - tests/editor/**
     - apps/common/**
     depends_on:
-    - ui
     - application
     - renderer
     - renderer-jobs
@@ -481,6 +481,7 @@ documentation_paths:
 - libs/renderer_jobs/README.md
 - libs/renderer_content/README.md
 - libs/render_host/README.md
+- libs/ui/README.md
 asset_paths:
 - assets/**
 profiles:
