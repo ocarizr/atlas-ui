@@ -1,8 +1,9 @@
 /** @file @brief Owner-thread native loop, shared by editor and game composition roots. */
 #include "renderer_host.hpp"
+#include "primitive_scene.hpp"
 #include <atlas/diagnostics/logging.hpp>
 #include <atlas/memory/memory_resource.hpp>
-#include <atlas/renderer/renderer.hpp>
+#include <atlas/renderer/passes.hpp>
 #include <atlas/window/window.hpp>
 #include <string_view>
 
@@ -47,6 +48,7 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
 
         renderer::device graphics{options, memory, {log, {}}};
         renderer::presentation_surface surface{graphics, target};
+        primitive_scene scene{graphics};
         const auto information = graphics.info();
         (void)log->write(diagnostics::log_level::info, "renderer",
                          information.adapter_name +
@@ -63,13 +65,19 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
             }
 
             surface.resize({state.width, state.height});
-            const auto result = surface.render_frame();
+            auto result = renderer::frame_result::suspended;
+            if (state.width != 0 && state.height != 0 && !state.minimized)
+            {
+                result = scene.render(surface, {state.width, state.height}, frames);
+                ++frames;
+            }
+
             if (result == renderer::frame_result::surface_closed)
             {
                 break;
             }
 
-            if (smoke && ++frames == 3)
+            if (smoke && frames == 3)
             {
                 break;
             }

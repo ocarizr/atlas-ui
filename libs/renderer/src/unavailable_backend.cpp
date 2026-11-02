@@ -1,9 +1,17 @@
 /** @file @brief SDK-free builds report graphics as unavailable. */
+#include "pass_backend.hpp"
 #include "renderer_backend.hpp"
 #include "resource_backend.hpp"
 
 namespace atlas::renderer
 {
+/// @brief Reject native pass creation when no graphics implementation is selected.
+std::unique_ptr<detail::pass_backend>
+detail::make_pass_backend(const std::shared_ptr<resource_backend>&, pass_limits)
+{
+    throw std::runtime_error("GPU pass backend is unavailable in this build");
+}
+
 /// @brief Resource operations cannot silently use a CPU substitute for a native GPU backend.
 std::shared_ptr<detail::resource_backend>
 detail::make_resource_backend(std::shared_ptr<device_backend>, resource_limits)

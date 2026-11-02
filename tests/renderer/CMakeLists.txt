@@ -1,9 +1,14 @@
-add_executable(atlas_renderer_tests renderer_contract_tests.cpp resource_contract_tests.cpp)
+add_executable(atlas_renderer_tests renderer_contract_tests.cpp resource_contract_tests.cpp pass_contract_tests.cpp)
 target_link_libraries(atlas_renderer_tests PRIVATE atlas::renderer GTest::gtest_main)
 if(ATLAS_BUILD_WINDOWS_INTEGRATION)
     target_sources(atlas_renderer_tests PRIVATE ../platform/windows/renderer/presentation_tests.cpp
         ../platform/windows/renderer/diagnostics_tests.cpp)
     target_sources(atlas_renderer_tests PRIVATE ../platform/windows/renderer/resource_transfer_tests.cpp
+        ../platform/windows/renderer/pass_execution_tests.cpp
+        ../platform/windows/renderer/pass_validation_tests.cpp
+        ../platform/windows/renderer/pass_shader_tests.cpp
+        ../platform/windows/renderer/pass_presentation_tests.cpp
+        ../platform/windows/renderer/pass_attachment_tests.cpp
         ../platform/windows/renderer/resource_lifetime_tests.cpp ../platform/windows/renderer/resource_readiness_tests.cpp)
     target_include_directories(atlas_renderer_tests PRIVATE ${PROJECT_SOURCE_DIR}/libs/renderer/src
         ${PROJECT_SOURCE_DIR}/libs/window/src ${PROJECT_SOURCE_DIR}/libs/platform/windows/renderer)

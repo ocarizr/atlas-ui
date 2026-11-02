@@ -24,6 +24,16 @@ D3D12_RESOURCE_DESC texture_desc(texture_description description)
     result.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     result.Height = description.height;
     result.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    if (description.role == texture_role::color_target)
+    {
+        result.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    }
+    else if (description.role == texture_role::depth_target)
+    {
+        result.Format = DXGI_FORMAT_D32_FLOAT;
+        result.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    }
+
     result.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     return result;
 }

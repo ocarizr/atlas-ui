@@ -15,13 +15,14 @@ struct resource_entry
     std::uint64_t charge = 0;                         ///< Native aligned allocation size.
     std::uint64_t last_use = 0;                       ///< Latest protecting fence.
     std::uint64_t initialization =
-        0;                   ///< Latest full-upload fence; later read uses do not undo readiness.
+        0;                   ///< Latest initialization fence; later reads do not undo readiness.
     std::size_t payload = 0; ///< Required full-upload byte count.
     std::uint32_t views = 0; ///< Descriptor slots retaining this texture.
     resource_state state = resource_state::copy_destination; ///< Scheduled state.
     bool texture = false;     ///< Distinguishes buffer and texture handles.
     bool live = false;        ///< Admission-visible lifetime.
-    bool initialized = false; ///< A full initialization upload has been submitted.
+    bool initialized = false; ///< A full upload or stored attachment pass has been submitted.
+    texture_description description{}; ///< Texture extent and attachment role.
 };
 
 /// @brief SRV identity retains its parent slot until the descriptor's last GPU use completes.
@@ -144,6 +145,7 @@ class resource_store::impl
         {
             found->payload = static_cast<std::size_t>(description.width) * description.height * 4;
             found->texture = true;
+            found->description = description;
         }
         else
         {
@@ -171,6 +173,11 @@ class resource_store::impl
             throw std::invalid_argument("upload must initialize the exact full resource payload");
         }
 
+        if (entry.texture && entry.description.role == texture_role::depth_target)
+        {
+            throw std::invalid_argument("depth targets are initialized by render passes");
+        }
+
         const auto fence = backend->upload(entry.allocation, entry.state, bytes);
         entry.last_use = fence;
         entry.initialized = true;
@@ -185,9 +192,22 @@ class resource_store::impl
     {
         auto& entry = get(handle);
         if (target != resource_state::copy_source && target != resource_state::copy_destination &&
-            target != resource_state::shader_read)
+            target != resource_state::shader_read && target != resource_state::render_target &&
+            target != resource_state::depth_write)
         {
             throw std::invalid_argument("unsupported resource state");
+        }
+
+        if ((!entry.texture &&
+             (target == resource_state::render_target || target == resource_state::depth_write)) ||
+            (entry.texture && ((target == resource_state::render_target &&
+                                entry.description.role != texture_role::color_target) ||
+                               (target == resource_state::depth_write &&
+                                entry.description.role != texture_role::depth_target) ||
+                               (target == resource_state::shader_read &&
+                                entry.description.role == texture_role::depth_target))))
+        {
+            throw std::invalid_argument("resource state is incompatible with its allocation role");
         }
 
         const diagnostics::operation_scope scope{destinations,

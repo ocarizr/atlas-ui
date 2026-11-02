@@ -20,6 +20,12 @@ class window;
 
 namespace atlas::renderer
 {
+/// @brief Shared GPU resource registry.
+class resource_store;
+/// @brief Typed texture identity without SDK types.
+struct texture_tag;
+/// @brief Generational resource identity declaration.
+template <class Tag> struct resource_handle;
 /// @brief Device adapter selection policy.
 enum class adapter_preference : std::uint8_t
 {
@@ -152,6 +158,9 @@ class presentation_surface
     presentation_surface& operator=(const presentation_surface&) = delete;
     void resize(surface_extent extent); ///< Drain only when changing a nonzero backing extent.
     frame_result render_frame(const frame_description& frame = {}); ///< Submit on the owner thread.
+    frame_result
+    present(resource_store& resources,
+            resource_handle<texture_tag> source); ///< Copy a matching RGBA target to the swapchain.
     frame_image
     readback_last_frame(); ///< Blocking diagnostic operation, not a production frame path.
     std::uint64_t

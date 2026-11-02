@@ -15,7 +15,9 @@ void buffer_description::validate() const
 /// @brief Reject invalid descriptions or capacities before native mutation.
 void texture_description::validate() const
 {
-    if (width == 0 || height == 0 || width > 16384 || height > 16384)
+    if (width == 0 || height == 0 || width > 16384 || height > 16384 ||
+        (role != texture_role::sampled && role != texture_role::color_target &&
+         role != texture_role::depth_target))
     {
         throw std::invalid_argument("RGBA texture extent must be in [1, 16384]");
     }
@@ -39,7 +41,7 @@ resource_store::resource_store(device& graphics, resource_limits limits)
                                              {"resource_store.initialize", "renderer.cpu"}};
     graphics.backend_->check_owner();
     limits.validate();
-    impl_ = std::make_unique<impl>(graphics.backend_, limits, graphics.diagnostics_);
+    impl_ = std::make_shared<impl>(graphics.backend_, limits, graphics.diagnostics_);
     diagnostics::write(impl_->destinations, diagnostics::log_level::info, "renderer.resources",
                        "GPU resource store initialized");
 }
@@ -63,6 +65,11 @@ texture_handle resource_store::create_texture(texture_description description)
 descriptor_handle resource_store::create_view(texture_handle texture)
 {
     auto& parent = impl_->get(texture);
+    if (parent.description.role == texture_role::depth_target)
+    {
+        throw std::invalid_argument("depth targets do not support shader views");
+    }
+
     const diagnostics::operation_scope scope{impl_->destinations,
                                              {"resource.create_view", "renderer.cpu"}};
     const auto found = std::find_if(

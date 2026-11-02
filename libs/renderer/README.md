@@ -41,8 +41,8 @@ returns tightly packed RGBA8 bytes; it is a diagnostic path. `device::info()`
 reports adapter identity and actual debug-layer availability. Tests can request
 `debug_validation::required` when the host has Graphics Tools installed.
 
-The startup triangle and builtin in-memory HLSL are foundation probes, not the
-future draw API. No resource loading is performed here. See the
+The original startup triangle remains a diagnostic probe. The generic draw API
+now uses immutable passes; no resource loading is performed here. See the
 [six-phase plan](../../docs/28_renderer_implementation_plan.md) for resources,
 passes, job recording, content orchestration and production-readiness gates.
 
@@ -53,3 +53,10 @@ or `--smoke-test` for the existing headless bootstrap. There are no widgets yet.
 See [library diagnostics and build policy](../../docs/29_library_diagnostics.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.
 
 Phase two provides `resource_store` in `<atlas/renderer/resources.hpp>`. See [GPU resources and transfers](../../docs/30_renderer_resources.md) for typed handles, byte/slot quotas, descriptor retention, upload readiness and destruction fences.
+
+Phase three provides `pass_renderer` and `frame_plan` in
+`<atlas/renderer/passes.hpp>`. See [pipelines and ordered passes](../../docs/31_renderer_passes.md)
+for builtins/custom in-memory shaders, fixed vertex ABI, color/depth targets,
+blending, viewport/scissor, transactional validation and presentation. Editor and
+game render their foundation triangle through this shared path. Parallel command
+recording, content orchestration and hardening remain later phases.

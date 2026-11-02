@@ -2,7 +2,7 @@
 #include <array>
 #include <atlas/jobs_diagnostics/observer.hpp>
 #include <atlas/memory/memory_resource.hpp>
-#include <atlas/renderer/resources.hpp>
+#include <atlas/renderer/passes.hpp>
 #include <gtest/gtest.h>
 #include <sstream>
 
@@ -74,6 +74,36 @@ TEST(renderer_jobs_integration_tests, prepares_with_attached_jobs_and_uploads_on
     const auto result = resources.readback(texture);
     ASSERT_EQ(result.size(), 64U * 8U * 4U);
     EXPECT_TRUE(std::equal(result.begin(), result.end(), bytes.begin(), bytes.end()));
+    const std::array<vertex, 3> vertices{{{{-1, -1, 0}, {1, 1, 1, 1}, {0.5F, 0.75F}},
+                                          {{-1, 3, 0}, {1, 1, 1, 1}, {0.5F, 0.75F}},
+                                          {{3, -1, 0}, {1, 1, 1, 1}, {0.5F, 0.75F}}}};
+    const auto geometry = resources.create_buffer({sizeof(vertices)});
+    resources.upload(geometry, std::as_bytes(std::span{vertices}));
+    const auto output = resources.create_texture({16, 16, texture_role::color_target});
+    const auto view = resources.create_view(texture);
+    pass_renderer renderer{resources};
+    pipeline_description description;
+    description.program = shader_program::textured;
+    description.linear_sampling = false;
+    draw_packet draw;
+    draw.pipeline = renderer.create_pipeline(description);
+    draw.vertices = geometry;
+    draw.vertex_count = 3;
+    draw.texture = view;
+    pass_description pass;
+    pass.color.target = output;
+    pass.draws.push_back(draw);
+    const std::array passes{pass};
+    resources.wait(renderer.submit(frame_plan{passes}));
+    const auto rendered = resources.readback(output);
+    EXPECT_TRUE(std::all_of(rendered.begin(), rendered.end(),
+                            [](std::byte value)
+                            {
+                                return value == std::byte{6};
+                            }));
+    resources.release(view);
+    resources.release(geometry);
+    resources.release(output);
     resources.release(texture);
     resources.collect();
     EXPECT_EQ(resources.statistics().allocation_bytes, 0U);

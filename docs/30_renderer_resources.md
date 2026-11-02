@@ -4,7 +4,9 @@ Renderer phase two adds `resource_store`, a platform-neutral device-coordinator
 API for buffers, single-mip RGBA8 UNORM textures, shader-resource descriptors and
 bounded uploads. Native implementation remains selected by
 `ATLAS_TARGET_PLATFORM=windows` and `ATLAS_BUILD_WINDOWS_INTEGRATION`. No storage
-access, widgets, materials, draw packets or offscreen passes are introduced.
+access or widgets are introduced. Phase three extends this foundation with
+[graphics pipelines and ordered passes](31_renderer_passes.md), including explicit
+color/depth allocation roles and automatic fence tracking for draw/presentation use.
 
 ## Ownership and identities
 

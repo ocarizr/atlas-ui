@@ -43,7 +43,17 @@ enum class resource_state : std::uint8_t
     /// @brief Resource is scheduled for generic buffer or texture shader reads.
     shader_read,
     /// @brief Resource is scheduled as a copy source.
-    copy_source
+    copy_source,
+    render_target, ///< Color attachment write state.
+    depth_write    ///< Depth attachment read/write state.
+};
+
+/// @brief Texture allocation capabilities fixed at creation.
+enum class texture_role : std::uint8_t
+{
+    sampled,      ///< RGBA8 shader input.
+    color_target, ///< RGBA8 render output, also sampleable.
+    depth_target  ///< D32 depth output, not sampleable.
 };
 
 /// @brief Byte-addressed default-heap GPU buffer, fully initialized by one exact upload.
@@ -53,12 +63,13 @@ struct buffer_description
     void validate() const; ///< Reject empty resources.
 };
 
-/// @brief Single-mip RGBA8 UNORM 2D texture; other formats follow in later phases.
+/// @brief Single-mip 2D allocation: RGBA8 color/sample data or D32 depth data.
 struct texture_description
 {
-    std::uint32_t width = 0;  ///< Pixel width in [1, 16384].
-    std::uint32_t height = 0; ///< Pixel height in [1, 16384].
-    void validate() const;    ///< Reject empty/oversized extents.
+    std::uint32_t width = 0;                   ///< Pixel width in [1, 16384].
+    std::uint32_t height = 0;                  ///< Pixel height in [1, 16384].
+    texture_role role = texture_role::sampled; ///< Immutable attachment capability.
+    void validate() const;                     ///< Reject empty/oversized extents.
 };
 
 /// @brief Hard admission limits include retired allocations and in-flight transfer staging.
@@ -102,8 +113,9 @@ class resource_store
     resource_store& operator=(const resource_store&) = delete; ///< Registry identity is unique.
     buffer_handle
     create_buffer(buffer_description description); ///< Allocate a fresh uninitialized buffer.
-    texture_handle create_texture(
-        texture_description description); ///< Allocate a fresh uninitialized RGBA texture.
+    texture_handle
+    create_texture(texture_description
+                       description); ///< Allocate an uninitialized texture with the selected role.
     descriptor_handle
     create_view(texture_handle texture); ///< Allocate a texture SRV retaining its resource.
     completion_token upload(
@@ -133,8 +145,8 @@ class resource_store
     void release(descriptor_handle descriptor,
                  completion_token after = {}); ///< Invalidate immediately; defer descriptor reuse.
     bool ready(buffer_handle buffer) const; ///< Whether a full initialization upload has completed.
-    bool
-    ready(texture_handle texture) const; ///< Whether a full initialization upload has completed.
+    bool ready(texture_handle texture)
+        const; ///< Whether an initialization upload or stored pass has completed.
     resource_state
     state(buffer_handle buffer) const; ///< Query scheduled state, not GPU completion.
     resource_state
@@ -147,11 +159,14 @@ class resource_store
     std::vector<std::byte> readback(
         buffer_handle buffer); ///< Blocking diagnostic exact-byte readback of initialized data.
     std::vector<std::byte>
-    readback(texture_handle texture); ///< Blocking diagnostic tight RGBA readback.
+    readback(texture_handle texture); ///< Blocking diagnostic tight RGBA8 or D32 byte readback.
     resource_statistics
     statistics() const; ///< Observe bounded occupancy and native heap reservation.
   private:
-    class impl;                  ///< Private registry and selected transfer backend.
-    std::unique_ptr<impl> impl_; ///< Owned coordinator state.
+    friend class pass_renderer;        ///< Pass execution shares the resource lifetime registry.
+    friend class presentation_surface; ///< Presentation protects source resources through its
+                                       ///< fence.
+    class impl;                        ///< Private registry and selected transfer backend.
+    std::shared_ptr<impl> impl_;       ///< Shared coordinator state retained by pass execution.
 };
 } // namespace atlas::renderer
