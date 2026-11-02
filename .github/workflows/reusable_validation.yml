@@ -246,6 +246,7 @@ jobs:
     - renderer
     - renderer-jobs
     - renderer-content
+    - render-host
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'game') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -265,6 +266,7 @@ jobs:
     - renderer
     - renderer-jobs
     - renderer-content
+    - render-host
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'editor') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -348,6 +350,41 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['renderer-content']) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  render-host:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - window
+    - diagnostics
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'render-host') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: render-host
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['render-host']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  renderer-readiness:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - vendor-graphics
+    - renderer
+    - render-host
+    - renderer-content
+    - renderer-jobs
+    - memory
+    - vendor-memory
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'renderer-readiness') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: renderer-readiness
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['renderer-readiness']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   required:
     name: Component validation
     if: always()
@@ -380,6 +417,8 @@ jobs:
     - renderer
     - renderer-jobs
     - renderer-content
+    - render-host
+    - renderer-readiness
     runs-on: windows-2022
     timeout-minutes: 5
     steps:

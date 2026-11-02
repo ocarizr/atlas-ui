@@ -71,3 +71,10 @@ main/render-thread integration gate.
 Phase five adds the separate [renderer content consumer](../renderer_content/README.md):
 streamer-fed image/HLSL preparation, native buffer decoding, fenced texture ownership
 and device-local pipeline caching. Core rendering still performs no file access.
+
+Phase six adds `device::status()` and typed fail-stop device-loss reporting,
+fence-completed GPU duration counters, visibility probes and cross-thread native
+presentation through a synchronized window lease. Application-owned
+`atlas::render_host` coordinates the persistent render thread; renderer still owns
+no thread or pool. See [readiness](../../docs/34_renderer_readiness.md) and the
+[remaining renderer/streaming gaps](../../docs/35_renderer_and_streaming_backlog.md).

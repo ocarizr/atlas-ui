@@ -58,6 +58,7 @@ com_ptr<D3D12MA::Allocation> native_resources::allocate(const D3D12_RESOURCE_DES
                                                         D3D12_HEAP_TYPE heap,
                                                         D3D12_RESOURCE_STATES state) const
 {
+    context->ensure_healthy("allocate GPU resource");
     D3D12MA::ALLOCATION_DESC policy{};
     policy.HeapType = heap;
     com_ptr<D3D12MA::Allocation> result;
@@ -104,6 +105,7 @@ std::shared_ptr<gpu_resource> native_resources::create(texture_description descr
 /// @brief Write the texture SRV into a previously reserved native descriptor slot.
 void native_resources::view(const std::shared_ptr<gpu_resource>& resource, std::uint32_t index)
 {
+    context->ensure_healthy("create GPU descriptor");
     const auto native = std::static_pointer_cast<native_resource>(resource);
     D3D12_SHADER_RESOURCE_VIEW_DESC view{};
     view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -119,7 +121,7 @@ void native_resources::view(const std::shared_ptr<gpu_resource>& resource, std::
 /// @brief Observe queue completion and reject device-removal sentinels.
 std::uint64_t native_resources::completed() const
 {
-    context->check_owner();
+    context->ensure_healthy("observe resource completion");
     const auto value = context->fence->GetCompletedValue();
     if (value == UINT64_MAX)
     {

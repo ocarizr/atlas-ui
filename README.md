@@ -57,6 +57,12 @@ bounded native decoding, fenced texture ownership and device-local pipeline reus
 Game and editor now demonstrate this path with loose assets and a textured quad;
 see [renderer content integration](docs/33_renderer_content.md).
 
+Phase six completes the initial Windows foundation with main/render separation,
+bounded immutable frame handoff, typed fail-stop device loss, real GPU duration
+counters and lifecycle/pressure validation. Next is a controlled shared UI runtime;
+[readiness](docs/34_renderer_readiness.md) and [remaining gaps](docs/35_renderer_and_streaming_backlog.md)
+define the current limits.
+
 ## Component validation
 
 Each row has independently named CI checks and uses compiled prerequisite artifacts.
@@ -67,6 +73,8 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | [Window](libs/window/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Renderer](libs/renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
+| [Render host](libs/render_host/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Handoff contracts |
+| [Renderer readiness](tests/renderer_readiness/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Explicit unavailability |
 | [Renderer jobs](libs/renderer_jobs/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Executor contracts |
 | [Renderer content](libs/renderer_content/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Injected decode contracts |
 | [Jobs](libs/jobs/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
@@ -101,6 +109,8 @@ HTML output, CI validation and automatic wiki synchronization.
 | [GPU resources](docs/30_renderer_resources.md) | Typed resources, GPU allocation, staging, descriptors, fences and job preparation boundaries |
 | [Graphics passes](docs/31_renderer_passes.md) | Immutable draw packets, shader ABI, attachments, blending/depth and ordered submission |
 | [Parallel recording](docs/32_renderer_recording.md) | Joined batches, job adapter, synchronization and measured grain policy |
+| [Renderer readiness](docs/34_renderer_readiness.md) | Main/render ownership, device loss, GPU timing and validation |
+| [Renderer and streaming gaps](docs/35_renderer_and_streaming_backlog.md) | Priorities, optimization evidence and the next bounded UI slice |
 | [Renderer content](docs/33_renderer_content.md) | Streamed image/shader preparation, fenced uploads and device-local pipeline cache |
 | [Library diagnostics](docs/29_library_diagnostics.md) | Optional logging/profiling destinations, auto/on/off build policy and trace boundaries |
 | [Renderer foundation](docs/28_renderer_implementation_plan.md) | Six phases, D3D12 ownership, jobs/streamer boundaries and future world rendering |

@@ -48,6 +48,12 @@ void native_passes::collect()
             continue;
         }
 
+        if (const auto sample = iterator->timer.collect())
+        {
+            ++timings.completed_frames;
+            timings.last_duration_us = *sample;
+        }
+
         reusable.push_back(std::move(*iterator));
         iterator = pending.erase(iterator);
     }

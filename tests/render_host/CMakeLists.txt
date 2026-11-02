@@ -1,0 +1,5 @@
+add_executable(atlas_render_host_tests handoff_tests.cpp)
+target_sources(atlas_render_host_tests PRIVATE failure_tests.cpp)
+target_link_libraries(atlas_render_host_tests PRIVATE atlas::render_host GTest::gtest_main)
+atlas_configure_test(atlas_render_host_tests)
+gtest_discover_tests(atlas_render_host_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS render-host TIMEOUT 30)

@@ -11,7 +11,9 @@ allocator, and supplies optional diagnostics endpoints to each service.
 2. Streamer I/O completes before it dispatches ready CPU delivery. That existing
    job calls the injected reentrant `image_decoder`; no extra job waits for I/O.
 3. A move-only `image_request` exposes nonblocking readiness, cooperative
-   cancellation and coordinator-only `get()`. A ready future can contain an error.
+   cancellation and coordinator-only `get()`. A ready future can contain an error. `valid()` distinguishes consumable requests
+   from moved/consumed handles; invalid handles are non-ready and moved-from
+   cancellation is harmless.
 4. The coordinator constructs `texture_upload` from decoded pixels. It snapshots
    rows into the renderer's fence-retained staging and creates a sampled view.
 5. `ready()` polls the GPU fence before exposing the binding and releasing decoded
@@ -116,6 +118,7 @@ there are no per-draw success logs. Profiling follows `ATLAS_PROFILING=auto|on|o
 and needs an injected capture destination. Neither GPU timing nor race freedom is
 inferred from CPU traces or ASan.
 
-The remaining foundation gate is phase six: application main/window/render-thread
-handoff, device-loss policy, GPU timing and resource/lifecycle pressure validation.
-Production UI follows that readiness gate.
+[Phase six](34_renderer_readiness.md) now establishes application main/render handoff,
+device-loss policy, GPU timing and bounded lifecycle/pressure validation. The next
+increment is a controlled shared UI slice, with [production gaps](35_renderer_and_streaming_backlog.md)
+remaining explicit.

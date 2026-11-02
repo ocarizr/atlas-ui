@@ -14,6 +14,7 @@ namespace detail
 {
 /// @brief Private bridge retaining native window lifetime without public SDK types.
 class window_access;
+class window_backend; ///< Opaque retained window/presentation endpoint.
 } // namespace detail
 
 /// @brief Initial client-area configuration; dimensions are physical pixels.
@@ -36,6 +37,21 @@ struct window_state
     bool close_requested = false; ///< Application should leave its loop.
 };
 
+/// @brief Cross-thread presentation lease; keep its window alive and pumping until render shutdown.
+class presentation_target
+{
+  public:
+    window_state
+    state() const; ///< Read a synchronized snapshot without dispatching native messages.
+  private:
+    explicit presentation_target(std::shared_ptr<detail::window_backend>
+                                     backend); ///< Grant only through the native window owner.
+    std::shared_ptr<detail::window_backend>
+        backend_;                       ///< Immutable handle plus published window state.
+    friend class window;                ///< Only the window owner can grant a presentation lease.
+    friend class detail::window_access; ///< Native bridge without public SDK handles.
+};
+
 bool backend_available() noexcept; ///< Whether a native backend was compiled.
 
 /// @brief Thread-affine window; presentation surfaces can retain its native lifetime.
@@ -50,6 +66,8 @@ class window
     window& operator=(const window&) = delete;
     window_state poll_events(); ///< Dispatch pending messages on the owner thread.
     window_state state() const; ///< Read the current native state on the owner thread.
+    presentation_target
+    share_presentation(); ///< Publish a lease for a dedicated graphics coordinator.
     void resize(std::uint32_t width, std::uint32_t height); ///< Set a nonzero client extent.
     void request_close(); ///< Mark closed and hide without invalidating retained surfaces.
     void

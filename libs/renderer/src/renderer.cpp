@@ -130,6 +130,19 @@ presentation_surface::presentation_surface(device& graphics, window::window& tar
 }
 
 /// @brief Release retained resources on the owner thread after outstanding work completes.
+presentation_surface::presentation_surface(device& graphics,
+                                           const window::presentation_target& target,
+                                           surface_options options)
+    : diagnostics_(graphics.diagnostics_)
+{
+    const diagnostics::operation_scope scope{diagnostics_, {"surface.initialize", "renderer.cpu"}};
+    options.validate();
+    graphics.backend_->check_owner();
+    backend_ = detail::make_surface(graphics.backend_,
+                                    window::detail::window_access::retain(target), options);
+}
+
+/// @brief Release retained resources on the owner thread after outstanding work completes.
 presentation_surface::~presentation_surface()
 {
     const diagnostics::operation_scope scope{diagnostics_,

@@ -71,6 +71,7 @@ void pass_renderer::release(pipeline_handle pipeline)
 void pass_renderer::collect()
 {
     impl_->resources->check_access();
+    impl::submission_guard transaction{*impl_};
     impl_->backend->collect();
     const auto done = impl_->resources->backend->completed();
     for (auto& entry : impl_->pipelines)
@@ -160,5 +161,12 @@ recording_statistics pass_renderer::last_recording() const
 {
     impl_->resources->check_access();
     return impl_->backend->last_recording();
+}
+
+/// @brief GPU timings become available through collect after the submission fence completes.
+gpu_timing_statistics pass_renderer::gpu_timing() const
+{
+    impl_->resources->check_access();
+    return impl_->backend->gpu_timing();
 }
 } // namespace atlas::renderer

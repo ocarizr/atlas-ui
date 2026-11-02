@@ -5,6 +5,13 @@ namespace atlas::renderer::detail
 {
 namespace
 {
+/// @brief Only the first and final ordered lists stamp the frame query pair.
+struct query_section
+{
+    gpu_frame_timer& timer; ///< Frame-owned, stable through the joined recording scope.
+    bool first;             ///< Stamp before the first recorded operation.
+    bool last;              ///< Resolve after the final operation.
+};
 #if defined(_MSC_VER)
 // Native task instances intentionally occupy separate cache lines; tail padding is required.
 #pragma warning(push)
@@ -16,9 +23,9 @@ class alignas(64) native_recording_task final : public recording_task
   public:
     native_recording_task(native_passes& owner, pass_batch& context,
                           std::span<const resolved_pass> passes, const recording_group& sections,
-                          const diagnostics::services& destinations)
+                          const diagnostics::services& destinations, query_section timing)
         : owner_(owner), context_(context), passes_(passes), sections_(sections),
-          destinations_(destinations)
+          destinations_(destinations), timing_(timing)
     {
     } ///< Bind until the executor joins.
   private:
@@ -27,11 +34,21 @@ class alignas(64) native_recording_task final : public recording_task
     {
         const diagnostics::operation_scope scope{destinations_,
                                                  {"renderer.record.batch", "renderer.cpu_record"}};
+        if (timing_.first)
+        {
+            timing_.timer.begin(*context_.commands.Get());
+        }
+
         ID3D12DescriptorHeap* heaps[]{owner_.resources->descriptors.Get()};
         context_.commands->SetDescriptorHeaps(1, heaps);
         for (const auto& section : sections_)
         {
             owner_.record(context_, passes_[section.pass], section);
+        }
+
+        if (timing_.last)
+        {
+            timing_.timer.end(*context_.commands.Get());
         }
 
         check(context_.commands->Close(), "finish recording batch");
@@ -42,6 +59,7 @@ class alignas(64) native_recording_task final : public recording_task
     std::span<const resolved_pass> passes_; ///< Coordinator-validated immutable resource bindings.
     const recording_group& sections_;       ///< Stable contiguous assignment.
     const diagnostics::services& destinations_; ///< Inherited thread-safe diagnostics endpoints.
+    query_section timing_; ///< Exclusive start/end query indices in ordered GPU submission.
 };
 #if defined(_MSC_VER)
 #pragma warning(pop)
@@ -55,6 +73,7 @@ std::uint64_t native_passes::submit(std::span<const resolved_pass> passes,
 {
     const diagnostics::operation_scope scope{destinations,
                                              {"renderer.record.join", "renderer.cpu"}};
+    resources->context->ensure_healthy("submit graphics passes");
     if (!executor)
     {
         options.max_batches = 1;
@@ -71,6 +90,7 @@ std::uint64_t native_passes::submit(std::span<const resolved_pass> passes,
 
     const auto groups = plan_recording(counts, options);
     auto frame = begin(groups.size());
+    frame.timer.prepare(*resources->context, destinations);
     std::vector<std::unique_ptr<native_recording_task>> owners;
     std::vector<recording_task*> tasks;
     std::vector<ID3D12CommandList*> lists;
@@ -80,7 +100,8 @@ std::uint64_t native_passes::submit(std::span<const resolved_pass> passes,
     for (std::size_t index = 0; index < groups.size(); ++index)
     {
         owners.push_back(std::make_unique<native_recording_task>(
-            *this, frame.batches[index], passes, groups[index], destinations));
+            *this, frame.batches[index], passes, groups[index], destinations,
+            query_section{frame.timer, index == 0, index + 1 == groups.size()}));
         tasks.push_back(owners.back().get());
         lists.push_back(frame.batches[index].commands.Get());
     }
@@ -100,6 +121,7 @@ std::uint64_t native_passes::submit(std::span<const resolved_pass> passes,
         task->verify();
     }
 
+    resources->context->ensure_healthy("execute graphics passes");
     resources->context->queue->ExecuteCommandLists(static_cast<UINT>(lists.size()), lists.data());
     try
     {

@@ -100,3 +100,17 @@ queued/read/decode latency and allocation measurements, storage priority, resour
 generations, explicit retry/backpressure policy and timing/telemetry adapters.
 Handle caching additionally depends on a loose-file identity/invalidation policy.
 These follow-ups can be planned independently while bundle implementation remains deferred.
+
+## Renderer phase-six integration assessment
+
+Loose-image decoding and threaded presentation now exercise IOCP, ready jobs,
+retained PMR outputs and GPU-fence publication in actual consumers. The graphics
+thread may coordinate completion; CPU workers still do not wait on storage/GPU.
+This does not establish media/audio deadlines or production UI throughput.
+
+Source generations/identity, aggregate decoded-cache budgets, storage priority,
+metadata/full-read ergonomics and format-dependent bundles remain tracked in the
+[renderer/streaming backlog](35_renderer_and_streaming_backlog.md). A narrow consumer
+usability issue was addressed: content request ownership can be inspected with
+`valid()`, and cancelling a moved-from request is safe. The streamer's raw-future
+API and its documented coordinator-wait contract remain unchanged.

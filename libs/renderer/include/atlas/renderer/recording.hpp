@@ -28,6 +28,13 @@ struct recording_statistics
     std::uint64_t draws = 0;          ///< Total validated draw packets.
 };
 
+/// @brief Actual completed GPU intervals, separate from CPU recording and submission duration.
+struct gpu_timing_statistics
+{
+    std::uint64_t completed_frames = 0; ///< Fence-completed measured pass submissions.
+    double last_duration_us = 0; ///< Latest completed GPU timestamp interval in microseconds.
+};
+
 /// @brief One exclusive operation, borrowed until the executor joins all accepted work.
 class recording_task
 {

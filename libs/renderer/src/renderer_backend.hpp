@@ -40,7 +40,13 @@ class device_backend
         }
     }
 
-    virtual device_info info() const = 0;               ///< Return adapter capabilities.
+    virtual device_info info() const = 0; ///< Return adapter capabilities.
+
+    virtual device_status health() const
+    {
+        return {};
+    } ///< Portable health query without SDK types.
+
     virtual void wait_idle() = 0;                       ///< Complete queued GPU work.
     virtual std::uint64_t errors() const = 0;           ///< Native validation errors.
     std::thread::id owner = std::this_thread::get_id(); ///< Exclusive native coordinator.
