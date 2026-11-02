@@ -43,7 +43,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, weighted ready priorities, cooperative cancellation, origin-thread completion callbacks, bounded asynchronous range reads from memory/loose assets, Windows IOCP with bounded concurrency and native cancellation, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Game and editor now share a native window and Direct3D 12 presentation foundation with clear/triangle drawing, fenced frame reuse, resize and WARP pixel tests. Headless bootstrap remains available through `--smoke-test`. Widgets, managed preview services, asset bundles and media playback are not implemented. The [six-phase renderer foundation](docs/28_renderer_implementation_plan.md) must precede production UI. Generic phased workloads now have sequential-reference and sparse-update tests; a separate benchmark records scheduling/grain overhead and worker traces. Consumer-specific frame budgets remain to be established. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
+**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, weighted ready priorities, cooperative cancellation, origin-thread completion callbacks, bounded asynchronous range reads from memory/loose assets, Windows IOCP with bounded concurrency and native cancellation, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Game and editor now share a native window and Direct3D 12 presentation foundation with clear/triangle drawing, fenced frame reuse, resize and WARP pixel tests. Phase two adds typed GPU buffers/textures, D3D12MA allocation, bounded staging/descriptors and fence-based retirement. Headless bootstrap remains available through `--smoke-test`. Widgets, managed preview services, asset bundles and media playback are not implemented. The [six-phase renderer foundation](docs/28_renderer_implementation_plan.md) must precede production UI. Generic phased workloads now have sequential-reference and sparse-update tests; a separate benchmark records scheduling/grain overhead and worker traces. Consumer-specific frame budgets remain to be established. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
 
 ## Component validation
 
@@ -84,6 +84,7 @@ HTML output, CI validation and automatic wiki synchronization.
 
 | Document | Topics |
 | --- | --- |
+| [GPU resources](docs/30_renderer_resources.md) | Typed resources, GPU allocation, staging, descriptors, fences and job preparation boundaries |
 | [Library diagnostics](docs/29_library_diagnostics.md) | Optional logging/profiling destinations, auto/on/off build policy and trace boundaries |
 | [Renderer foundation](docs/28_renderer_implementation_plan.md) | Six phases, D3D12 ownership, jobs/streamer boundaries and future world rendering |
 | [Scope](docs/01_scope.md) | Goals, boundaries, supported features |

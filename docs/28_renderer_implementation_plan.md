@@ -13,7 +13,7 @@ Windows. The SDK-free validation profile reports native graphics as unavailable.
 | Phase | Deliverable and acceptance gate | Status |
 | --- | --- | --- |
 | 1. Device and presentation | Independent window/device/surface ownership, hardware or WARP selection, real clear and triangle, fenced frame reuse, resize/minimize, DPI, clean shutdown and pixel readback tests; both applications exercise the same implementation | Implemented |
-| 2. Resources and transfers | Typed generation-checked buffer/texture handles, GPU memory allocation, upload staging, descriptor allocation, explicit resource states and fence-based deferred destruction; test exhaustion, reuse and in-flight lifetimes | Planned |
+| 2. Resources and transfers | Typed generation-checked buffer/texture handles, GPU memory allocation, upload staging, descriptor allocation, explicit resource states and fence-based deferred destruction; test exhaustion, reuse and in-flight lifetimes | Implemented |
 | 3. Pipelines and passes | Shader/pipeline descriptions, immutable draw packets, offscreen targets, depth/blend/scissor, ordered passes and explicit attachments; validate generic 2D/3D primitives without UI semantics | Planned |
 | 4. Job recording | One application-owned scheduler, coarse parallel preparation and exclusively owned command allocators/lists, deterministic submission order, sequential small-work path and measured scheduling thresholds | Planned |
 | 5. Content integration | Consumer orchestration from streamer buffers through decoding to upload-ready data, shader construction/cache policy, cancellation and retention until upload fences complete; loose assets first | Planned |
@@ -60,7 +60,7 @@ backend interfaces over requiring consumers to inherit native device classes.
 - PMR frame bookkeeping retains a shared application-selected memory resource.
   The app injects `atlas::memory::make_resource()`. This is CPU allocation only;
   D3D12 heaps, driver memory, COM allocations and diagnostic image vectors are not
-  redirected through that resource. Evaluate D3D12 Memory Allocator in phase two.
+  redirected through that resource. Phase two integrates D3D12 Memory Allocator for GPU resources, independently of CPU PMR.
 
 ## Jobs and streaming boundaries
 
@@ -115,3 +115,5 @@ See [renderer usage](../libs/renderer/README.md),
 [Windows checks](10_windows_development.md).
 
 CPU scopes and lifecycle/failure logging are now injectable through the [library diagnostics policy](29_library_diagnostics.md); GPU timings and recovery remain later gates.
+
+See [GPU resources and transfers](30_renderer_resources.md) for phase-two handles, budgets, uploads, retirement, readiness fences and the jobs/PMR integration proof.

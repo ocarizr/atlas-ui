@@ -1,10 +1,35 @@
 /** @file @brief Generic renderer contracts and ownership. */
 #include "renderer_backend.hpp"
 #include <atlas/renderer/renderer.hpp>
+#include <atomic>
 #include <cmath>
+#include <limits>
 
 namespace atlas::renderer
 {
+/// @brief Allocate provenance without wrapping back into earlier live handle identities.
+std::uint64_t detail::next_identity()
+{
+    static std::atomic<std::uint64_t> next{1};
+    auto value = next.load();
+    do
+    {
+        if (value == std::numeric_limits<std::uint64_t>::max())
+        {
+            throw std::overflow_error("renderer identity space exhausted");
+        }
+    } while (!next.compare_exchange_weak(value, value + 1));
+
+    return value;
+}
+
+/// @brief Retain only on the native coordinator.
+std::shared_ptr<detail::device_backend> detail::device_access::retain(device& value)
+{
+    value.backend_->check_owner();
+    return value.backend_;
+}
+
 /// @brief Reject invalid configuration before allocating or mutating native resources.
 void device_options::validate() const
 {

@@ -19,10 +19,13 @@ components:
   memory-integration:
     paths:
     - tests/memory_integration/**
+    - tests/platform/windows/memory_integration/**
     depends_on:
     - memory
     - jobs
     - streaming
+    - renderer
+    - jobs-diagnostics
     build_targets:
     - atlas_memory_integration_tests
     test_labels:
@@ -31,10 +34,13 @@ components:
     - memory
     - jobs
     - streaming
+    - renderer
+    - jobs-diagnostics
     vendors:
     - testing
     - memory
     - content
+    - graphics
   diagnostics:
     paths:
     - libs/diagnostics/**

@@ -71,7 +71,10 @@ def test_memory_producer_is_independent_of_jobs_streaming_and_grpc():
     assert consumers["prerequisites"]["memory-integration"] == [
         "diagnostics",
         "jobs",
+        "jobs-diagnostics",
         "memory",
+        "renderer",
         "streaming",
+        "window",
     ]
     assert "ipc" not in consumers["groups"]

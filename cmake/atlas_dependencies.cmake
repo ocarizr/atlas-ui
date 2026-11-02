@@ -1,6 +1,7 @@
 include_guard(GLOBAL)
 
 if(renderer IN_LIST atlas_build_components AND ATLAS_BUILD_WINDOWS_INTEGRATION)
+    find_package(D3D12MemoryAllocator CONFIG REQUIRED)
     find_package(directx-dxc CONFIG REQUIRED)
     # The pinned DXC package misspells DXIL's Release location; both configurations ship the same DLL.
     get_target_property(atlas_dxil_location Microsoft::DXIL IMPORTED_LOCATION_DEBUG)

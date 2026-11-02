@@ -6,6 +6,8 @@
 
 namespace atlas::renderer::detail
 {
+std::uint64_t next_identity(); ///< Allocate a nonzero process-local provenance ID.
+
 /// @brief Shared native queue implementation and owner guard.
 class device_backend
 {
@@ -26,6 +28,15 @@ class device_backend
     virtual void wait_idle() = 0;                       ///< Complete queued GPU work.
     virtual std::uint64_t errors() const = 0;           ///< Native validation errors.
     std::thread::id owner = std::this_thread::get_id(); ///< Exclusive native coordinator.
+    std::uint64_t identity = next_identity(); ///< Fence provenance shared by device consumers.
+};
+
+/// @brief Private SDK-free bridge; native callers downcast only within the platform boundary.
+class device_access
+{
+  public:
+    static std::shared_ptr<device_backend>
+    retain(device& value); ///< Check coordinator before retaining its backend.
 };
 
 /// @brief Swapchain implementation with a retained queue and native window.
