@@ -30,6 +30,8 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
         "diagnostics",
         "jobs-diagnostics",
         "memory",
+        "renderer",
+        "window",
     }
     assert "game" not in plan["components"]
     assert plan["prerequisites"]["editor"] == [
@@ -39,6 +41,8 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
         "jobs",
         "jobs-diagnostics",
         "memory",
+        "renderer",
+        "window",
     ]
 
 

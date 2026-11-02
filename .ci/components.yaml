@@ -109,11 +109,11 @@ components:
     - libs/animation/**
     - libs/video/**
     - libs/localization/**
-    - libs/renderer/**
     - tests/ui/**
     depends_on:
     - core
     - content
+    - renderer
     build_targets: []
     test_labels: []
   ipc:
@@ -136,36 +136,44 @@ components:
     paths:
     - apps/game/**
     - tests/game/**
+    - apps/common/**
     depends_on:
     - ui
     - application
+    - renderer
     build_targets:
     - atlas_game
     test_labels:
     - game
     build_requires:
     - application
+    - renderer
     vendors:
     - memory
     - ipc
     - content
+    - graphics
   editor:
     paths:
     - apps/editor/**
     - tests/editor/**
+    - apps/common/**
     depends_on:
     - ui
     - application
+    - renderer
     build_targets:
     - atlas_editor
     test_labels:
     - editor
     build_requires:
     - application
+    - renderer
     vendors:
     - memory
     - ipc
     - content
+    - graphics
   tools:
     paths:
     - tools/**
@@ -269,6 +277,39 @@ components:
     - testing
     - ipc
     - content
+  window:
+    paths:
+    - libs/window/**
+    - libs/platform/windows/window/**
+    - tests/window/**
+    - tests/platform/windows/window/**
+    depends_on: []
+    build_targets:
+    - atlas_window
+    - atlas_window_tests
+    test_labels:
+    - window
+    build_requires: []
+    vendors:
+    - testing
+  renderer:
+    paths:
+    - libs/renderer/**
+    - libs/platform/windows/renderer/**
+    - tests/renderer/**
+    - tests/platform/windows/renderer/**
+    depends_on:
+    - window
+    build_targets:
+    - atlas_renderer
+    - atlas_renderer_tests
+    test_labels:
+    - renderer
+    build_requires:
+    - window
+    vendors:
+    - testing
+    - graphics
 formatting_contexts:
   tooling:
   - scripts/**/*.py
@@ -318,6 +359,8 @@ documentation_paths:
 - CONTRIBUTING.md
 - LICENSE
 - docs/**
+- libs/window/README.md
+- libs/renderer/README.md
 asset_paths:
 - assets/**
 profiles:

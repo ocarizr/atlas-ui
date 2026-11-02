@@ -43,7 +43,7 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, weighted ready priorities, cooperative cancellation, origin-thread completion callbacks, bounded asynchronous range reads from memory/loose assets, Windows IOCP with bounded concurrency and native cancellation, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Apps remain headless bootstrap programs; UI windows, managed preview services, asset bundles and media playback are not implemented. Generic phased workloads now have sequential-reference and sparse-update tests; a separate benchmark records scheduling/grain overhead and worker traces. Consumer-specific frame budgets remain to be established. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
+**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, weighted ready priorities, cooperative cancellation, origin-thread completion callbacks, bounded asynchronous range reads from memory/loose assets, Windows IOCP with bounded concurrency and native cancellation, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Game and editor now share a native window and Direct3D 12 presentation foundation with clear/triangle drawing, fenced frame reuse, resize and WARP pixel tests. Headless bootstrap remains available through `--smoke-test`. Widgets, managed preview services, asset bundles and media playback are not implemented. The [six-phase renderer foundation](docs/28_renderer_implementation_plan.md) must precede production UI. Generic phased workloads now have sequential-reference and sparse-update tests; a separate benchmark records scheduling/grain overhead and worker traces. Consumer-specific frame budgets remain to be established. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
 
 ## Component validation
 
@@ -53,6 +53,8 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 
 | Component | Debug/tests | Release/tests | ASan | MSVC analysis | clang-tidy | Coverage | SDK-free |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| [Window](libs/window/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
+| [Renderer](libs/renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Jobs](libs/jobs/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Memory](libs/memory/CMakeLists.txt) | Yes | Yes | System backend | Yes | Yes | Yes | Yes |
 | [Memory consumers](tests/memory_integration/CMakeLists.txt) | Yes | Yes | System backend | Yes | Yes | Yes | Yes |
@@ -65,7 +67,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | [Editor](apps/editor/main.cpp) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Content tools](tools/cook/main.cpp) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Dependency integration](tests/dependencies/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| [Windows SDK](tests/platform/windows/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | — |
+| [Windows SDK](tests/platform/windows/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | â€” |
 
 Third-party products are built in six independent groups: testing, memory, content/logging,
 media, IPC and graphics. They include Debug and Release variants and are retained
@@ -82,6 +84,7 @@ HTML output, CI validation and automatic wiki synchronization.
 
 | Document | Topics |
 | --- | --- |
+| [Renderer foundation](docs/28_renderer_implementation_plan.md) | Six phases, D3D12 ownership, jobs/streamer boundaries and future world rendering |
 | [Scope](docs/01_scope.md) | Goals, boundaries, supported features |
 | [Architecture](docs/02_architecture.md) | Domain boundaries, libraries, applications, dependencies |
 | [UI and rendering](docs/03_ui_and_rendering.md) | Widgets, layout, invalidation, graphics, animation, video, localization |

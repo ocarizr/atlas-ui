@@ -236,6 +236,8 @@ jobs:
     - vendor-content
     - vendor-memory
     - application
+    - vendor-graphics
+    - renderer
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'game') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -251,6 +253,8 @@ jobs:
     - vendor-content
     - vendor-memory
     - application
+    - vendor-graphics
+    - renderer
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'editor') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -272,6 +276,32 @@ jobs:
       component: tools
       version: ${{ inputs.version }}
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).tools) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  window:
+    needs:
+    - plan
+    - vendor-testing
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'window') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: window
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).window) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  renderer:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-graphics
+    - window
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'renderer') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: renderer
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).renderer) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
   required:
@@ -302,6 +332,8 @@ jobs:
     - game
     - editor
     - tools
+    - window
+    - renderer
     runs-on: windows-2022
     timeout-minutes: 5
     steps:
