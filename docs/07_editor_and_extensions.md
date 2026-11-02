@@ -1,50 +1,59 @@
 # Editor and extensions
 
-## Shared technology
+## Shared technology and current state
 
-Current entry points perform headless bootstrap only. The managed preview lifecycle and RPC services below are planned contracts, not an implemented editor session.
+Game/editor currently demonstrate shared threaded rendering and loose-asset content.
+There is no implemented UI editor session yet. `atlas_game` is a reusable runtime
+host, not a game-specific interface. The editor will use Atlas UI for its own
+interface and progressively author that interface with its own tools.
 
-atlas_editor uses Atlas UI and the Direct3D 12 renderer libraries for its own interface. atlas_game uses those same libraries to generate the preview in a separate process. New compositions and native C++ behavior/types can extend the editor.
+The [UI implementation plan](36_ui_implementation_plan.md) replaces the earlier
+mandatory two-process preview and C++-only behavior design. Lua is planned for UI
+behavior; native C++ widget/types and operations remain extensible. Separate the
+authoring document, editor UI session and preview runtime state in every mode.
 
-The job-system maturity gate precedes production UI implementation. A standalone runtime with manually authored UI follows that gate; hierarchy, inspector and persistence are added afterward so the editor can progressively author its own interface.
+## Initial local preview
 
-## Preview lifecycle
+The initial preview is an independent runtime session inside the editor process.
+The editor applies validated document changes through library APIs, rather than
+sharing arbitrary mutable tree/ECS ownership with preview execution. Selection,
+undo/redo, inspectors and persistence belong to authoring. The standalone runtime
+does not link editor implementation details.
 
-The user starts atlas_editor. The editor manages the atlas_game preview session:
+One application-owned worker pool serves sessions; each session has explicit event
+dispatch/VM ownership and publication boundaries. A viewport is a rendering region,
+not another process or implicit scheduler. Session destruction drains work and
+releases borrowed resources before their owners disappear.
 
-1. Detect relevant C++ changes using a defined build/debounce policy.
-2. Preserve the authoring document and required session data.
-3. Stop and await the preview process.
-4. Run validation/generation/build.
-5. On success, start the rebuilt preview.
-6. Reconstruct the session and resume preview display.
+Bootstrap the editor interface programmatically, then migrate panels to authored
+documents. Preserve a minimal recovery interface when an editor document is invalid.
+An authored extension needs metadata/registration, validated properties/actions
+and a contribution point before the editor can instantiate it.
 
-Keep the document intact on compilation failure and show diagnostics. Changes to code linked into the editor itself may require restarting atlas_editor too; a preview restart is not universal native-code hot reload.
+## Optional isolated preview
 
-## gRPC and Protocol Buffers
+The existing gRPC/Protobuf integration remains available for a future process
+adapter; current bootstrap linkage is migrated with local host integration.
+Isolated execution can preserve editor state when native preview code fails and
+support an independently restarted/debugged preview. It adds lifecycle, image
+transport, session/versioning and failure handling requirements.
 
-Use gRPC services and Protobuf messages for control/state communication. Proposed contracts include session handshake/version, document revisions, edits/commands, input forwarding, selection/query results, diagnostics, and lifecycle/health messages.
+Before enabling it, define handshake/capabilities, document revisions, edits/input,
+selection/results, diagnostics, deadlines, cancellation and reconnect behavior.
+Do not pass ECS pointers across processes. D3D12 shared resources or frame streaming
+are separate image transport choices; gRPC control does not imply copying each
+frame into Protobuf.
 
-Do not share ECS pointers across processes. Reject stale revisions/sessions and define cancellation, deadlines, disconnect/reconnect and recovery. Use a local endpoint with an explicit session identity; transport/security details remain to be designed.
+Native rebuild/restart must preserve the authoring document, report compilation
+failure without losing edits, and specify preview-state reconstruction. Changes
+linked into the editor may require restarting the editor too. Debugger pauses must
+not be mistaken for crashed sessions. These contracts are deferred until isolation
+has a concrete consumer.
 
-Image delivery is a separate open contract: D3D12 shared resources, frame streaming, or another mechanism. Choosing gRPC control does not require serializing every GPU frame into messages.
+## Authoring scope
 
-The editor owns authoring state; specify whether animation/simulation state is restored or reset after rebuild. Protocol evolution, capability negotiation and compatible generated-code versions also need contracts.
-
-## Tools
-
-Hierarchy, inspector, animation timeline, asset browser, localization browser, profiler, log window and package manager. Visual authoring includes drag-and-drop, anchors, docking, preview modes and device simulation. Animation authoring includes curves, tracks, event keys, preview and scrubbing.
-
-Package Manager scope, undo/redo, autosave/recovery, multi-document editing, device simulation and live-edit behavior remain to be specified.
-
-## Extension pipeline
-
-Create a composition/type; declare properties, actions and bindings; validate types/references; cook or build native behavior; register a contribution; instantiate it in the editor.
-
-Composition from existing widgets and creation of a new native type are distinct operations. Native types may introduce components, metadata and rendering behavior. Static registration versus plugins/DLLs, extension points for menus/panels/inspectors, API/ABI versioning and persistence remain open. Rebuild/restart is acceptable.
-
-## Debugging
-
-Use Visual Studio or another suitable Windows IDE and attach to atlas_game for breakpoints. Expose the process/session identity. A proposed debug mode suppresses watchdog/restart while a debugger has paused execution; a breakpoint is not a crash.
-
-Test preview lifecycle and state synchronization, rebuild failure, disconnect recovery, and extension integration without corrupting the authoring document.
+Begin with hierarchy, inspector, selection and undo/redo. Asset/localization
+browsers, device simulation, animation timeline, profiler/log panels and package
+management follow focused use cases. Animation playback and timeline authoring
+are separate capabilities. Reload, native plugins/DLLs, API/ABI evolution and
+extension contribution/version policies remain to be specified.

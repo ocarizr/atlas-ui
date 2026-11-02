@@ -30,7 +30,7 @@ Each shared library has a CMake target, a narrow public API, and declared depend
 
 The architecture is cross-platform even though only Windows x64 is currently supported and validated. Jobs, streaming, IPC and application-host contracts stay platform-agnostic. Windows SDK integration and dependencies live under `libs/platform/windows/`; SDK tests are separate from portable dependency tests. Public APIs must not leak HWND/HANDLE, COM, D3D12 or XAudio2 types. Future backends implement domain contracts and are selected by composition roots/CMake without forcing native dependencies into shared libraries. See the [naming and boundary rules](16_portability_and_naming.md).
 
-The editor owns the authoring document. Preview state is a synchronized projection in another process. Sharing libraries means sharing code and contracts, not directly sharing ECS pointers between processes.
+The editor owns its authoring document. The initial planned preview is a separate runtime session in the same process, with independent mutable state. Optional isolated preview may later use the existing IPC contracts. Neither mode shares mutable ECS ownership implicitly. See the [UI phases](36_ui_implementation_plan.md).
 
 ## Subsystems
 

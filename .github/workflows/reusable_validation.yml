@@ -385,6 +385,20 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['renderer-readiness']) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  ui:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - diagnostics
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'ui') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: ui
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['ui']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   required:
     name: Component validation
     if: always()
@@ -419,6 +433,7 @@ jobs:
     - renderer-content
     - render-host
     - renderer-readiness
+    - ui
     runs-on: windows-2022
     timeout-minutes: 5
     steps:

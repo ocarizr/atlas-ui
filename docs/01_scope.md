@@ -27,9 +27,9 @@ The long-term direction is a complete frontend stack suitable for production-sca
 | ECS | EnTT; project-specific scheduling and UI semantics remain Atlas responsibilities |
 | Authored data | XML for UI, ViewModels, and other serialized application data |
 | Configuration | YAML |
-| IPC | gRPC services with Protocol Buffers |
-| Extensions | Native C++ behavior, rebuild/restart permitted |
-| Process model | Editor-managed atlas_game preview process |
+| IPC | gRPC/Protocol Buffers available for optional isolated preview |
+| Extensions | Planned Lua behavior; native C++ types with rebuild/restart permitted |
+| Process model | Planned independent in-process preview session; optional isolated IPC preview |
 | Development | DDD, TDD, modular libraries, English repository content |
 
 ## Scope exclusions

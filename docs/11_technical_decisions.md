@@ -20,9 +20,9 @@ XML is the format for authored/serialized application data, including UI and Vie
 
 Respect tool-owned formats: CMake presets, dependency lock files and GitHub matrix outputs may require JSON. They are not an alternative application-data authoring format.
 
-## gRPC preview control
+## Local preview and optional gRPC control
 
-Use gRPC between atlas_editor and the managed atlas_game process. Define typed services, version/session/revision contracts, deadlines and recovery. Image transport is not chosen yet; separate control-plane RPCs from a future GPU-sharing/frame-delivery decision.
+gRPC/Protobuf remains the optional isolated-preview transport. The initial editor will use independent runtime state in its own process through local library APIs. Isolation and frame transport are deferred capabilities, not requirements for the UI core. Existing bootstrap linkage is migrated with host integration. Lua is the planned behavior language; native C++ extension types remain available. See the [UI implementation plan](36_ui_implementation_plan.md).
 
 ## Persistent workers
 

@@ -53,7 +53,7 @@ Windows validation includes formatting, clang-tidy, MSVC analysis, Debug/Release
 | MVVM vertical slice | Gain XP/apply damage update presentation through actions/events/bindings |
 | Measured parallelism | Incremental layout graph compared against sequential execution |
 | Content pipeline | Validated XML, constructors, cooked content, packages and streaming |
-| Editor bootstrap | Atlas UI editor, hierarchy/inspector and managed gRPC preview process |
+| Editor bootstrap | Atlas UI editor, hierarchy/inspector and independent local preview session; isolated IPC preview optional |
 | Extensibility | Create and integrate an editor contribution; rebuild/restart native behavior |
 | Complete 1.0 scope | Expanded widgets, animation, localization, AV1/WebM video and UI sound effects, tools and end-to-end tests |
 
