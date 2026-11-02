@@ -1,11 +1,8 @@
 /** @file @brief D3D12 implementation state, never exposed to library consumers. */
 #pragma once
 #include "renderer_backend.hpp"
-#include <Windows.h>
-#include <d3d12.h>
-#include <d3d12sdklayers.h>
-#include <dxgi1_6.h>
-#include <wrl/client.h>
+#include "windows_graphics.hpp"
+#include <D3D12MemAlloc.h>
 
 namespace atlas::renderer::detail
 {
@@ -39,10 +36,12 @@ class native_device final : public device_backend
                                     ///< release.
     device_options options;         ///< Native initialization policy.
     std::shared_ptr<std::pmr::memory_resource>
-        memory;                            ///< Pins caller-selected CPU allocation resource.
-    device_info information;               ///< Observable selected backend.
-    com_ptr<IDXGIFactory6> factory;        ///< DXGI factory.
-    com_ptr<ID3D12Device> gpu;             ///< D3D12 device.
+        memory;                     ///< Pins caller-selected CPU allocation resource.
+    device_info information;        ///< Observable selected backend.
+    com_ptr<IDXGIFactory6> factory; ///< DXGI factory.
+    com_ptr<ID3D12Device> gpu;      ///< D3D12 device.
+    com_ptr<D3D12MA::Allocator>
+        allocations;                       ///< GPU heap suballocation, released before the device.
     com_ptr<ID3D12CommandQueue> queue;     ///< Exclusive graphics submission queue.
     com_ptr<ID3D12Fence> fence;            ///< Monotonic queue completion timeline.
     com_ptr<ID3D12RootSignature> root;     ///< Empty foundation root signature.

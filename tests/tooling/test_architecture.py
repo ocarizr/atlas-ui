@@ -7,7 +7,17 @@ import pytest
 from scripts.ci.architecture import validate_architecture
 
 
-@pytest.mark.parametrize("header", ["Windows.h", "dxgi1_6.h", "d3d12sdklayers.h", "dxcapi.h"])
+@pytest.mark.parametrize(
+    "header",
+    [
+        "Windows.h",
+        "dxgi1_6.h",
+        "d3d12sdklayers.h",
+        "dxcapi.h",
+        "D3D12MemAlloc.h",
+        "directx/d3d12.h",
+    ],
+)
 @pytest.mark.parametrize(
     "relative",
     [

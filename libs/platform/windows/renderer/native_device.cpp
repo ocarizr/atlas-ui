@@ -93,6 +93,11 @@ native_device::native_device(device_options policy,
     }
 
     information.adapter_name = std::move(name);
+    D3D12MA::ALLOCATOR_DESC allocation_policy{};
+    allocation_policy.pDevice = gpu.Get();
+    allocation_policy.pAdapter = selected.Get();
+    check(D3D12MA::CreateAllocator(&allocation_policy, &allocations),
+          "create GPU memory allocator");
     D3D12_COMMAND_QUEUE_DESC queue_description{};
     queue_description.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     check(gpu->CreateCommandQueue(&queue_description, IID_PPV_ARGS(&queue)),

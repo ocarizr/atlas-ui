@@ -2,11 +2,11 @@
 
 `atlas::renderer` provides a platform-neutral C++20 device and presentation API.
 The current backend is Windows Direct3D 12. It depends on `atlas::window` and `atlas::diagnostics`, with
-private native dependencies on D3D12, DXGI and pinned DXC. It has no UI, jobs,
+private native dependencies on D3D12, DXGI, pinned DXC and D3D12 Memory Allocator. It has no UI, jobs,
 streamer, editor or gameplay dependency.
 
 Installed consumers must load the `atlas_diagnostics` package before importing the
-window/renderer target exports; build-tree consumers receive these prerequisites
+window/renderer target exports, and load native DXC/D3D12MemoryAllocator packages for Windows builds; build-tree consumers receive these prerequisites
 through their declared CMake component dependencies.
 
 ```cpp
@@ -51,3 +51,5 @@ for software presentation, `--graphics-smoke-test` for three hidden WARP frames,
 or `--smoke-test` for the existing headless bootstrap. There are no widgets yet.
 
 See [library diagnostics and build policy](../../docs/29_library_diagnostics.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.
+
+Phase two provides `resource_store` in `<atlas/renderer/resources.hpp>`. See [GPU resources and transfers](../../docs/30_renderer_resources.md) for typed handles, byte/slot quotas, descriptor retention, upload readiness and destruction fences.

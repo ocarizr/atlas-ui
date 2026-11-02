@@ -109,6 +109,8 @@ namespace detail
 class device_backend;
 /// @brief Opaque presentation implementation with exclusive coordinator access.
 class surface_backend;
+/// @brief Private bridge retaining a device for native integration tests and backends.
+class device_access;
 } // namespace detail
 
 /// @brief One graphics queue and fence timeline, used exclusively on its creating thread.
@@ -133,6 +135,8 @@ class device
     diagnostics::services diagnostics_; ///< Retained optional logging and CPU capture endpoints.
     std::shared_ptr<detail::device_backend> backend_; ///< Shared lifetime retained by surfaces.
     friend class presentation_surface;
+    friend class resource_store;
+    friend class detail::device_access;
 };
 
 /// @brief Native swapchain whose lifetime retains both device and window implementations.

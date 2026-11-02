@@ -64,3 +64,5 @@ The current integration test decodes a streamed Opus packet on a CPU job. Comple
 ## Deployment
 
 Packages contain the four bootstrap executables, their discovered non-system runtime DLLs, the design documents and dependency copyright notices. Windows system DLLs are not redistributed; a machine without the development toolchain needs the matching Visual C++ x64 runtime installed. Generated protocol files and downloaded packages remain build outputs. Debug/ASan deployment is for development, while release packaging uses the Release configuration.
+
+GPU resource allocation uses D3D12 Memory Allocator 3.2.0 (MIT), fixed by the existing vcpkg baseline in the graphics group. It manages GPU heaps rather than replacing the shared CPU mimalloc/PMR policy. See [resource ownership](30_renderer_resources.md).

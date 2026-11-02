@@ -109,6 +109,9 @@ jobs:
     - jobs
     - streaming
     - vendor-content
+    - renderer
+    - jobs-diagnostics
+    - vendor-graphics
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'memory-integration') }}
     uses: ./.github/workflows/reusable_build.yml
     with:

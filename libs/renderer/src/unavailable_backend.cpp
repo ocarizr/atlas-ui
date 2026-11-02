@@ -1,8 +1,16 @@
 /** @file @brief SDK-free builds report graphics as unavailable. */
 #include "renderer_backend.hpp"
+#include "resource_backend.hpp"
 
 namespace atlas::renderer
 {
+/// @brief Resource operations cannot silently use a CPU substitute for a native GPU backend.
+std::shared_ptr<detail::resource_backend>
+detail::make_resource_backend(std::shared_ptr<device_backend>, resource_limits)
+{
+    throw std::runtime_error("GPU resource backend is unavailable in this build");
+}
+
 /// @brief Report native backend availability without allocating graphics resources.
 bool backend_available() noexcept
 {

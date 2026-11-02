@@ -1,8 +1,14 @@
-add_executable(atlas_renderer_tests renderer_contract_tests.cpp)
+add_executable(atlas_renderer_tests renderer_contract_tests.cpp resource_contract_tests.cpp)
 target_link_libraries(atlas_renderer_tests PRIVATE atlas::renderer GTest::gtest_main)
 if(ATLAS_BUILD_WINDOWS_INTEGRATION)
     target_sources(atlas_renderer_tests PRIVATE ../platform/windows/renderer/presentation_tests.cpp
         ../platform/windows/renderer/diagnostics_tests.cpp)
+    target_sources(atlas_renderer_tests PRIVATE ../platform/windows/renderer/resource_transfer_tests.cpp
+        ../platform/windows/renderer/resource_lifetime_tests.cpp ../platform/windows/renderer/resource_readiness_tests.cpp)
+    target_include_directories(atlas_renderer_tests PRIVATE ${PROJECT_SOURCE_DIR}/libs/renderer/src
+        ${PROJECT_SOURCE_DIR}/libs/window/src ${PROJECT_SOURCE_DIR}/libs/platform/windows/renderer)
+    target_link_libraries(atlas_renderer_tests PRIVATE GPUOpen::D3D12MemoryAllocator)
+    target_compile_definitions(atlas_renderer_tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00 D3D12MA_D3D12_HEADERS_ALREADY_INCLUDED)
     add_custom_command(TARGET atlas_renderer_tests POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:Microsoft::DXIL>" "$<TARGET_FILE_DIR:atlas_renderer_tests>")
 endif()

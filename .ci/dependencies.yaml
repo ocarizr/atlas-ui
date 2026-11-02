@@ -4,4 +4,4 @@ groups:
   content: [entt, pugixml, yaml-cpp, spdlog]
   media: [dav1d, libwebm, opus]
   ipc: [grpc, protobuf]
-  graphics: [directx-dxc]
+  graphics: [directx-dxc, d3d12-memory-allocator]
