@@ -116,6 +116,13 @@ code-generation tools, CMake metadata, notices and the pinned vcpkg CMake helper
 It is named `vendor-<group>-<identity>` and retained for **14 days**. This is Actions
 storage, not a release or public package feed; access follows repository/Actions
 visibility and is not a separate private storage service.
+
+Artifact discovery retries transient GitHub API responses (429, 500, 502, 503,
+504), connection errors and timeouts up to four attempts, with 1/2/4-second
+backoff and a 60-second request timeout. Retry messages contain no credentials.
+Permanent HTTP errors fail immediately; exhausted retries preserve the original
+error rather than reporting a cache miss or triggering unnecessary recompilation.
+
 See GitHub's [artifact storage documentation](https://docs.github.com/en/actions/tutorials/store-and-share-data)
 and [download access rules](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts).
 
