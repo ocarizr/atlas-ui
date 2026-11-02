@@ -8,7 +8,7 @@
 
 namespace atlas::application
 {
-/// @brief Signal and wait for all earlier commands on the graphics queue.
+/// @brief Compose shared services and run the owner-thread graphics loop or bounded smoke check.
 int run_renderer_host(application_kind kind, int argc, char** argv)
 {
     if (argc == 2 && std::string_view{argv[1]} == "--smoke-test")
@@ -16,20 +16,20 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
         return run_application(kind, argc, argv);
     }
 
-    diagnostics::logger log;
+    auto log = std::make_shared<diagnostics::logger>();
     const std::string_view argument = argc == 2 ? argv[1] : "";
     if (argc > 2 || (argument != "" && argument != "--warp" &&
                      argument != "--graphics-smoke-test" && argument != "--help"))
     {
-        (void)log.write(diagnostics::log_level::error, "application",
-                        "Unknown graphics argument; use --help");
+        (void)log->write(diagnostics::log_level::error, "application",
+                         "Unknown graphics argument; use --help");
         return 2;
     }
 
     if (argument == "--help")
     {
-        (void)log.write(diagnostics::log_level::info, "application",
-                        "Options: --warp, --smoke-test, --graphics-smoke-test");
+        (void)log->write(diagnostics::log_level::info, "application",
+                         "Options: --warp, --smoke-test, --graphics-smoke-test");
         return 0;
     }
 
@@ -45,13 +45,14 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
             options.adapter = renderer::adapter_preference::software;
         }
 
-        renderer::device graphics{options, memory};
+        renderer::device graphics{options, memory, {log, {}}};
         renderer::presentation_surface surface{graphics, target};
         const auto information = graphics.info();
-        (void)log.write(diagnostics::log_level::info, "renderer",
-                        information.adapter_name + (information.debug_layer_active
-                                                        ? "; debug layer active"
-                                                        : "; debug layer unavailable or disabled"));
+        (void)log->write(diagnostics::log_level::info, "renderer",
+                         information.adapter_name +
+                             (information.debug_layer_active
+                                  ? "; debug layer active"
+                                  : "; debug layer unavailable or disabled"));
         std::uint32_t frames = 0;
         for (;;)
         {
@@ -90,7 +91,7 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
     }
     catch (const std::exception& error)
     {
-        (void)log.write(diagnostics::log_level::error, "renderer", error.what());
+        (void)log->write(diagnostics::log_level::error, "renderer", error.what());
         return 1;
     }
 }

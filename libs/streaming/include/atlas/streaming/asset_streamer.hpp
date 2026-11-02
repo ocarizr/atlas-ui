@@ -4,6 +4,7 @@
  */
 
 #pragma once
+#include <atlas/diagnostics/instrumentation.hpp>
 
 #include <atlas/jobs/job_system.hpp>
 
@@ -135,8 +136,10 @@ class asset_streamer
     /// @param limits Positive per-read and in-flight request budgets.
     /// @param buffers Optional shared thread-safe payload allocator; retained outputs keep it
     /// alive. Null selects new/delete.
+    /// @param destinations Optional retained logging and CPU/async profiling endpoints.
     asset_streamer(jobs::job_system& jobs, asset_catalog catalog, streamer_limits limits = {},
-                   std::shared_ptr<std::pmr::memory_resource> buffers = {});
+                   std::shared_ptr<std::pmr::memory_resource> buffers = {},
+                   const diagnostics::services& destinations = {});
     /// @brief Drain accepted work and release persistent resources; callers must obey the enclosing
     /// coordinator/lifetime contract.
     ~asset_streamer();

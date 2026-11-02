@@ -3,6 +3,7 @@
  * @brief Optional adaptation of terminal jobs into independent logging and profiling destinations.
  */
 
+#include <atlas/diagnostics/instrumentation.hpp>
 #include <atlas/jobs_diagnostics/observer.hpp>
 
 #include <stdexcept>
@@ -90,6 +91,7 @@ class observer final : public jobs::job_observer
     /// external I/O here.
     void completed(const jobs::task_event& event) noexcept override
     {
+#if ATLAS_PROFILING_ENABLED
         const auto result = status_name(event.status);
         diagnostics::event_context context;
         context.id = event.id;
@@ -123,6 +125,7 @@ class observer final : public jobs::job_observer
             (void)profile_->instant(event.name, "jobs.completion", context);
         }
 
+#endif
         if (log_)
         {
             log_completion(*log_, event);
@@ -145,6 +148,13 @@ std::shared_ptr<jobs::job_observer> make_observer(std::shared_ptr<diagnostics::l
     {
         throw std::invalid_argument{"A jobs observer needs a destination"};
     }
+
+#if !ATLAS_PROFILING_ENABLED
+    if (!log)
+    {
+        return {};
+    }
+#endif
 
     return std::make_shared<observer>(std::move(log), std::move(profile));
 }

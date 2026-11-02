@@ -4,9 +4,9 @@ target_include_directories(atlas_renderer PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 target_include_directories(atlas_renderer PRIVATE src ${PROJECT_SOURCE_DIR}/libs/window/src)
 target_compile_features(atlas_renderer PUBLIC cxx_std_20)
-target_link_libraries(atlas_renderer PUBLIC atlas::window)
+target_link_libraries(atlas_renderer PUBLIC atlas::window atlas::diagnostics)
 atlas_configure_target(atlas_renderer)
-if(ATLAS_BUILD_WINDOWS_INTEGRATION)
+if(ATLAS_TARGET_PLATFORM STREQUAL "windows" AND ATLAS_BUILD_WINDOWS_INTEGRATION)
     target_sources(atlas_renderer PRIVATE ../platform/windows/renderer/native_device.cpp
         ../platform/windows/renderer/native_surface.cpp ../platform/windows/renderer/triangle_pipeline.cpp
         ../platform/windows/renderer/readback.cpp)

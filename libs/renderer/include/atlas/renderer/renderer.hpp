@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <array>
+#include <atlas/diagnostics/instrumentation.hpp>
 #include <cstdint>
 #include <memory>
 #include <memory_resource>
@@ -116,7 +117,8 @@ class device
   public:
     /// @brief Validate device options and retain the caller-selected CPU allocation resource.
     explicit device(device_options options = {},
-                    std::shared_ptr<std::pmr::memory_resource> memory = {});
+                    std::shared_ptr<std::pmr::memory_resource> memory = {},
+                    diagnostics::services destinations = {});
     ~device(); ///< Drain retained GPU work on the owner thread; device removal is terminal in phase
                ///< one.
     /// @brief Preserve unique, thread-affine ownership; copying is forbidden.
@@ -128,6 +130,7 @@ class device
     std::uint64_t debug_error_count()
         const; ///< Count native error/corruption messages when validation is active.
   private:
+    diagnostics::services diagnostics_; ///< Retained optional logging and CPU capture endpoints.
     std::shared_ptr<detail::device_backend> backend_; ///< Shared lifetime retained by surfaces.
     friend class presentation_surface;
 };
@@ -150,6 +153,7 @@ class presentation_surface
     std::uint64_t
     submitted_frames() const; ///< Count executed graphics frames, excluding readback commands.
   private:
+    diagnostics::services diagnostics_; ///< Endpoints retained from the creating device facade.
     std::unique_ptr<detail::surface_backend> backend_; ///< Opaque native surface.
 };
 } // namespace atlas::renderer

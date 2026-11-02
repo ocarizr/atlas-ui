@@ -12,7 +12,12 @@ from scripts.ci import verify_vendor_inputs
     "component,groups,pattern",
     [
         pytest.param("jobs", ["testing"], "@()", id="independent-library"),
-        pytest.param("streaming", ["testing", "media"], "@(jobs)", id="single-prerequisite"),
+        pytest.param(
+            "streaming",
+            ["testing", "media", "content"],
+            "@(diagnostics|jobs)",
+            id="streaming-prerequisites",
+        ),
         pytest.param(
             "editor",
             ["memory", "ipc", "content", "graphics"],

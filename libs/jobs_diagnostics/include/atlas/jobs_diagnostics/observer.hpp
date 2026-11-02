@@ -11,6 +11,7 @@
 namespace atlas::jobs_diagnostics
 {
 /// At least one destination is required. Destinations outlive all accepted observations.
+/// A profile-only request returns null when library profiling probes are compiled out.
 std::shared_ptr<jobs::job_observer> make_observer(std::shared_ptr<diagnostics::logger> log,
                                                   std::shared_ptr<diagnostics::profiler> profile);
 } // namespace atlas::jobs_diagnostics

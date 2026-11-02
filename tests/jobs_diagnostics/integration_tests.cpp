@@ -3,6 +3,7 @@
  * @brief Behavioral coverage for integration with isolated scenario ownership and cleanup.
  */
 
+#include <atlas/diagnostics/instrumentation.hpp>
 #include <atlas/jobs_diagnostics/observer.hpp>
 #include <gtest/gtest.h>
 
@@ -10,6 +11,14 @@
 
 namespace atlas::jobs_diagnostics::tests
 {
+/// @brief A profile-only integration must not install an idle observer when capture is compiled
+/// out.
+TEST(integration_tests, omits_profile_only_observer_when_probes_are_disabled)
+{
+    const auto result = make_observer({}, std::make_shared<diagnostics::profiler>());
+    EXPECT_EQ(static_cast<bool>(result), diagnostics::instrumentation_enabled);
+}
+
 /// @brief Verify failed and skipped jobs emit logs and chrome events without changing results.
 TEST(integration_tests,
      failed_and_skipped_jobs_emit_logs_and_chrome_events_without_changing_results)
@@ -57,10 +66,12 @@ TEST(integration_tests,
     EXPECT_TRUE(log->flush());
     EXPECT_NE(target->content.find("broken"), std::string::npos);
     EXPECT_NE(target->content.find("failed"), std::string::npos);
-    EXPECT_EQ(profile->statistics().recorded, 4U);
+    EXPECT_EQ(profile->statistics().recorded, diagnostics::instrumentation_enabled ? 4U : 0U);
     std::ostringstream trace;
     profile->write_chrome_trace(trace);
-    EXPECT_NE(trace.str().find("\"result\":\"failed\""), std::string::npos);
-    EXPECT_NE(trace.str().find("\"result\":\"skipped\""), std::string::npos);
+    EXPECT_EQ(trace.str().find("\"result\":\"failed\"") != std::string::npos,
+              diagnostics::instrumentation_enabled);
+    EXPECT_EQ(trace.str().find("\"result\":\"skipped\"") != std::string::npos,
+              diagnostics::instrumentation_enabled);
 }
 } // namespace atlas::jobs_diagnostics::tests

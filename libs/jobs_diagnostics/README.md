@@ -22,7 +22,8 @@ capture->write_chrome_trace(storage_stream);
 
 Either destination may be null, but not both. The observer keeps destinations alive.
 The game/editor composition root currently injects the logging destination; capture
-is explicitly enabled by supplying a profiler. There is no global capture or file
+is enabled by supplying a profiler when build policy permits probes. A profile-only
+adapter request returns null when probes are compiled out. There is no global capture or file
 output hidden in job execution.
 
 Completed direct tasks generate an execution duration and a completion instant.
@@ -58,3 +59,5 @@ this directory with their install prefixes in `CMAKE_PREFIX_PATH`. Consumers use
 `find_package(atlas_jobs_diagnostics 0.2.0 CONFIG REQUIRED)` and link
 `atlas::jobs_diagnostics`. Jobs 0.2 adds observer options and changes compiled layouts:
 rebuild all matching clients; do not mix 0.1 headers/binaries with 0.2.
+
+See [library diagnostics and build policy](../../docs/29_library_diagnostics.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.

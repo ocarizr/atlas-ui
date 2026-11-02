@@ -13,9 +13,10 @@ struct asset_streamer::impl
 {
     /// @brief Validate state before creating the one persistent blocking-storage thread.
     impl(jobs::job_system& jobs, asset_catalog catalog, streamer_limits limits,
-         std::shared_ptr<std::pmr::memory_resource> buffers)
+         std::shared_ptr<std::pmr::memory_resource> buffers, diagnostics::services destinations)
         : state{std::make_shared<detail::streamer_state>(jobs, std::move(catalog), limits,
-                                                         std::move(buffers))},
+                                                         std::move(buffers), nullptr,
+                                                         std::move(destinations))},
           io{[shared = state]
              {
                  shared->run_io();
@@ -34,9 +35,15 @@ struct asset_streamer::impl
 /// @brief Construct with an application-owned pool and an optional reusable payload allocator.
 asset_streamer::asset_streamer(jobs::job_system& jobs, asset_catalog catalog,
                                streamer_limits limits,
-                               std::shared_ptr<std::pmr::memory_resource> buffers)
-    : impl_{std::make_unique<impl>(jobs, std::move(catalog), limits, std::move(buffers))}
+                               std::shared_ptr<std::pmr::memory_resource> buffers,
+                               const diagnostics::services& destinations)
 {
+    const diagnostics::operation_scope scope{destinations,
+                                             {"streamer.initialize", "streaming.cpu"}};
+    impl_ =
+        std::make_unique<impl>(jobs, std::move(catalog), limits, std::move(buffers), destinations);
+    diagnostics::write(destinations, diagnostics::log_level::info, "streaming",
+                       "Streamer initialized");
 }
 
 /// @brief Drain on the creating coordinator; misuse cannot safely destroy live I/O state.
@@ -56,6 +63,8 @@ asset_streamer::~asset_streamer()
 std::future<void> asset_streamer::read(read_request request, read_completion completion,
                                        read_options options)
 {
+    const diagnostics::operation_scope scope{impl_->state->destinations,
+                                             {"read.admit", "streaming.cpu"}};
     if (!completion)
     {
         throw std::invalid_argument{"An asset read needs a completion callback"};
@@ -67,6 +76,13 @@ std::future<void> asset_streamer::read(read_request request, read_completion com
     }
 
     auto operation = std::make_shared<detail::read_operation>();
+#if ATLAS_PROFILING_ENABLED
+    if (impl_->state->destinations.profile)
+    {
+        operation->submitted = diagnostics::profiler::clock::now();
+        operation->submitting_thread = std::this_thread::get_id();
+    }
+#endif
     operation->request = std::move(request);
     operation->completion = std::move(completion);
     operation->options = std::move(options);
@@ -143,6 +159,8 @@ streamer_statistics asset_streamer::statistics() const
 /// @brief Close admission, join storage and wait only on the coordinator for accepted deliveries.
 void asset_streamer::shutdown()
 {
+    const diagnostics::operation_scope scope{impl_->state->destinations,
+                                             {"streamer.shutdown", "streaming.cpu_wait"}};
     if (std::this_thread::get_id() != impl_->coordinator)
     {
         throw std::logic_error{"Only the creating coordinator may shut down the streamer"};
@@ -165,5 +183,8 @@ void asset_streamer::shutdown()
                     {
                         return state.pending == 0;
                     });
+    lock.unlock();
+    diagnostics::write(state.destinations, diagnostics::log_level::info, "streaming",
+                       "Streamer drained");
 }
 } // namespace atlas::streaming

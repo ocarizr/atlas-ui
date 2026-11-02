@@ -34,6 +34,7 @@ components:
     vendors:
     - testing
     - memory
+    - content
   diagnostics:
     paths:
     - libs/diagnostics/**
@@ -215,6 +216,7 @@ components:
     depends_on:
     - jobs
     - dependencies
+    - diagnostics
     build_targets:
     - atlas_streaming
     - atlas_streaming_tests
@@ -222,9 +224,11 @@ components:
     - streaming
     build_requires:
     - jobs
+    - diagnostics
     vendors:
     - testing
     - media
+    - content
   dependencies:
     paths:
     - libs/audio/**
@@ -300,6 +304,7 @@ components:
     - tests/platform/windows/renderer/**
     depends_on:
     - window
+    - diagnostics
     build_targets:
     - atlas_renderer
     - atlas_renderer_tests
@@ -307,9 +312,11 @@ components:
     - renderer
     build_requires:
     - window
+    - diagnostics
     vendors:
     - testing
     - graphics
+    - content
 formatting_contexts:
   tooling:
   - scripts/**/*.py

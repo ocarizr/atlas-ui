@@ -5,7 +5,7 @@ target_include_directories(atlas_window PUBLIC
 target_include_directories(atlas_window PRIVATE src)
 target_compile_features(atlas_window PUBLIC cxx_std_20)
 target_include_directories(atlas_window PRIVATE src)
-if(ATLAS_BUILD_WINDOWS_INTEGRATION)
+if(ATLAS_TARGET_PLATFORM STREQUAL "windows" AND ATLAS_BUILD_WINDOWS_INTEGRATION)
     target_sources(atlas_window PRIVATE ../platform/windows/window/native_window.cpp)
     target_compile_definitions(atlas_window PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
     target_link_libraries(atlas_window PRIVATE user32)

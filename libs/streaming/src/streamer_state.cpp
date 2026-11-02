@@ -12,10 +12,10 @@ namespace atlas::streaming::detail
 streamer_state::streamer_state(jobs::job_system& scheduler, asset_catalog assets,
                                streamer_limits budgets,
                                std::shared_ptr<std::pmr::memory_resource> resource,
-                               std::unique_ptr<file_io> storage)
-    : jobs{scheduler}, dispatcher{scheduler.dispatcher()}, catalog{std::move(assets)},
-      limits{budgets}, memory{std::make_shared<buffer_memory>(std::move(resource))},
-      files{std::move(storage)}
+                               std::unique_ptr<file_io> storage, diagnostics::services destinations)
+    : jobs{scheduler}, destinations{std::move(destinations)}, dispatcher{scheduler.dispatcher()},
+      catalog{std::move(assets)}, limits{budgets},
+      memory{std::make_shared<buffer_memory>(std::move(resource))}, files{std::move(storage)}
 {
     if (limits.max_read_bytes == 0 || limits.max_pending_requests == 0 ||
         limits.max_resident_bytes == 0 || limits.max_io_requests == 0 ||
@@ -38,6 +38,22 @@ streamer_state::streamer_state(jobs::job_system& scheduler, asset_catalog assets
 void streamer_state::retire(const std::shared_ptr<read_operation>& operation,
                             const std::exception_ptr& failure, bool read_failed)
 {
+    if (failure || read_failed)
+    {
+        diagnostics::write(destinations, diagnostics::log_level::warning, "streaming",
+                           "Read or delivery failed or was cancelled");
+    }
+
+#if ATLAS_PROFILING_ENABLED
+    if (destinations.profile)
+    {
+        diagnostics::event_context context;
+        context.result = failure || read_failed ? "failed_or_cancelled" : "succeeded";
+        (void)destinations.profile->duration(
+            "read.lifetime", "streaming.async", operation->submitted,
+            diagnostics::profiler::clock::now(), context, operation->submitting_thread);
+    }
+#endif
     operation->reservation.reset();
     const std::lock_guard lock{mutex};
     --pending;
@@ -58,6 +74,7 @@ void streamer_state::retire(const std::shared_ptr<read_operation>& operation,
 /// @brief Invoke a consumer once on a CPU worker, then release result ownership before retirement.
 void streamer_state::deliver(const std::shared_ptr<read_operation>& operation, read_result result)
 {
+    const diagnostics::operation_scope scope{destinations, {"read.deliver", "streaming.cpu"}};
     if (operation->options.cancellation.stop_requested())
     {
         result = std::make_exception_ptr(jobs::job_cancelled{});

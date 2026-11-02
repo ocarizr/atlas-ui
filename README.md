@@ -84,6 +84,7 @@ HTML output, CI validation and automatic wiki synchronization.
 
 | Document | Topics |
 | --- | --- |
+| [Library diagnostics](docs/29_library_diagnostics.md) | Optional logging/profiling destinations, auto/on/off build policy and trace boundaries |
 | [Renderer foundation](docs/28_renderer_implementation_plan.md) | Six phases, D3D12 ownership, jobs/streamer boundaries and future world rendering |
 | [Scope](docs/01_scope.md) | Goals, boundaries, supported features |
 | [Architecture](docs/02_architecture.md) | Domain boundaries, libraries, applications, dependencies |

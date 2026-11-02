@@ -17,7 +17,7 @@ Windows. The SDK-free validation profile reports native graphics as unavailable.
 | 3. Pipelines and passes | Shader/pipeline descriptions, immutable draw packets, offscreen targets, depth/blend/scissor, ordered passes and explicit attachments; validate generic 2D/3D primitives without UI semantics | Planned |
 | 4. Job recording | One application-owned scheduler, coarse parallel preparation and exclusively owned command allocators/lists, deterministic submission order, sequential small-work path and measured scheduling thresholds | Planned |
 | 5. Content integration | Consumer orchestration from streamer buffers through decoding to upload-ready data, shader construction/cache policy, cancellation and retention until upload fences complete; loose assets first | Planned |
-| 6. Hardening and readiness | Device-removal reporting/recovery policy, diagnostics integration and CPU/GPU timings, resize/occlusion soak, multi-surface behavior, memory/descriptor pressure and measured budgets on WARP and hardware | Planned |
+| 6. Hardening and readiness | Device-removal reporting/recovery policy, GPU timestamp profiling and expanded diagnostics, resize/occlusion soak, multi-surface behavior, memory/descriptor pressure and measured budgets on WARP and hardware | Planned |
 
 The production UI gate requires all six phases. A triangle proves presentation,
 not readiness for widgets. The resource API and render-pass vocabulary must remain
@@ -113,3 +113,5 @@ performance and recovery cannot be inferred from WARP correctness tests.
 See [renderer usage](../libs/renderer/README.md),
 [window ownership](../libs/window/README.md) and
 [Windows checks](10_windows_development.md).
+
+CPU scopes and lifecycle/failure logging are now injectable through the [library diagnostics policy](29_library_diagnostics.md); GPU timings and recovery remain later gates.

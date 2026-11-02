@@ -108,6 +108,7 @@ jobs:
     - memory
     - jobs
     - streaming
+    - vendor-content
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'memory-integration') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -163,6 +164,8 @@ jobs:
     - vendor-testing
     - vendor-media
     - jobs
+    - diagnostics
+    - vendor-content
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'streaming') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -296,6 +299,8 @@ jobs:
     - vendor-testing
     - vendor-graphics
     - window
+    - diagnostics
+    - vendor-content
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'renderer') }}
     uses: ./.github/workflows/reusable_build.yml
     with:

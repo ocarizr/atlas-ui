@@ -73,6 +73,8 @@ struct copy_chunk
 /// @brief Copy disjoint declared regions and always release the chunk's completion claim.
 void copy_bytes(jobs::job_context& context, copy_chunk& chunk)
 {
+    const diagnostics::operation_scope scope{chunk.copy->state->destinations,
+                                             {"read.copy_chunk", "streaming.cpu"}};
     try
     {
         if (chunk.copy->operation->options.cancellation.stop_requested())

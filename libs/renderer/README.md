@@ -1,9 +1,13 @@
 # Renderer
 
 `atlas::renderer` provides a platform-neutral C++20 device and presentation API.
-The current backend is Windows Direct3D 12. It depends on `atlas::window`, with
+The current backend is Windows Direct3D 12. It depends on `atlas::window` and `atlas::diagnostics`, with
 private native dependencies on D3D12, DXGI and pinned DXC. It has no UI, jobs,
 streamer, editor or gameplay dependency.
+
+Installed consumers must load the `atlas_diagnostics` package before importing the
+window/renderer target exports; build-tree consumers receive these prerequisites
+through their declared CMake component dependencies.
 
 ```cpp
 atlas::window::window target{{"Example", 960, 540, true}};
@@ -45,3 +49,5 @@ passes, job recording, content orchestration and production-readiness gates.
 After building, run `atlas_game` or `atlas_editor` for a visible triangle, `--warp`
 for software presentation, `--graphics-smoke-test` for three hidden WARP frames,
 or `--smoke-test` for the existing headless bootstrap. There are no widgets yet.
+
+See [library diagnostics and build policy](../../docs/29_library_diagnostics.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.

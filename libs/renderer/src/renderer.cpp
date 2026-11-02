@@ -49,14 +49,25 @@ void frame_description::validate() const
 }
 
 /// @brief Construct the selected backend while retaining the CPU allocation resource.
-device::device(device_options options, std::shared_ptr<std::pmr::memory_resource> memory)
+device::device(device_options options, std::shared_ptr<std::pmr::memory_resource> memory,
+               diagnostics::services destinations)
+    : diagnostics_(std::move(destinations))
 {
+    const diagnostics::operation_scope scope{diagnostics_, {"device.initialize", "renderer.cpu"}};
     options.validate();
     backend_ = detail::make_device(options, std::move(memory));
+    diagnostics::write(diagnostics_, diagnostics::log_level::info, "renderer",
+                       "Graphics device initialized");
 }
 
 /// @brief Release retained resources on the owner thread after outstanding work completes.
-device::~device() = default;
+device::~device()
+{
+    const diagnostics::operation_scope scope{diagnostics_, {"device.release", "renderer.cpu"}};
+    backend_.reset();
+    diagnostics::write(diagnostics_, diagnostics::log_level::info, "renderer",
+                       "Graphics device facade released");
+}
 
 /// @brief Reject access outside the single graphics coordinator thread.
 device_info device::info() const
@@ -68,6 +79,8 @@ device_info device::info() const
 /// @brief Reject access outside the single graphics coordinator thread.
 void device::wait_idle()
 {
+    const diagnostics::operation_scope scope{diagnostics_,
+                                             {"device.wait_idle", "renderer.cpu_wait"}};
     backend_->check_owner();
     backend_->wait_idle();
 }
@@ -82,7 +95,9 @@ std::uint64_t device::debug_error_count() const
 /// @brief Reject access outside the single graphics coordinator thread.
 presentation_surface::presentation_surface(device& graphics, window::window& target,
                                            surface_options options)
+    : diagnostics_(graphics.diagnostics_)
 {
+    const diagnostics::operation_scope scope{diagnostics_, {"surface.initialize", "renderer.cpu"}};
     options.validate();
     graphics.backend_->check_owner();
     backend_ = detail::make_surface(graphics.backend_,
@@ -90,12 +105,20 @@ presentation_surface::presentation_surface(device& graphics, window::window& tar
 }
 
 /// @brief Release retained resources on the owner thread after outstanding work completes.
-presentation_surface::~presentation_surface() = default;
+presentation_surface::~presentation_surface()
+{
+    const diagnostics::operation_scope scope{diagnostics_,
+                                             {"surface.shutdown", "renderer.cpu_wait"}};
+    backend_.reset();
+    diagnostics::write(diagnostics_, diagnostics::log_level::info, "renderer",
+                       "Presentation surface drained and released");
+}
 
 /// @brief Update physical extents, suspending zero-size rendering and draining before buffer
 /// replacement.
 void presentation_surface::resize(surface_extent extent)
 {
+    const diagnostics::operation_scope scope{diagnostics_, {"surface.resize", "renderer.cpu"}};
     extent.validate();
     backend_->resize(extent);
 }
@@ -103,6 +126,7 @@ void presentation_surface::resize(surface_extent extent)
 /// @brief Validate frame data before submitting any GPU commands.
 frame_result presentation_surface::render_frame(const frame_description& frame)
 {
+    const diagnostics::operation_scope scope{diagnostics_, {"surface.frame", "renderer.cpu"}};
     frame.validate();
     return backend_->render(frame);
 }
@@ -110,6 +134,8 @@ frame_result presentation_surface::render_frame(const frame_description& frame)
 /// @brief Synchronize and return tightly packed CPU bytes from the last rendered frame.
 frame_image presentation_surface::readback_last_frame()
 {
+    const diagnostics::operation_scope scope{diagnostics_,
+                                             {"surface.readback", "renderer.cpu_wait"}};
     return backend_->readback();
 }
 
