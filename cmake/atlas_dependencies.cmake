@@ -1,5 +1,12 @@
 include_guard(GLOBAL)
 
+if(renderer IN_LIST atlas_build_components AND ATLAS_BUILD_WINDOWS_INTEGRATION)
+    find_package(directx-dxc CONFIG REQUIRED)
+    # The pinned DXC package misspells DXIL's Release location; both configurations ship the same DLL.
+    get_target_property(atlas_dxil_location Microsoft::DXIL IMPORTED_LOCATION_DEBUG)
+    set_target_properties(Microsoft::DXIL PROPERTIES IMPORTED_LOCATION_RELEASE "${atlas_dxil_location}")
+endif()
+
 set(ATLAS_MEMORY_BACKEND "auto" CACHE STRING "Allocation backend: auto, mimalloc or system")
 set_property(CACHE ATLAS_MEMORY_BACKEND PROPERTY STRINGS auto mimalloc system)
 if(NOT ATLAS_MEMORY_BACKEND MATCHES "^(auto|mimalloc|system)$")
@@ -29,7 +36,7 @@ if(diagnostics IN_LIST atlas_build_components)
     find_package(yaml-cpp 0.9 CONFIG REQUIRED)
 endif()
 if(BUILD_TESTING)
-    foreach(component memory memory-integration diagnostics jobs jobs-diagnostics streaming ipc application dependencies windows)
+    foreach(component window renderer memory memory-integration diagnostics jobs jobs-diagnostics streaming ipc application dependencies windows)
         if(component IN_LIST atlas_requested_components)
             find_package(GTest CONFIG REQUIRED)
             break()

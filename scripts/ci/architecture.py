@@ -21,6 +21,9 @@ REQUIRED_NAMES = {"CMakeLists.txt", "README.md", "CODEOWNERS"}
 WINDOWS_HEADERS = {
     "windows.h",
     "d3d12.h",
+    "d3d12sdklayers.h",
+    "dxgi1_6.h",
+    "dxcapi.h",
     "dxgi1_4.h",
     "dxgi.h",
     "dxguid.h",

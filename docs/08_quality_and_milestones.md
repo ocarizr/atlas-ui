@@ -47,6 +47,7 @@ Windows validation includes formatting, clang-tidy, MSVC analysis, Debug/Release
 | Scheduler foundation | Independent jobs, worker lifecycle, failures, entry points and dependency integration |
 | Streamer foundation | Exclusive storage boundary, memory/loose ranges, bounded requests and ready completion/decode jobs |
 | Scheduler-readiness gate | Dependency DAGs, ranges/children and measured generic phased workloads (plan milestones 1-3); client integrations follow separately |
+| Renderer foundation | Complete the [six renderer phases](28_renderer_implementation_plan.md), from presentation to resource/pass/job/content integration and hardening |
 | First UI runtime | atlas_game window showing manually authored XML UI through the established job graph |
 | Tested systems | EnTT integration, persistent workers, layout/invalidation, widgets and profiling |
 | MVVM vertical slice | Gain XP/apply damage update presentation through actions/events/bindings |
@@ -56,7 +57,7 @@ Windows validation includes formatting, clang-tidy, MSVC analysis, Debug/Release
 | Extensibility | Create and integrate an editor contribution; rebuild/restart native behavior |
 | Complete 1.0 scope | Expanded widgets, animation, localization, AV1/WebM video and UI sound effects, tools and end-to-end tests |
 
-This is a dependency-oriented sequence, not a delivery schedule. The production UI must wait for the scheduler's documented UI-readiness gate; it does not require every later optimization or streaming feature.
+This is a dependency-oriented sequence, not a delivery schedule. The production UI must wait for the renderer foundation and the scheduler's documented UI-readiness gate; it does not require every later optimization or streaming feature.
 
 ## Success criteria and risks
 

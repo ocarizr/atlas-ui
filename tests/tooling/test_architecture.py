@@ -7,6 +7,7 @@ import pytest
 from scripts.ci.architecture import validate_architecture
 
 
+@pytest.mark.parametrize("header", ["Windows.h", "dxgi1_6.h", "d3d12sdklayers.h", "dxcapi.h"])
 @pytest.mark.parametrize(
     "relative",
     [
@@ -14,11 +15,11 @@ from scripts.ci.architecture import validate_architecture
         pytest.param("tests/streaming/temporary_assets.hpp", id="portable-test-fixture"),
     ],
 )
-def test_platform_headers_cannot_leak_into_portable_layers(tmp_path, relative):
+def test_platform_headers_cannot_leak_into_portable_layers(tmp_path, relative, header):
     """Verify platform headers cannot leak into portable layers."""
     source = tmp_path / relative
     source.parent.mkdir(parents=True)
-    source.write_text("#include <Windows.h>\n", encoding="utf-8")
+    source.write_text(f"#include <{header}>\n", encoding="utf-8")
     with pytest.raises(ValueError, match="Platform header outside Windows boundary"):
         validate_architecture(tmp_path)
 

@@ -1,0 +1,7 @@
+add_executable(atlas_window_tests window_contract_tests.cpp)
+target_link_libraries(atlas_window_tests PRIVATE atlas::window GTest::gtest_main)
+if(ATLAS_BUILD_WINDOWS_INTEGRATION)
+    target_sources(atlas_window_tests PRIVATE ../platform/windows/window/window_tests.cpp)
+endif()
+atlas_configure_test(atlas_window_tests)
+gtest_discover_tests(atlas_window_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS window TIMEOUT 30)

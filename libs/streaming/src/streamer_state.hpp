@@ -26,6 +26,9 @@ struct io_wakeup
 /// @brief One accepted read retained until CPU delivery and admission retirement.
 struct read_operation
 {
+    diagnostics::profiler::clock::time_point
+        submitted{};                   ///< Start of the optional asynchronous lifetime event.
+    std::thread::id submitting_thread; ///< Original caller for asynchronous correlation.
     /// @brief Owned logical asset range.
     read_request request;
     /// @brief Consumer callback, invoked only by CPU jobs.
@@ -47,7 +50,7 @@ struct streamer_state : std::enable_shared_from_this<streamer_state>
     /// @brief Validate limits before starting persistent storage resources.
     streamer_state(jobs::job_system& scheduler, asset_catalog assets, streamer_limits budgets,
                    std::shared_ptr<std::pmr::memory_resource> resource,
-                   std::unique_ptr<file_io> storage = {});
+                   std::unique_ptr<file_io> storage = {}, diagnostics::services destinations = {});
     /// @brief Retire admission and publish the future atomically with respect to draining.
     void retire(const std::shared_ptr<read_operation>& operation, const std::exception_ptr& failure,
                 bool read_failed);
@@ -62,6 +65,7 @@ struct streamer_state : std::enable_shared_from_this<streamer_state>
     void read_memory(jobs::job_context& context, const std::shared_ptr<read_operation>& operation);
     /// @brief Borrowed pool used only for runtime load observations; must outlive draining.
     jobs::job_system& jobs;
+    diagnostics::services destinations; ///< Immutable endpoints retained until all work retires.
     /// @brief Injected non-owning dispatch capability; no consumer-owned CPU pool is created.
     jobs::job_dispatcher dispatcher;
     /// @brief Immutable logical source registrations.

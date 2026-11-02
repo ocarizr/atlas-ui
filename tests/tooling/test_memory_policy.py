@@ -68,5 +68,10 @@ def test_memory_producer_is_independent_of_jobs_streaming_and_grpc():
     assert producer["groups"] == ["memory", "testing"]
     assert producer["prerequisites"]["memory"] == []
     consumers = plan_components(configuration, {"memory-integration"})
-    assert consumers["prerequisites"]["memory-integration"] == ["jobs", "memory", "streaming"]
+    assert consumers["prerequisites"]["memory-integration"] == [
+        "diagnostics",
+        "jobs",
+        "memory",
+        "streaming",
+    ]
     assert "ipc" not in consumers["groups"]

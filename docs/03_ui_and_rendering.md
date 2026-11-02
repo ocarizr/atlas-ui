@@ -33,7 +33,7 @@ Logical units, DPI, anchors, sizing, margins, padding, clipping, scrolling, hit 
 
 Direct3D 12 is the sole graphics backend. Support textures, materials, custom shaders, and image/video backgrounds. Widgets should produce renderer-facing data rather than expose native D3D objects in their public UI contracts.
 
-Command-list recording, allocator ownership, descriptors, resource states, fences, uploads, batching, transparency, clipping and draw ordering require a concrete design. Parallel recording must respect D3D12 ownership and synchronization rules.
+The [renderer foundation plan](28_renderer_implementation_plan.md) separates six phases before production UI. Phase one implements independent window/device/surface ownership, D3D12 presentation, fenced frame reuse, resize and diagnostic pixel readback. Resource uploads, descriptors, passes, batching, transparency, clipping and parallel recording follow through explicit gates; UI must not depend on the startup triangle workload.
 
 The editor draws its own interface; the atlas_game preview process produces the preview image. gRPC carries control and state messages. The image/frame transport remains open: gRPC control does not imply copying every frame through Protobuf.
 

@@ -14,7 +14,7 @@ else()
     target_sources(atlas_streaming PRIVATE src/asset_reader.cpp src/platform/standard/file_reader.cpp
         src/platform/standard/file_io.cpp)
 endif()
-target_link_libraries(atlas_streaming PUBLIC atlas::jobs)
+target_link_libraries(atlas_streaming PUBLIC atlas::jobs atlas::diagnostics)
 atlas_configure_target(atlas_streaming)
 
 atlas_export_library(atlas_streaming streaming streaming)

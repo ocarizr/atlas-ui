@@ -1,4 +1,6 @@
-find_package(directx-dxc CONFIG REQUIRED)
+if(NOT TARGET Microsoft::DirectXShaderCompiler)
+    find_package(directx-dxc CONFIG REQUIRED)
+endif()
 
 add_library(atlas_windows_dependencies INTERFACE)
 add_library(atlas::windows_dependencies ALIAS atlas_windows_dependencies)
