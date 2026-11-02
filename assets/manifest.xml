@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Assets schemaVersion="1">
+  <Asset id="renderer.checker" type="image" path="renderer/checker.bmp" />
+  <Asset id="renderer.quad" type="shader" path="renderer/quad.hlsl" />
+</Assets>

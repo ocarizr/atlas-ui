@@ -23,6 +23,7 @@ CMakeLists.txt text eol=lf
 *.txt text eol=lf
 *.ps1 text eol=lf
 *.proto text eol=lf
+*.hlsl text eol=lf
 *.toml text eol=lf
 .clang-format text eol=lf
 .clang-tidy text eol=lf
@@ -32,6 +33,7 @@ CMakeLists.txt text eol=lf
 *.cmd text eol=crlf
 *.bat text eol=crlf
 *.png binary
+*.bmp binary
 *.jpg binary
 *.pdf binary
 *.bin binary

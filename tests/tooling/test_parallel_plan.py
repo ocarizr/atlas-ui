@@ -47,7 +47,9 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
         "jobs-diagnostics",
         "memory",
         "renderer",
+        "renderer-content",
         "renderer-jobs",
+        "streaming",
         "window",
     }
     assert "game" not in plan["components"]
@@ -59,7 +61,9 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
         "jobs-diagnostics",
         "memory",
         "renderer",
+        "renderer-content",
         "renderer-jobs",
+        "streaming",
         "window",
     ]
 

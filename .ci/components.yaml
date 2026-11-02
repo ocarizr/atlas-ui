@@ -149,14 +149,17 @@ components:
     - application
     - renderer
     - renderer-jobs
+    - renderer-content
     build_targets:
     - atlas_game
+    - atlas_game_content
     test_labels:
     - game
     build_requires:
     - application
     - renderer
     - renderer-jobs
+    - renderer-content
     vendors:
     - memory
     - ipc
@@ -172,14 +175,17 @@ components:
     - application
     - renderer
     - renderer-jobs
+    - renderer-content
     build_targets:
     - atlas_editor
+    - atlas_editor_content
     test_labels:
     - editor
     build_requires:
     - application
     - renderer
     - renderer-jobs
+    - renderer-content
     vendors:
     - memory
     - ipc
@@ -349,7 +355,28 @@ components:
     - testing
     - graphics
     - content
-
+  renderer-content:
+    paths:
+    - libs/renderer_content/**
+    - libs/platform/windows/renderer_content/**
+    - tests/renderer_content/**
+    - tests/platform/windows/renderer_content/**
+    - assets/renderer/**
+    depends_on:
+    - renderer
+    - streaming
+    build_targets:
+    - atlas_renderer_content
+    - atlas_renderer_content_tests
+    test_labels:
+    - renderer-content
+    build_requires:
+    - renderer
+    - streaming
+    vendors:
+    - testing
+    - graphics
+    - content
 formatting_contexts:
   tooling:
   - scripts/**/*.py
@@ -402,6 +429,7 @@ documentation_paths:
 - libs/window/README.md
 - libs/renderer/README.md
 - libs/renderer_jobs/README.md
+- libs/renderer_content/README.md
 asset_paths:
 - assets/**
 profiles:

@@ -16,7 +16,7 @@ Windows. The SDK-free validation profile reports native graphics as unavailable.
 | 2. Resources and transfers | Typed generation-checked buffer/texture handles, GPU memory allocation, upload staging, descriptor allocation, explicit resource states and fence-based deferred destruction; test exhaustion, reuse and in-flight lifetimes | Implemented |
 | 3. Pipelines and passes | Shader/pipeline descriptions, immutable draw packets, offscreen targets, depth/blend/scissor, ordered passes and explicit attachments; validate generic 2D/3D primitives without UI semantics | Implemented |
 | 4. Job recording | Optional joined executor, one application-owned scheduler, exclusive bounded command contexts, contiguous pass sections, deterministic submission, sequential small-work path and measured grain policy | Implemented |
-| 5. Content integration | Consumer orchestration from streamer buffers through decoding to upload-ready data, shader construction/cache policy, cancellation and retention until upload fences complete; loose assets first | Planned |
+| 5. Content integration | Streamer-fed image/shader preparation on ready jobs, bounded native buffer decoding, fenced texture ownership, exact-input device-local PSO cache and shared loose-asset application demonstration | Implemented |
 | 6. Hardening and readiness | Device-removal reporting/recovery policy, GPU timestamp profiling and expanded diagnostics, resize/occlusion soak, multi-surface behavior, application thread integration, memory/descriptor pressure and measured budgets on WARP and hardware | Planned |
 
 The production UI gate requires all six phases. A triangle proves presentation,
@@ -149,5 +149,7 @@ See [GPU resources and transfers](30_renderer_resources.md) for phase-two handle
 
 See [graphics pipelines and ordered passes](31_renderer_passes.md) for phase-three
 shader ABI, immutable snapshots, attachment operations, whole-frame validation,
-fence retirement and resource-to-surface presentation. Phase four is the next gate;
-production UI still requires the remaining foundation phases.
+fence retirement and resource-to-surface presentation. Phase four adds optional
+parallel recording; [phase-five content integration](33_renderer_content.md) adds
+streamed images/shaders and upload/cache ownership. Phase six remains the readiness
+gate before production UI.

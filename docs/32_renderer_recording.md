@@ -144,5 +144,5 @@ contract and lifecycle coordination in application/native adapters, with resize,
 shutdown, backpressure and failure tests.
 
 The renderer-library recording gate and application composition gate are separate.
-Both precede production UI. Content orchestration remains phase five; application
+Both precede production UI. [Content orchestration](33_renderer_content.md) is phase five; application
 thread lifecycle and GPU hardening remain gates to complete alongside phase six.
