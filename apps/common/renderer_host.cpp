@@ -1,13 +1,8 @@
-/** @file @brief Owner-thread native loop, shared by editor and game composition roots. */
+/** @file @brief Main-owned window messages and application-owned persistent render coordination. */
 #include "renderer_host.hpp"
-#include "primitive_scene.hpp"
+#include "graphics_handler.hpp"
 #include <algorithm>
-#include <atlas/diagnostics/logging.hpp>
-#include <atlas/jobs/job_system.hpp>
 #include <atlas/memory/memory_resource.hpp>
-#include <atlas/renderer/passes.hpp>
-#include <atlas/renderer_jobs/executor.hpp>
-#include <atlas/window/window.hpp>
 #include <string_view>
 #include <thread>
 
@@ -15,53 +10,64 @@ namespace atlas::application
 {
 namespace
 {
-/// @brief Poll native events and present bounded frames while content progresses asynchronously.
-void run_frames(window::window& target, renderer::presentation_surface& surface,
-                primitive_scene& scene, bool smoke)
+/// @brief Keep dispatching window messages during full queues, initialization and render teardown.
+void run_frames(window::window& target, render_host::render_loop& loop, bool smoke,
+                const presentation_feedback& presented, const diagnostics::services& destinations)
 {
-    std::uint32_t frames = 0;
-    const auto started = std::chrono::steady_clock::now();
-    for (;;)
+    const auto pump = [&]
     {
-        const auto state = target.poll_events();
-        if (state.close_requested)
+        target.poll_events();
+        target.wait_for_events(1);
+    };
+    try
+    {
+        std::uint64_t next_id = 1;
+        const auto started = std::chrono::steady_clock::now();
+        while (!loop.finished())
         {
-            break;
-        }
+            const auto state = target.poll_events();
+            if (state.close_requested ||
+                (smoke && presented.presented.load(std::memory_order_relaxed) >= 3))
+            {
+                break;
+            }
 
-        surface.resize({state.width, state.height});
-        auto result = renderer::frame_result::suspended;
-        if (state.width != 0 && state.height != 0 && !state.minimized)
-        {
-            result = scene.render(surface, {state.width, state.height}, frames);
-            ++frames;
-        }
+            if (loop.try_submit({next_id, state}))
+            {
+                ++next_id;
+            }
 
-        if (result == renderer::frame_result::surface_closed)
-        {
-            break;
-        }
-
-        if (smoke && frames >= 3 && scene.content_presented())
-        {
-            break;
-        }
-
-        if (smoke && std::chrono::steady_clock::now() - started > std::chrono::seconds{10})
-        {
-            throw std::runtime_error("streamed graphics smoke test timed out");
-        }
-
-        if (result == renderer::frame_result::suspended ||
-            result == renderer::frame_result::occluded)
-        {
-            target.wait_for_events();
+            const bool inactive =
+                state.minimized || presented.result.load(std::memory_order_relaxed) ==
+                                       renderer::frame_result::occluded;
+            target.wait_for_events(inactive ? 16U : 1U);
+            if (smoke && std::chrono::steady_clock::now() - started > std::chrono::seconds{10})
+            {
+                throw std::runtime_error("threaded graphics smoke test timed out");
+            }
         }
     }
+    catch (...)
+    {
+        const auto original = std::current_exception();
+        try
+        {
+            loop.stop_and_join(pump);
+        }
+        catch (...)
+        {
+            diagnostics::write(destinations, diagnostics::log_level::error, "render_host",
+                               "Render cleanup also failed; preserving the original exception");
+        }
+
+        std::rethrow_exception(original);
+    }
+
+    loop.stop_and_join(pump);
 }
 } // namespace
 
-/// @brief Compose shared services and run the owner-thread graphics loop or bounded smoke check.
+/// @brief Compose the single application pool and window before starting the dedicated GPU owner.
 int run_renderer_host(application_kind kind, int argc, char** argv)
 {
     if (argc == 2 && std::string_view{argv[1]} == "--smoke-test")
@@ -92,44 +98,23 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
         const auto memory = memory::make_resource();
         window::window target{
             {kind == application_kind::game ? "Atlas Game" : "Atlas Editor", 960, 540, !smoke}};
-        renderer::device_options options;
-        if (smoke || argument == "--warp")
-        {
-            options.adapter = renderer::adapter_preference::software;
-        }
-
-        renderer::device graphics{options, memory, {log, {}}};
-        renderer::presentation_surface surface{graphics, target};
-        jobs::job_system_options job_options;
-        job_options.worker_count = std::clamp(std::thread::hardware_concurrency(), 1U, 4U);
-        job_options.scratch.upstream = memory.get();
-        jobs::job_system workers{job_options};
-        renderer_jobs::executor recording{workers.dispatcher()};
+        const auto lease = target.share_presentation();
+        jobs::job_system_options options;
+        options.worker_count = std::clamp(std::thread::hardware_concurrency(), 1U, 4U);
+        options.scratch.upstream = memory.get();
+        jobs::job_system workers{options};
         const auto content_root = std::filesystem::absolute(argv[0]).parent_path() / "content";
-        streaming::asset_streamer streamer{
-            workers,
-            {{"renderer.checker", streaming::loose_file_asset{content_root / "checker.bmp"}},
-             {"renderer.quad", streaming::loose_file_asset{content_root / "quad.hlsl"}}},
-            {},
-            memory,
-            {log, {}}};
-        renderer_content::content_loader content{
-            streamer, renderer_content::make_image_decoder(), memory, {log, {}}};
-        primitive_scene scene{graphics, recording, content, {log, {}}};
-        const auto information = graphics.info();
-        (void)log->write(diagnostics::log_level::info, "renderer",
-                         information.adapter_name +
-                             (information.debug_layer_active
-                                  ? "; debug layer active"
-                                  : "; debug layer unavailable or disabled"));
-        run_frames(target, surface, scene, smoke);
-
-        graphics.wait_idle();
-        if (graphics.debug_error_count() != 0)
-        {
-            throw std::runtime_error("native graphics validation reported errors");
-        }
-
+        presentation_feedback presented;
+        render_host::render_loop loop{[&]
+                                      {
+                                          return std::make_unique<graphics_handler>(
+                                              workers, lease, content_root,
+                                              smoke || argument == "--warp", memory,
+                                              diagnostics::services{log, {}}, presented);
+                                      },
+                                      {},
+                                      {log, {}}};
+        run_frames(target, loop, smoke, presented, {log, {}});
         return 0;
     }
     catch (const std::exception& error)

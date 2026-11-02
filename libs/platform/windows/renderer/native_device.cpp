@@ -126,19 +126,25 @@ native_device::~native_device()
 /// @brief Throw an operation-specific diagnostic before continuing after a native failure.
 std::uint64_t native_device::signal()
 {
+    ensure_healthy("signal graphics queue");
+    if (next_fence >= UINT64_MAX - 1)
+    {
+        throw std::overflow_error("graphics fence timeline exhausted");
+    }
+
     const auto value = ++next_fence;
-    check(queue->Signal(fence.Get(), value), "signal graphics fence");
+    check_result(queue->Signal(fence.Get(), value), "signal graphics fence");
     return value;
 }
 
 /// @brief Wait for the requested fence value with a bounded coordinator deadline.
 void native_device::wait(std::uint64_t value)
 {
-    check_owner();
+    ensure_healthy("wait for graphics completion");
     const auto completed = fence->GetCompletedValue();
     if (completed == UINT64_MAX)
     {
-        check(gpu->GetDeviceRemovedReason(), "graphics device removed");
+        throw device_lost{health(), "graphics completion sentinel"};
     }
 
     if (completed >= value)
@@ -148,13 +154,13 @@ void native_device::wait(std::uint64_t value)
 
     const auto deadline =
         std::chrono::steady_clock::now() + std::chrono::milliseconds(options.gpu_wait_timeout_ms);
-    check(fence->SetEventOnCompletion(value, event), "register fence completion");
+    check_result(fence->SetEventOnCompletion(value, event), "register fence completion");
     for (;;)
     {
         const auto current = fence->GetCompletedValue();
         if (current == UINT64_MAX)
         {
-            check(gpu->GetDeviceRemovedReason(), "graphics device removed");
+            throw device_lost{health(), "graphics device removed during wait"};
         }
 
         if (current >= value)
@@ -190,6 +196,11 @@ void native_device::drain_noexcept() noexcept
 
     try
     {
+        if (health().lost())
+        {
+            return;
+        }
+
         wait_idle();
     }
     catch (...)

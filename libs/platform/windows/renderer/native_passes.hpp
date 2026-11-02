@@ -1,5 +1,6 @@
 /** @file @brief D3D12 pipeline and bounded pass-recording implementation. */
 #pragma once
+#include "gpu_timing.hpp"
 #include "native_resources.hpp"
 #include "pass_backend.hpp"
 #include "recording_plan.hpp"
@@ -53,6 +54,7 @@ struct pass_frame
 
     std::pmr::vector<pass_batch> batches; ///< Exclusive contexts, grown only before execution.
     std::uint64_t fence = 0;              ///< Protects every context in this frame.
+    gpu_frame_timer timer;                ///< Queries/readback share the protecting frame fence.
 };
 
 /// @brief Ordered direct-queue pass execution sharing the resource store's device and SRV heap.
@@ -69,6 +71,7 @@ class native_passes final : public pass_backend
 
     std::shared_ptr<gpu_pipeline> create(const pipeline_description& description) override
     {
+        resources->context->ensure_healthy("create graphics pipeline");
         return create_pass_pipeline(*resources->context, description);
     } ///< Compile on the coordinator.
 
@@ -82,6 +85,11 @@ class native_passes final : public pass_backend
         return statistics;
     } ///< Borrow last accepted counts.
 
+    gpu_timing_statistics gpu_timing() const override
+    {
+        return timings;
+    } ///< Last completed measurements.
+
     void collect() override;             ///< Reclaim only completed batches.
     pass_frame begin(std::size_t count); ///< Reuse completed storage or admit exclusive contexts.
     void record(pass_batch& batch, const resolved_pass& pass,
@@ -91,5 +99,6 @@ class native_passes final : public pass_backend
     std::pmr::vector<pass_frame> pending;          ///< Pre-reserved in-flight frames.
     std::pmr::vector<pass_frame> reusable;         ///< Fence-completed reusable frames.
     recording_statistics statistics; ///< Published only after successful queue submission.
+    gpu_timing_statistics timings;   ///< Harvested before query/context reuse.
 };
 } // namespace atlas::renderer::detail

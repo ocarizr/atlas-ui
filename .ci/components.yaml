@@ -150,6 +150,7 @@ components:
     - renderer
     - renderer-jobs
     - renderer-content
+    - render-host
     build_targets:
     - atlas_game
     - atlas_game_content
@@ -160,6 +161,7 @@ components:
     - renderer
     - renderer-jobs
     - renderer-content
+    - render-host
     vendors:
     - memory
     - ipc
@@ -176,6 +178,7 @@ components:
     - renderer
     - renderer-jobs
     - renderer-content
+    - render-host
     build_targets:
     - atlas_editor
     - atlas_editor_content
@@ -186,6 +189,7 @@ components:
     - renderer
     - renderer-jobs
     - renderer-content
+    - render-host
     vendors:
     - memory
     - ipc
@@ -338,7 +342,8 @@ components:
     - libs/renderer_jobs/**
     - tests/renderer_jobs/**
     - tests/platform/windows/renderer_jobs/**
-    - benchmarks/renderer/**
+    - benchmarks/renderer/recording_benchmark.cpp
+    - benchmarks/renderer/CMakeLists.txt
     depends_on:
     - renderer
     - jobs
@@ -377,6 +382,51 @@ components:
     - testing
     - graphics
     - content
+  render-host:
+    paths:
+    - libs/render_host/**
+    - tests/render_host/**
+    depends_on:
+    - window
+    - diagnostics
+    build_targets:
+    - atlas_render_host
+    - atlas_render_host_tests
+    test_labels:
+    - render-host
+    build_requires:
+    - window
+    - diagnostics
+    vendors:
+    - testing
+    - content
+  renderer-readiness:
+    paths:
+    - tests/renderer_readiness/**
+    - tests/platform/windows/renderer_readiness/**
+    - benchmarks/renderer/readiness_benchmark.cpp
+    depends_on:
+    - renderer
+    - render-host
+    - renderer-content
+    - renderer-jobs
+    - memory
+    build_targets:
+    - atlas_renderer_readiness_tests
+    - atlas_renderer_readiness_benchmark
+    test_labels:
+    - renderer-readiness
+    build_requires:
+    - renderer
+    - render-host
+    - renderer-content
+    - renderer-jobs
+    - memory
+    vendors:
+    - testing
+    - graphics
+    - content
+    - memory
 formatting_contexts:
   tooling:
   - scripts/**/*.py
@@ -430,6 +480,7 @@ documentation_paths:
 - libs/renderer/README.md
 - libs/renderer_jobs/README.md
 - libs/renderer_content/README.md
+- libs/render_host/README.md
 asset_paths:
 - assets/**
 profiles:

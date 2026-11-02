@@ -50,6 +50,12 @@ class pass_backend
            recording_options options,
            const diagnostics::services& destinations) = 0;   ///< Join recording before execution.
     virtual recording_statistics last_recording() const = 0; ///< Last successful native recording.
+
+    virtual gpu_timing_statistics gpu_timing() const
+    {
+        return {};
+    } ///< Completed native GPU samples.
+
     virtual void collect() = 0; ///< Reuse only completed command objects.
 };
 

@@ -85,7 +85,7 @@ void native_surface::create_views()
 /// @brief Reject access outside the single graphics coordinator thread.
 void native_surface::resize(surface_extent requested)
 {
-    context->check_owner();
+    context->ensure_healthy("resize presentation surface");
     if (requested.width == 0 || requested.height == 0)
     {
         extent = requested;
@@ -109,9 +109,9 @@ void native_surface::resize(surface_extent requested)
         slot.source_owner.reset();
     }
 
-    check(swapchain->ResizeBuffers(options.frame_count, requested.width, requested.height,
-                                   DXGI_FORMAT_R8G8B8A8_UNORM, 0),
-          "resize presentation buffers");
+    context->check_result(swapchain->ResizeBuffers(options.frame_count, requested.width,
+                                                   requested.height, DXGI_FORMAT_R8G8B8A8_UNORM, 0),
+                          "resize presentation buffers");
     create_views();
     backing_extent = requested;
     extent = requested;
@@ -135,7 +135,7 @@ void native_surface::transition(ID3D12Resource* resource, D3D12_RESOURCE_STATES 
 /// @brief Reject access outside the single graphics coordinator thread.
 frame_result native_surface::render(const frame_description& frame)
 {
-    context->check_owner();
+    context->ensure_healthy("render presentation surface");
     if (target->state().close_requested)
     {
         return frame_result::surface_closed;
@@ -147,6 +147,11 @@ frame_result native_surface::render(const frame_description& frame)
     }
 
     const auto index = swapchain->GetCurrentBackBufferIndex();
+    if (!resume_if_visible())
+    {
+        return frame_result::occluded;
+    }
+
     auto& slot = frames[index];
     context->wait(slot.fence);
     slot.source_owner.reset();
@@ -177,8 +182,9 @@ frame_result native_surface::render(const frame_description& frame)
     last_index = index;
     has_frame = true;
     ++frame_count;
-    const auto result = swapchain->Present(options.vsync ? 1U : 0U, 0);
-    check(result, "present frame");
-    return result == DXGI_STATUS_OCCLUDED ? frame_result::occluded : frame_result::presented;
+    const auto result = present_native(false);
+    context->check_result(result, "present frame");
+    occluded = result == DXGI_STATUS_OCCLUDED;
+    return occluded ? frame_result::occluded : frame_result::presented;
 }
 } // namespace atlas::renderer::detail

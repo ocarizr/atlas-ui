@@ -16,6 +16,7 @@ namespace atlas::window
 {
 /// @brief Forward declaration of the platform-neutral native window facade.
 class window;
+class presentation_target; ///< Synchronized window lease for another graphics coordinator.
 } // namespace atlas::window
 
 namespace atlas::renderer
@@ -33,6 +34,43 @@ enum class adapter_preference : std::uint8_t
     prefer_hardware,
     /// @brief Select the WARP software adapter explicitly.
     software
+};
+
+/// @brief Terminal device-loss classification; automatic in-place recovery is not attempted.
+enum class device_condition : std::uint8_t
+{
+    healthy,     ///< Native device remains usable.
+    removed,     ///< Adapter/device was removed or explicitly invalidated.
+    reset,       ///< Driver reset invalidated native resources.
+    hung,        ///< GPU command execution failed to make progress.
+    driver_error ///< Other terminal driver/device failure.
+};
+
+/// @brief Platform-neutral loss status; native_code preserves diagnostic bits without SDK types.
+struct device_status
+{
+    device_condition condition = device_condition::healthy; ///< Current native health.
+    std::uint32_t native_code = 0; ///< Zero for healthy; HRESULT bits on Windows.
+
+    bool lost() const noexcept
+    {
+        return condition != device_condition::healthy;
+    } ///< Terminal status.
+};
+
+/// @brief Typed fail-stop error: reconstruct the complete graphics domain or stop the application.
+class device_lost final : public std::runtime_error
+{
+  public:
+    device_lost(device_status status,
+                const char* operation); ///< Preserve loss classification and operation context.
+
+    device_status status() const noexcept
+    {
+        return status_;
+    } ///< Observe the original terminal reason.
+  private:
+    device_status status_; ///< Stable failure snapshot; no native object is exposed.
 };
 /// @brief Optional native validation, with an explicit required mode for development.
 enum class debug_validation : std::uint8_t
@@ -133,8 +171,9 @@ class device
     device(const device&) = delete;
     /// @brief Preserve unique, thread-affine ownership; copying is forbidden.
     device& operator=(const device&) = delete;
-    device_info info() const; ///< Query adapter and validation state.
-    void wait_idle();         ///< Explicit coordinator sync point; never call from a worker job.
+    device_info info() const;     ///< Query adapter and validation state.
+    device_status status() const; ///< Query terminal loss without throwing a device_lost exception.
+    void wait_idle(); ///< Explicit coordinator sync point; never call from a worker job.
     std::uint64_t debug_error_count()
         const; ///< Count native error/corruption messages when validation is active.
   private:
@@ -151,7 +190,10 @@ class presentation_surface
   public:
     /// @brief Create presentation storage while retaining both native device and window lifetimes.
     presentation_surface(device& graphics, window::window& target, surface_options options = {});
-    ~presentation_surface(); ///< Drain before releasing backbuffers.
+    presentation_surface(
+        device& graphics, const window::presentation_target& target,
+        surface_options options = {}); ///< Main keeps the leased window alive and pumping.
+    ~presentation_surface();           ///< Drain before releasing backbuffers.
     /// @brief Preserve unique, thread-affine ownership; copying is forbidden.
     presentation_surface(const presentation_surface&) = delete;
     /// @brief Preserve unique, thread-affine ownership; copying is forbidden.

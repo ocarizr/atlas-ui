@@ -8,7 +8,7 @@ surface_copy_result native_surface::present(const std::shared_ptr<gpu_resource>&
                                             resource_state state, std::shared_ptr<void> owner,
                                             std::uint64_t device_identity)
 {
-    context->check_owner();
+    context->ensure_healthy("present rendered texture");
     if (context->identity != device_identity)
     {
         throw std::invalid_argument("surface and source belong to different devices");
@@ -32,6 +32,11 @@ surface_copy_result native_surface::present(const std::shared_ptr<gpu_resource>&
     }
 
     const auto index = swapchain->GetCurrentBackBufferIndex();
+    if (!resume_if_visible())
+    {
+        return {frame_result::occluded, 0};
+    }
+
     auto& slot = frames[index];
     context->wait(slot.fence);
     slot.source_owner.reset();
@@ -62,15 +67,15 @@ surface_copy_result native_surface::present(const std::shared_ptr<gpu_resource>&
     last_index = index;
     has_frame = true;
     ++frame_count;
-    const auto result = swapchain->Present(options.vsync ? 1U : 0U, 0);
+    const auto result = present_native(false);
     // A failed Present must not let the caller release a source still used by the queue.
     if (FAILED(result))
     {
         context->drain_noexcept();
-        check(result, "present copied frame");
+        context->check_result(result, "present copied frame");
     }
 
-    return {result == DXGI_STATUS_OCCLUDED ? frame_result::occluded : frame_result::presented,
-            slot.fence};
+    occluded = result == DXGI_STATUS_OCCLUDED;
+    return {occluded ? frame_result::occluded : frame_result::presented, slot.fence};
 }
 } // namespace atlas::renderer::detail

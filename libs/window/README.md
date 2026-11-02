@@ -16,3 +16,10 @@ does not silently change process-global DPI policy. Native code is selected thro
 integration disabled, configuration checks still run and creation explicitly
 throws because no window backend is present. Other target platforms remain future
 adapters, not supported implementations.
+
+For a dedicated render coordinator, obtain `presentation_target` with
+`share_presentation()` on the window owner. It publishes synchronized snapshots
+and retains an immutable native handle without exposing SDK types. Keep the native
+window alive and pumping until all leased surfaces and endpoint copies are released;
+destroying a window with active leases is a contract violation and terminates.
+See [renderer readiness](../../docs/34_renderer_readiness.md).

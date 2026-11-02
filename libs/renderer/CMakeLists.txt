@@ -1,4 +1,5 @@
 add_library(atlas_renderer STATIC src/renderer.cpp src/resource_store.cpp)
+target_sources(atlas_renderer PRIVATE src/device_status.cpp)
 target_sources(atlas_renderer PRIVATE src/recording.cpp src/recording_plan.cpp)
 target_sources(atlas_renderer PRIVATE src/pass_contract.cpp src/pass_renderer.cpp src/pass_validation.cpp)
 target_sources(atlas_renderer PRIVATE src/resource_presentation.cpp)
@@ -10,6 +11,9 @@ target_compile_features(atlas_renderer PUBLIC cxx_std_20)
 target_link_libraries(atlas_renderer PUBLIC atlas::window atlas::diagnostics)
 atlas_configure_target(atlas_renderer)
 if(ATLAS_TARGET_PLATFORM STREQUAL "windows" AND ATLAS_BUILD_WINDOWS_INTEGRATION)
+    target_sources(atlas_renderer PRIVATE ../platform/windows/renderer/device_health.cpp)
+    target_sources(atlas_renderer PRIVATE ../platform/windows/renderer/gpu_timing.cpp)
+    target_sources(atlas_renderer PRIVATE ../platform/windows/renderer/presentation_status.cpp)
     target_sources(atlas_renderer PRIVATE ../platform/windows/renderer/native_device.cpp
         ../platform/windows/renderer/native_surface.cpp ../platform/windows/renderer/triangle_pipeline.cpp
         ../platform/windows/renderer/readback.cpp)

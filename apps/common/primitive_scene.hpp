@@ -39,6 +39,12 @@ class primitive_scene
         return content_presented_;
     } ///< Whether a textured frame reached presentation.
 
+    void collect()
+    {
+        passes_.collect();
+        resources_.collect();
+    } ///< Collect completed GPU timings and retired resources on the render coordinator.
+
     /// @brief Bound CPU lead, resize the output after surface synchronization, then submit/present.
     renderer::frame_result render(renderer::presentation_surface& surface,
                                   renderer::surface_extent extent, std::uint64_t frame)

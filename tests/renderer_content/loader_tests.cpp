@@ -151,4 +151,23 @@ TEST_F(loader_test, captures_decode_and_prepare_with_optional_failure_events)
               diagnostics::instrumentation_enabled);
     EXPECT_EQ(capture->statistics().errors, 0U);
 }
+
+/// @brief Moving a request transfers cancellation ownership; the old handle remains safely
+/// inspectable.
+TEST_F(loader_test, moved_request_can_be_inspected_and_cancelled_safely)
+{
+    auto source = loader.read_image({"pixel", 0, 4});
+    EXPECT_TRUE(source.valid());
+    auto destination = std::move(source);
+    // Explicitly exercise the documented moved-from inspection/cancellation contract.
+    // NOLINTBEGIN(clang-analyzer-cplusplus.Move,bugprone-use-after-move)
+    EXPECT_FALSE(source.valid());
+    EXPECT_FALSE(source.ready());
+    source.cancel();
+    // NOLINTEND(clang-analyzer-cplusplus.Move,bugprone-use-after-move)
+    EXPECT_TRUE(destination.valid());
+    EXPECT_TRUE(destination.get());
+    EXPECT_FALSE(destination.valid());
+    EXPECT_FALSE(destination.ready());
+}
 } // namespace atlas::renderer_content::tests

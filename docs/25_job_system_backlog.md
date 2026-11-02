@@ -171,3 +171,17 @@ Use JOB-02/JOB-04 as adoption gates for the next consumer; JOB-03 applies when
 deterministic publication is introduced. Extend JOB-06 to obtain evidence before
 choosing JOB-09 through JOB-13. Keep each change independently testable and update
 this backlog with its completion evidence.
+
+## Renderer phase-six reassessment
+
+The renderer/content integration now shares one pool for ready decoding and scoped
+recording, with a separate application-owned graphics coordinator. Controlled native
+and handoff tests add JOB-02/JOB-04 evidence. Immutable frame IDs/packets and FIFO
+publication provide one consumer contract, not scheduler-wide replay determinism.
+
+The render host bounds queued frames and releases completed/discarded CPU packets;
+streamer and GPU registries have their own quotas. These do not close JOB-01 for
+arbitrary producers or total task/dependency memory. No measured contention result
+currently justifies replacing the shared weighted queues with work stealing.
+Use bounded UI fan-out and sequential references next; see the
+[integrated gap assessment](35_renderer_and_streaming_backlog.md).

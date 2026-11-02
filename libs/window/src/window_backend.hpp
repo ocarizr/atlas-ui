@@ -28,5 +28,7 @@ class window_access
   public:
     static std::shared_ptr<window_backend>
     retain(window& value); ///< Check owner and retain lifetime.
+    static std::shared_ptr<window_backend>
+    retain(const presentation_target& value); ///< Retain a published cross-thread endpoint.
 };
 } // namespace atlas::window::detail

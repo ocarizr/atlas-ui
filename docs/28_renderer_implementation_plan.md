@@ -17,10 +17,11 @@ Windows. The SDK-free validation profile reports native graphics as unavailable.
 | 3. Pipelines and passes | Shader/pipeline descriptions, immutable draw packets, offscreen targets, depth/blend/scissor, ordered passes and explicit attachments; validate generic 2D/3D primitives without UI semantics | Implemented |
 | 4. Job recording | Optional joined executor, one application-owned scheduler, exclusive bounded command contexts, contiguous pass sections, deterministic submission, sequential small-work path and measured grain policy | Implemented |
 | 5. Content integration | Streamer-fed image/shader preparation on ready jobs, bounded native buffer decoding, fenced texture ownership, exact-input device-local PSO cache and shared loose-asset application demonstration | Implemented |
-| 6. Hardening and readiness | Device-removal reporting/recovery policy, GPU timestamp profiling and expanded diagnostics, resize/occlusion soak, multi-surface behavior, application thread integration, memory/descriptor pressure and measured budgets on WARP and hardware | Planned |
+| 6. Hardening and readiness | Typed fail-stop device loss, fenced GPU timestamp counters, bounded main/render handoff, visibility probing, multi-surface lifecycle/resource-pressure checks and WARP/hardware measurements | Implemented for the initial Windows foundation |
 
-The production UI gate requires all six phases. A triangle proves presentation,
-not readiness for widgets. The resource API and render-pass vocabulary must remain
+All six foundation phases now have their initial implementation. Next is a bounded
+UI vertical slice with its own correctness/performance evidence; this is not a
+claim that every production workload is ready. The resource API and render-pass vocabulary must remain
 general enough for future world rendering. Prefer composition of passes and
 backend interfaces over requiring consumers to inherit native device classes.
 
@@ -64,11 +65,10 @@ backend interfaces over requiring consumers to inherit native device classes.
 
 ## Jobs and streaming boundaries
 
-Through phase four, game/editor main also serves as graphics coordinator. The
-renderer library does not own the application's main/render-thread policy.
-It requires a single creating-thread coordinator and supports exclusively owned
-worker recording contexts through an optional executor. The dedicated-thread
-window/presentation lifecycle is a separate application integration gate below.
+Phases one through five used main as graphics coordinator. Phase six moves graphics
+to an application-owned persistent render thread through `atlas::render_host`.
+The renderer itself still creates no dedicated thread or pool. It requires one
+creating-thread coordinator and supports exclusively owned worker recording contexts.
 
 Phase one records a tiny clear/triangle workload directly on the owner thread;
 dispatching it to workers would add scheduling and ownership transfers without a
@@ -88,27 +88,27 @@ to the renderer. The renderer retains those bytes until the appropriate transfer
 fence completes. It never opens shader, image or media files. Bundle format and
 packaging remain a separate dependency; loose assets suffice for the next stages.
 
-## Application thread integration gate
+## Application thread integration
 
 Creating and managing a persistent render thread belongs to application composition,
-not an implicit thread inside the renderer library. Main will retain window events,
-input and application-state updates; the render coordinator will create, use and
-destroy graphics services and submit/present ordered work. Create graphics objects
+not an implicit thread inside the renderer library. Main retains window events,
+input and application-state updates; the render coordinator creates, uses and
+destroys graphics services and submits/presents ordered work. Create graphics objects
 on their final coordinator rather than moving live native objects between threads.
 
 Main-to-render handoff needs immutable snapshots, explicit frame identities,
 bounded queue/backpressure, maximum frame lead and latency, failure propagation,
 resize/minimize/close coordination and drain/join before native-window release.
 Required CPU work finishes before its frame is submitted; any application/render
-frame overlap must be explicit. The current native surface reads its owner-thread
-window backend, so cross-thread presentation additionally requires a native
-window-state handoff contract. The offscreen dedicated-coordinator test is not
-evidence that this full window lifecycle is already implemented.
+frame overlap must be explicit. Legacy same-thread surfaces retain the owner-thread
+window backend; cross-thread presentation requires a synchronized
+window-state handoff contract. Phase six supplies a `presentation_target`
+lease; main retains native window ownership until render drain/join completes.
 
-Complete this composition gate alongside phase-six readiness, before production
-UI. Keep the one shared application job pool; dedicated coordination and parallel
-recording are distinct mechanisms. Controlled concurrency tests and diagnostics
-must distinguish main, render and worker activity.
+Game/editor now implement this gate with bounded snapshots and continued message
+pumping during backpressure and shutdown. Dedicated coordination and parallel
+recording remain distinct and share the one application pool. Controlled tests
+and diagnostics distinguish main, render and workers. See [readiness](34_renderer_readiness.md).
 
 ## Future rendering strategies
 
@@ -143,7 +143,7 @@ See [renderer usage](../libs/renderer/README.md),
 [window ownership](../libs/window/README.md) and
 [Windows checks](10_windows_development.md).
 
-CPU scopes and lifecycle/failure logging are now injectable through the [library diagnostics policy](29_library_diagnostics.md); GPU timings and recovery remain later gates.
+CPU scopes and lifecycle/failure logging follow the [library diagnostics policy](29_library_diagnostics.md). Phase six adds GPU duration counters and a fail-stop device-loss policy; automatic graphics reconstruction remains separate future work.
 
 See [GPU resources and transfers](30_renderer_resources.md) for phase-two handles, budgets, uploads, retirement, readiness fences and the jobs/PMR integration proof.
 
@@ -151,5 +151,6 @@ See [graphics pipelines and ordered passes](31_renderer_passes.md) for phase-thr
 shader ABI, immutable snapshots, attachment operations, whole-frame validation,
 fence retirement and resource-to-surface presentation. Phase four adds optional
 parallel recording; [phase-five content integration](33_renderer_content.md) adds
-streamed images/shaders and upload/cache ownership. Phase six remains the readiness
-gate before production UI.
+streamed images/shaders and upload/cache ownership. [Phase six](34_renderer_readiness.md)
+completes the initial foundation; [known gaps and optimization candidates](35_renderer_and_streaming_backlog.md)
+remain explicit before expanding production scope.

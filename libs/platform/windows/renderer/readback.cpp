@@ -7,7 +7,7 @@ namespace atlas::renderer::detail
 /// @brief Reject access outside the single graphics coordinator thread.
 frame_image native_surface::readback()
 {
-    context->check_owner();
+    context->ensure_healthy("capture presentation surface");
     if (!has_frame)
     {
         throw std::logic_error("readback requires a submitted frame since the last resize");

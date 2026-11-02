@@ -34,7 +34,12 @@ class native_device final : public device_backend
     void wait(std::uint64_t value); ///< Bounded CPU coordinator wait.
     void drain_noexcept() noexcept; ///< Fatal on timeout of a live device, avoiding unsafe resource
                                     ///< release.
-    device_options options;         ///< Native initialization policy.
+    device_status health() const override; ///< Classify the original removal reason.
+    void ensure_healthy(
+        const char* operation) const; ///< Reject terminal loss at GPU operation boundaries.
+    void check_result(HRESULT result, const char* operation)
+        const;              ///< Prefer typed device loss to a generic native failure.
+    device_options options; ///< Native initialization policy.
     std::shared_ptr<std::pmr::memory_resource>
         memory;                     ///< Pins caller-selected CPU allocation resource.
     device_info information;        ///< Observable selected backend.
@@ -63,7 +68,7 @@ struct frame_slot
 };
 
 /// @brief Flip-model presentation surface with bounded frame slots.
-class native_surface final : public surface_backend
+class native_surface : public surface_backend
 {
   public:
     /// @brief Create a flip-model swapchain with individually fenced frame allocators.
@@ -91,6 +96,10 @@ class native_surface final : public surface_backend
     }
 
     void create_views(); ///< Retrieve buffers and create RTVs.
+    virtual HRESULT
+    present_native(bool probe); ///< Native seam for controlled visibility/failure validation.
+    bool resume_if_visible();   ///< Probe occlusion without recording new GPU commands.
+    bool occluded = false;      ///< Last native presentation reported occlusion.
     D3D12_CPU_DESCRIPTOR_HANDLE rtv(std::uint32_t index) const; ///< Indexed RTV handle.
     void transition(ID3D12Resource* resource, D3D12_RESOURCE_STATES before,
                     D3D12_RESOURCE_STATES after);           ///< Record barrier.

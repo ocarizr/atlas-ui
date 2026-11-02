@@ -135,14 +135,12 @@ window thread, and define immutable handoff, frame identities, bounded lead,
 resize/close coordination and failure propagation. Integrating that window/render
 lifecycle is a separate application task before production UI.
 
-Current graphical applications still use main as graphics coordinator. An offscreen
-test proves that an application-created dedicated coordinator can own graphics
-services while sharing the original pool; it does not prove a cross-thread native
-window/presentation loop. The current surface polls the window backend on its
-owner thread. Splitting those loops requires an explicit window-state/handoff
-contract and lifecycle coordination in application/native adapters, with resize,
-shutdown, backpressure and failure tests.
+Phase six completes application integration with a dedicated render coordinator,
+synchronized window presentation leases and bounded immutable CPU packets.
+Cross-thread native tests cover resize/suspend/close and multiple windows while
+main continues pumping messages. This still uses the original application pool.
 
 The renderer-library recording gate and application composition gate are separate.
-Both precede production UI. [Content orchestration](33_renderer_content.md) is phase five; application
-thread lifecycle and GPU hardening remain gates to complete alongside phase six.
+Both precede production UI. [Content orchestration](33_renderer_content.md) is phase
+five; [thread lifecycle and GPU hardening](34_renderer_readiness.md) complete the
+initial phase-six gate. Consumer-specific production budgets remain follow-up work.

@@ -166,6 +166,8 @@ class pass_renderer
     submit(const frame_plan& frame, recording_executor& executor,
            recording_options options = {}); ///< Join coarse batches before stable GPU submission.
     recording_statistics last_recording() const; ///< Last successful recording, coordinator only.
+    gpu_timing_statistics
+    gpu_timing() const; ///< Completed GPU timestamps; collect after fences complete.
   private:
     class impl;                  ///< Platform-neutral registry and selected native pass backend.
     std::unique_ptr<impl> impl_; ///< Coordinator-owned state.

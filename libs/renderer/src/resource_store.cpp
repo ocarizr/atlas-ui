@@ -167,14 +167,16 @@ void resource_store::release(descriptor_handle value, completion_token after)
 bool resource_store::ready(buffer_handle value) const
 {
     const auto& entry = impl_->get(value);
-    return entry.initialized && impl_->backend->completed() >= entry.initialization;
+    const auto complete = impl_->backend->completed();
+    return entry.initialized && complete >= entry.initialization;
 }
 
 /// @brief Report initialized data only after its protecting queue value has completed.
 bool resource_store::ready(texture_handle value) const
 {
     const auto& entry = impl_->get(value);
-    return entry.initialized && impl_->backend->completed() >= entry.initialization;
+    const auto complete = impl_->backend->completed();
+    return entry.initialized && complete >= entry.initialization;
 }
 
 /// @brief Observe the scheduled state without implying completion of GPU execution.

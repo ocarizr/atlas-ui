@@ -24,14 +24,23 @@ template <class T> class content_request
     {
     } ///< Retain result and callback-completion lifetime.
 
+    bool valid() const noexcept
+    {
+        return completion_.valid();
+    } ///< Whether completion can still be consumed.
+
     bool ready() const
     {
-        return completion_.wait_for(std::chrono::seconds{0}) == std::future_status::ready;
+        return valid() &&
+               completion_.wait_for(std::chrono::seconds{0}) == std::future_status::ready;
     } ///< Nonblocking observation; a ready request may still have failed.
 
     void cancel() noexcept
     {
-        state_->cancellation.request_stop();
+        if (state_)
+        {
+            state_->cancellation.request_stop();
+        }
     } ///< Request storage cancellation and cooperative decode cancellation.
 
     T get()
