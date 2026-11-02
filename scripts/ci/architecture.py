@@ -24,6 +24,7 @@ WINDOWS_HEADERS = {
     "d3d12memalloc.h",
     "directx/d3d12.h",
     "d3d12sdklayers.h",
+    "d3d12shader.h",
     "dxgi1_6.h",
     "dxcapi.h",
     "dxgi1_4.h",

@@ -14,6 +14,7 @@ from scripts.ci.architecture import validate_architecture
         "dxgi1_6.h",
         "d3d12sdklayers.h",
         "dxcapi.h",
+        "d3d12shader.h",
         "D3D12MemAlloc.h",
         "directx/d3d12.h",
     ],

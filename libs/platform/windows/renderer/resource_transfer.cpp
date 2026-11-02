@@ -13,6 +13,10 @@ D3D12_RESOURCE_STATES native_state(resource_state state, bool texture)
             return D3D12_RESOURCE_STATE_COPY_DEST;
         case resource_state::copy_source:
             return D3D12_RESOURCE_STATE_COPY_SOURCE;
+        case resource_state::render_target:
+            return D3D12_RESOURCE_STATE_RENDER_TARGET;
+        case resource_state::depth_write:
+            return D3D12_RESOURCE_STATE_DEPTH_WRITE;
         case resource_state::shader_read:
             return texture ? D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
                                  D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE

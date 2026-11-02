@@ -14,7 +14,7 @@ Windows. The SDK-free validation profile reports native graphics as unavailable.
 | --- | --- | --- |
 | 1. Device and presentation | Independent window/device/surface ownership, hardware or WARP selection, real clear and triangle, fenced frame reuse, resize/minimize, DPI, clean shutdown and pixel readback tests; both applications exercise the same implementation | Implemented |
 | 2. Resources and transfers | Typed generation-checked buffer/texture handles, GPU memory allocation, upload staging, descriptor allocation, explicit resource states and fence-based deferred destruction; test exhaustion, reuse and in-flight lifetimes | Implemented |
-| 3. Pipelines and passes | Shader/pipeline descriptions, immutable draw packets, offscreen targets, depth/blend/scissor, ordered passes and explicit attachments; validate generic 2D/3D primitives without UI semantics | Planned |
+| 3. Pipelines and passes | Shader/pipeline descriptions, immutable draw packets, offscreen targets, depth/blend/scissor, ordered passes and explicit attachments; validate generic 2D/3D primitives without UI semantics | Implemented |
 | 4. Job recording | One application-owned scheduler, coarse parallel preparation and exclusively owned command allocators/lists, deterministic submission order, sequential small-work path and measured scheduling thresholds | Planned |
 | 5. Content integration | Consumer orchestration from streamer buffers through decoding to upload-ready data, shader construction/cache policy, cancellation and retention until upload fences complete; loose assets first | Planned |
 | 6. Hardening and readiness | Device-removal reporting/recovery policy, GPU timestamp profiling and expanded diagnostics, resize/occlusion soak, multi-surface behavior, memory/descriptor pressure and measured budgets on WARP and hardware | Planned |
@@ -117,3 +117,8 @@ See [renderer usage](../libs/renderer/README.md),
 CPU scopes and lifecycle/failure logging are now injectable through the [library diagnostics policy](29_library_diagnostics.md); GPU timings and recovery remain later gates.
 
 See [GPU resources and transfers](30_renderer_resources.md) for phase-two handles, budgets, uploads, retirement, readiness fences and the jobs/PMR integration proof.
+
+See [graphics pipelines and ordered passes](31_renderer_passes.md) for phase-three
+shader ABI, immutable snapshots, attachment operations, whole-frame validation,
+fence retirement and resource-to-surface presentation. Phase four is the next gate;
+production UI still requires the remaining foundation phases.

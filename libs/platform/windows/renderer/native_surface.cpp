@@ -106,6 +106,7 @@ void native_surface::resize(surface_extent requested)
     for (auto& slot : frames)
     {
         slot.buffer.Reset();
+        slot.source_owner.reset();
     }
 
     check(swapchain->ResizeBuffers(options.frame_count, requested.width, requested.height,
@@ -148,6 +149,7 @@ frame_result native_surface::render(const frame_description& frame)
     const auto index = swapchain->GetCurrentBackBufferIndex();
     auto& slot = frames[index];
     context->wait(slot.fence);
+    slot.source_owner.reset();
     check(slot.allocator->Reset(), "reset completed frame allocator");
     check(commands->Reset(slot.allocator.Get(), context->pipeline.Get()), "begin frame commands");
     transition(slot.buffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);

@@ -59,6 +59,7 @@ struct frame_slot
     com_ptr<ID3D12CommandAllocator> allocator; ///< Reused only after its fence completes.
     com_ptr<ID3D12Resource> buffer;            ///< Swapchain-owned render target.
     std::uint64_t fence = 0;                   ///< Last submission using this allocator.
+    std::shared_ptr<void> source_owner; ///< Pins resource registry until this frame completes.
 };
 
 /// @brief Flip-model presentation surface with bounded frame slots.
@@ -75,6 +76,10 @@ class native_surface final : public surface_backend
     void resize(surface_extent extent) override;
     /// @brief Reuse only completed frame slots, then record, signal and present.
     frame_result render(const frame_description& frame) override;
+    surface_copy_result
+    present(const std::shared_ptr<gpu_resource>& source, resource_state state,
+            std::shared_ptr<void> owner,
+            std::uint64_t device_identity) override; ///< Copy a rendered target to the backbuffer.
     /// @brief Synchronize and return tightly packed CPU bytes from the last rendered frame.
     frame_image readback() override;
 
