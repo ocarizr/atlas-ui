@@ -1,6 +1,6 @@
 # Graphics pipelines and ordered passes
 
-Renderer phase three introduces `<atlas/renderer/passes.hpp>`. The public API is
+The renderer exposes `<atlas/renderer/passes.hpp>`. The public API is
 platform-neutral; the selected Windows implementation compiles HLSL with DXC and
 records Direct3D 12 commands under `libs/platform/windows/renderer/`. Backend
 selection still follows `ATLAS_TARGET_PLATFORM` and native integration settings.
@@ -67,8 +67,8 @@ all in space zero. Reflection rejects other bindings, arrays and oversized
 constant buffers. Only a shader actually consuming `t0` requires an SRV in its
 draw packet. This is a compatibility check, not a sandbox for hostile shaders.
 Custom vertex inputs and outputs must match the fixed pipeline ABI. Compilation
-or pipeline creation errors publish no handle or GPU work. Shader caching and
-asset orchestration remain phase five work.
+or pipeline creation errors publish no handle or GPU work. Device-local shader/pipeline caching and
+asset orchestration belong to [renderer content](renderer_content.md).
 
 ## Attachment and ordering contracts
 
@@ -122,27 +122,25 @@ surfaces submit no copy. Frame slots retain store ownership until safe reuse;
 completed resources can still be collected independently. The extra offscreen
 copy is an explicit foundation choice, not a claim of optimal presentation cost.
 
-## Diagnostics, jobs and remaining work
+## Diagnostics and jobs
 
 Pipeline creation, validation, submission, presentation and shutdown expose CPU
 scopes through inherited diagnostics and `ATLAS_PROFILING=auto|on|off`. Lifecycle
-and failure logging remain independent of capture. There is no per-draw info log,
-GPU timestamp capture or GPU-time claim.
+and failure logging remain independent of capture. There is no per-draw info log. Separate fenced GPU duration counters
+cover pass execution; see [timing semantics](render_host.md).
 
 Jobs can prepare exclusively owned CPU geometry and immutable pass descriptions.
 Wait for CPU readiness before coordinator submission; do not call the GPU API or
-wait for GPU fences from a CPU worker. The integration test now samples an asset
+wait for GPU fences from a CPU worker. The integration test samples an asset
 prepared with attached jobs and uploaded through the normal resource store.
-The default submission stays sequential. [Phase four](32_renderer_recording.md)
-adds optional joined command recording through the existing application scheduler.
+The default submission stays sequential. [Parallel recording](renderer_recording.md)
+uses optional joined command recording through the existing application scheduler.
 
 WARP tests inspect pixels for color, textures, depth, blending, viewport/scissor,
 custom shaders and swapchain copies. Queue gates exercise capacity and retirement
 without sleeps. Invalid-input tests check that fences and initialization remain
 unchanged. These checks do not establish hardware throughput or device recovery.
 
-[Phase five](33_renderer_content.md) adds content orchestration in a separate
-consumer library. The remaining readiness gate is phase six hardening, including
-the separate application main/render-thread lifecycle. Indexed/instanced geometry, additional formats/MSAA, flexible
-material layouts, lighting/Forward+, UI semantics and world rendering extensions
-remain outside this initial fixed primitive ABI.
+[Content preparation](renderer_content.md) and [render-host lifecycle](render_host.md)
+are separate consumers. The fixed primitive ABI does not implement indexed/instanced
+geometry, additional formats/MSAA, general material layouts, lighting or UI semantics.

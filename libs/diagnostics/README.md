@@ -237,6 +237,6 @@ Consumers use `find_package(atlas_diagnostics 0.2.0 CONFIG REQUIRED)` and link
 `atlas::diagnostics`. Provide spdlog 1.17+, yaml-cpp 0.9+ compatible packages and matching
 compiler/CRT/configuration. Validation uses the repository's pinned versions.
 Package compatibility follows the same minor version while the API is 0.x.
-See the [integration and repository strategy](../../docs/24_diagnostics_and_packages.md).
+See the [integration and repository strategy](../../docs/diagnostics.md).
 
-See [library diagnostics and build policy](../../docs/29_library_diagnostics.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.
+See [library diagnostics and build policy](../../docs/diagnostics_policy.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.

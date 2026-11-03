@@ -23,7 +23,7 @@ def formatting_config():
         (["apps/editor/main.cpp"], ["editor"]),
         (["protocols/session.proto"], ["ipc"]),
         (["tests/tooling/test_assets.py"], ["tooling"]),
-        (["docs/04_job_system.md"], []),
+        (["docs/jobs.md"], []),
     ],
     ids=["library-only", "editor-only", "protobuf", "python-tooling", "documentation-only"],
 )

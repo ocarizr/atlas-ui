@@ -14,3 +14,7 @@
 
 - [ ] The diff contains only intended changes and excludes generated or local-only artifacts.
 - [ ] Documentation, compatibility impacts, and migration steps are addressed where applicable.
+
+## Related issue
+
+<!-- Use Closes #123 for a delivered issue, or Refs #123 for partial work. -->

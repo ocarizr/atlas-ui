@@ -50,9 +50,9 @@ nonblocking by the scheduler.
 
 Instrumentation is opt-in, allocates while capturing/logging, and changes timings.
 Measure scheduler performance with and without it. Capture limits/drops and logging
-errors must remain visible to diagnostics consumers. Live editor visualization,
-full causal dependency flows, lock contention and real consumer frame budgets remain
-future integration work.
+errors must remain visible to diagnostics consumers. The adapter does not provide
+live editor visualization, full causal dependency flows or lock-contention capture.
+Consumer frame budgets are not established by these observations.
 
 Build/install `atlas_jobs` 0.2.x and `atlas_diagnostics` 0.2.x first, then configure
 this directory with their install prefixes in `CMAKE_PREFIX_PATH`. Consumers use
@@ -60,4 +60,4 @@ this directory with their install prefixes in `CMAKE_PREFIX_PATH`. Consumers use
 `atlas::jobs_diagnostics`. Jobs 0.2 adds observer options and changes compiled layouts:
 rebuild all matching clients; do not mix 0.1 headers/binaries with 0.2.
 
-See [library diagnostics and build policy](../../docs/29_library_diagnostics.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.
+See [library diagnostics and build policy](../../docs/diagnostics_policy.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.

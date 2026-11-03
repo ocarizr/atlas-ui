@@ -22,4 +22,4 @@ For a dedicated render coordinator, obtain `presentation_target` with
 and retains an immutable native handle without exposing SDK types. Keep the native
 window alive and pumping until all leased surfaces and endpoint copies are released;
 destroying a window with active leases is a contract violation and terminates.
-See [renderer readiness](../../docs/34_renderer_readiness.md).
+See [renderer readiness](../../docs/render_host.md).

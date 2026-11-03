@@ -127,20 +127,10 @@ native Windows ThreadSanitizer remains unavailable.
 The backend follows Microsoft's [parallel recording ownership](https://learn.microsoft.com/en-us/samples/microsoft/directx-graphics-samples/d3d12-multithreading-sample-win32/)
 and [command-list submission contracts](https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12commandqueue-executecommandlists).
 
-## Application thread integration gate
+## Application integration
 
-A dedicated render thread belongs to application composition: create and destroy
-graphics services on that thread, retain window-message ownership on the native
-window thread, and define immutable handoff, frame identities, bounded lead,
-resize/close coordination and failure propagation. Integrating that window/render
-lifecycle is a separate application task before production UI.
-
-Phase six completes application integration with a dedicated render coordinator,
-synchronized window presentation leases and bounded immutable CPU packets.
-Cross-thread native tests cover resize/suspend/close and multiple windows while
-main continues pumping messages. This still uses the original application pool.
-
-The renderer-library recording gate and application composition gate are separate.
-Both precede production UI. [Content orchestration](33_renderer_content.md) is phase
-five; [thread lifecycle and GPU hardening](34_renderer_readiness.md) complete the
-initial phase-six gate. Consumer-specific production budgets remain follow-up work.
+The application-owned render coordinator creates and destroys graphics services;
+main retains native message ownership. Synchronized presentation leases and bounded
+immutable packets support resize/suspend/close while main continues pumping.
+Worker recording uses the same application pool and is distinct from persistent
+render coordination. See [render-host contracts](render_host.md).

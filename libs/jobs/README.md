@@ -13,13 +13,13 @@ agnostic; there are no Windows SDK, UI, ECS, codec or application dependencies.
 
 Direct tasks share one completion state for status, result and waits. Completed
 handle waits avoid the scheduler mutex; pending waits still cooperate with the
-caller's notification queue. See the [measured optimization report](../../docs/23_job_scheduler_optimization.md)
-for allocation/timing evidence and the limits of the current scheduler.
+caller's notification queue. See the [workload guide](../../docs/job_workloads.md)
+for allocation/timing methodology and measurement limits.
 
-The [follow-up backlog](../../docs/25_job_system_backlog.md) records outstanding
+The [follow-up backlog](https://github.com/ocarizr/atlas-ui/issues/24) records outstanding
 production contracts, safety/observability limits and deferred optimization gates.
 
-Version 0.2 adds an optional `job_system_options::observer` for terminal direct-task
+The public API supports an optional `job_system_options::observer` for terminal direct-task
 events outside scheduler locks. `wait_idle()` and `shutdown()` drain these deliveries;
 source handles may become observable before delivery finishes. Observer callbacks
 are noexcept and cannot wait, reuse saved contexts or perform external I/O. The
@@ -251,7 +251,7 @@ threads. Request owned stop sources before shutdown when desired; shutdown drain
 
 Traces include priority and dispatch order; statistics expose cancelled outcomes
 and per-class queued/dispatched counts. See the complete [policy, fairness bounds,
-examples and lifetime contract](../../docs/21_job_scheduling_and_cancellation.md).
+examples and lifetime contract](../../docs/job_scheduling.md).
 Rebuild consumers with matching headers and libraries.
 
 ## Completion listeners
@@ -273,7 +273,7 @@ results; their notification handles complete successfully without invoking the f
 Observer errors remain in their own handles and do not overwrite the source.
 Cancellation does not suppress delivery. Callbacks must not reenter waits/shutdown.
 
-See [the full callback contract and examples](../../docs/22_job_completion_callbacks.md)
+See [the full callback contract and examples](../../docs/job_callbacks.md)
 for pumping, affinity, owner-thread exit, payload lifetimes and trace/statistics changes.
 
 ```cpp

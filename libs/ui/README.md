@@ -1,8 +1,8 @@
 # UI command foundation
 
-`atlas::ui` is an independent SDK-free C++20 library. Phase 1 provides serial command
+`atlas::ui` is an independent SDK-free C++20 library. It provides serial command
 production and immutable batches; it does not yet create elements, apply state,
-schedule work or draw UI. See the [phased implementation plan](../../docs/36_ui_implementation_plan.md).
+schedule work or draw UI. See the [UI delivery tracking](https://github.com/ocarizr/atlas-ui/issues/27).
 
 ```cpp
 atlas::ui::command_buffer commands{limits, shared_memory, diagnostics};
@@ -10,13 +10,13 @@ commands.begin_frame(42);
 commands.set(element, atlas::ui::property::width, 240.f, producer_id);
 commands.set(element, atlas::ui::property::visible, true, producer_id);
 const auto batch = commands.seal();
-// Later phases apply the batch against live state and schedule independent work.
+// Consumers own batch processing; this library does not apply live state.
 // Keep the batch alive while a worker borrows batch.writes()/batch.conflicts().
 ```
 
 `element_handle` has a slot index and nonzero generation. Producer IDs are nonzero
-session-assigned diagnostic identities. Phase 2 will validate handles against the
-live tree; passing a numerically valid handle currently does not prove liveness.
+session-assigned diagnostic identities. There is no live-tree validation;
+passing a numerically valid handle does not prove liveness.
 Width/height accept finite nonnegative floats, opacity accepts [0, 1], and visible
 accepts bool. Unknown properties and mismatched values throw before admission.
 

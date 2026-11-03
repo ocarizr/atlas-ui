@@ -1,6 +1,6 @@
 # Renderer content integration
 
-Phase five adds `atlas::renderer_content`, a consumer of renderer and streaming.
+The library provides `atlas::renderer_content`, a consumer of renderer and streaming.
 The graphics core never opens image or shader files. Application composition
 registers logical assets with the streamer, injects one shared job pool and
 allocator, and supplies optional diagnostics endpoints to each service.
@@ -55,7 +55,7 @@ Default limits are 16384 pixels per dimension and 64 MiB of RGBA8 output per ima
 both are checked before native output allocation. The streamer separately enforces
 encoded read/residency/admission limits. These are per-image limits, not an aggregate
 decoded-cache budget: consumers must bound retained requests/images. No automatic
-image cache or eviction policy is introduced in this phase.
+image cache or eviction policy is introduced by this library.
 The upload helper also enforces the default image envelope; decode limits can be
 tightened per request. Renderer staging/allocation quotas are separate and may
 reject an otherwise valid image.
@@ -99,7 +99,7 @@ Capacity is explicit (default 32), and exhaustion fails instead of silently evic
 handles retained by callers. Cached handles are borrowed: callers must not release
 them independently through `pass_renderer`. `clear()` invalidates handles and retires native state
 after its last use. The cache is process/device-local; persistent bytecode formats,
-offline compilation and bundle packaging remain separate future work.
+offline compilation and bundle packaging are not implemented.
 
 ## Demonstration and diagnostics
 
@@ -118,7 +118,6 @@ there are no per-draw success logs. Profiling follows `ATLAS_PROFILING=auto|on|o
 and needs an injected capture destination. Neither GPU timing nor race freedom is
 inferred from CPU traces or ASan.
 
-[Phase six](34_renderer_readiness.md) now establishes application main/render handoff,
-device-loss policy, GPU timing and bounded lifecycle/pressure validation. The next
-increment is a controlled shared UI slice, with [production gaps](35_renderer_and_streaming_backlog.md)
-remaining explicit.
+[Render-host lifecycle](render_host.md) defines application main/render handoff,
+device failure and measurement boundaries. Consumer budgets and format extensions
+are tracked in [Renderer](https://github.com/ocarizr/atlas-ui/issues/26).

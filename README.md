@@ -1,39 +1,35 @@
 # Atlas UI
 
-A retained-mode UI platform with a cross-platform C++20 architecture. Windows Desktop x64 is currently the only supported and validated platform. Atlas UI combines reusable runtime libraries, a visual editor, a dependency-driven job system, asynchronous asset streaming, and event-driven MVVM bindings.
+Reusable C++20 foundations for UI runtime and authoring tools. The architecture
+separates portable contracts from native adapters; Windows Desktop x64 with
+Direct3D 12 is the only supported and validated platform.
 
-The job system and asset streamer are implementation prerequisites. Validate generic phased job workloads and stream-backed resource loading before implementing production UI systems. The scheduler remains client-agnostic; integrations belong to its consumers. A manually authored UI follows, then the editor, using the same libraries and Direct3D 12 renderer.
+## Current capabilities
 
-## Technology
+Atlas includes a persistent job system, bounded asynchronous memory/loose-asset
+streaming, explicit shared PMR allocation, injected logging/metrics/profiling,
+native windows and generic graphics resources/passes. Optional worker recording
+uses the application's existing pool. A bounded render host separates window
+messages from graphics coordination.
 
-| Area | Decision |
+The game and editor hosts display the same streamed textured quad. The independent
+UI library produces immutable command batches with deterministic merging and
+conflict diagnostics. Widget trees, layout, MVVM, Lua execution, visual authoring,
+asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
+dependencies and bootstrap contracts are available; content-tool entry points are
+placeholders. Gameplay belongs outside this reusable-technology repository.
+
+| Area | Integration |
 | --- | --- |
-| Architecture / current support | Platform-agnostic libraries; Windows Desktop x64 supported and validated |
-| Language and build | C++20/CMake; Windows validation with MSVC 2022, clang-cl and Ninja |
-| Current graphics backend | Direct3D 12 on Windows |
-| ECS | EnTT |
-| Video | AV1/WebM with dav1d and libwebm |
-| Audio | Opus/libopus, decoded to PCM for XAudio2 2.9 (Windows SDK) |
-| Serialized content | XML, including UI and ViewModel documents |
-| Configuration | YAML |
-| Interprocess communication | gRPC/Protocol Buffers available; isolated preview optional |
-| Behavior extensions | Planned Lua behaviors; native C++ types remain extensible |
-| Testing | GoogleTest for C++; fixtures, parameterized cases, isolated resources |
-
-Tool-owned formats such as CMake presets and GitHub Actions matrix JSON follow their respective tool specifications. They do not change the application's serialization policy.
-
-## Applications and libraries
-
-- **atlas_game** hosts the UI runtime. A separate gameplay library may be linked in the future; gameplay is outside the current scope.
-- **atlas_editor** will use Atlas UI for its own interface and an independent in-process runtime session for preview. Isolated IPC preview remains optional future work.
-- **Shared libraries** provide UI, layout, MVVM, jobs, ECS integration, assets, streaming, rendering, and diagnostics.
-- **Content tools** validate assets, cook content, generate construction functions, and create packages.
-
-The editor owns its authoring document separately from preview execution. Applications remain reusable-technology hosts; no game-specific UI or gameplay is implemented. Lua behavior and native extension reload policies are planned in the [UI phases](docs/36_ui_implementation_plan.md). Existing IPC bootstrap linkage remains until host integration is migrated.
+| Build | C++20/CMake, MSVC 2022 or clang-cl, Ninja |
+| Graphics | Direct3D 12, DXC, D3D12 Memory Allocator |
+| CPU allocation | Application-selected shared PMR, mimalloc or system backend |
+| Data policy | XML content, YAML configuration, Protobuf/gRPC IPC |
+| Dependencies | Pinned vcpkg baseline; EnTT, spdlog, pugixml, yaml-cpp |
+| Media dependencies | AV1/dav1d, Opus/libopus, WebM/libwebm; Windows XAudio2 2.9 |
+| Tests | GoogleTest/CTest and pytest |
 
 ## Development
-
-The project follows Domain-Driven Design and Test-Driven Development. See [Contributing](CONTRIBUTING.md) and the [Windows development guide](docs/10_windows_development.md).
 
 ```powershell
 . ./scripts/initialize_toolchain.ps1
@@ -43,27 +39,11 @@ cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
 
-**Current status:** persistent workers with direct dispatch, injected child contexts, dependency handles, joined ranges and optional sealed DAGs, weighted ready priorities, cooperative cancellation, origin-thread completion callbacks, bounded asynchronous range reads from memory/loose assets, Windows IOCP with bounded concurrency and native cancellation, job-dispatched read completions, GoogleTest suites, pinned dependencies, generated session protocol and four executable entry points. A test decodes streamed Opus bytes on a CPU job. Game and editor now share a native window and Direct3D 12 presentation foundation with clear/triangle drawing, fenced frame reuse, resize and WARP pixel tests. Phase two adds typed GPU buffers/textures, D3D12MA allocation, bounded staging/descriptors and fence-based retirement. Headless bootstrap remains available through `--smoke-test`. Widgets, managed preview services, asset bundles and media playback are not implemented. The [six-phase renderer foundation](docs/28_renderer_implementation_plan.md) must precede production UI. Generic phased workloads now have sequential-reference and sparse-update tests; a separate benchmark records scheduling/grain overhead and worker traces. Consumer-specific frame budgets remain to be established. Start with the [direct job dispatch guide](docs/18_job_dispatch_usage.md).
-
-Phase three adds immutable draw packets, builtin/custom in-memory shaders,
-ordered color/depth passes, blending, viewport/scissor and target presentation.
-Editor and game exercise this shared path. Phase four adds optional parallel
-recording through the application's existing job pool; see
-[graphics passes](docs/31_renderer_passes.md) and
-[recording ownership and measurement](docs/32_renderer_recording.md).
-
-Phase five adds a separate content consumer for streamer-fed image/HLSL preparation,
-bounded native decoding, fenced texture ownership and device-local pipeline reuse.
-Game and editor now demonstrate this path with loose assets and a textured quad;
-see [renderer content integration](docs/33_renderer_content.md).
-
-Phase six completes the initial Windows foundation with main/render separation,
-bounded immutable frame handoff, typed fail-stop device loss, real GPU duration
-counters and lifecycle/pressure validation. Next is a controlled shared UI runtime;
-[readiness](docs/34_renderer_readiness.md) and [remaining gaps](docs/35_renderer_and_streaming_backlog.md)
-define the current limits.
-
-The first shared UI phase adds an independent `atlas::ui` command foundation: bounded serial production, immutable batches, deterministic absolute-write merging and conflict diagnostics. Tree/layout/painting and Lua are subsequent [UI phases](docs/36_ui_implementation_plan.md).
+See [Windows development](docs/windows_development.md) and
+[Contributing](CONTRIBUTING.md). Runtime contracts and supported limitations are
+documented in this repository. Delivery planning, acceptance criteria and
+dependencies live in [Issues](https://github.com/ocarizr/atlas-ui/issues) grouped by
+[Milestones](https://github.com/ocarizr/atlas-ui/milestones); no GitHub Project is required.
 
 ## Component validation
 
@@ -97,56 +77,25 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 Third-party products are built in six independent groups: testing, memory, content/logging,
 media, IPC and graphics. They include Debug and Release variants and are retained
 for 14 days; vendor binaries themselves are not sanitizer-instrumented. The
-[CI design](docs/12_ci_and_delivery.md) describes reuse, provenance, scheduling and
+[CI design](docs/ci_and_delivery.md) describes reuse, provenance, scheduling and
 the distinction between internal build artifacts and deliverable packaging.
 
 ## Documentation
 
 The generated [API wiki](https://github.com/ocarizr/atlas-ui/wiki) provides library
-and symbol references from Doxygen source comments. See the
-[generation and publication guide](docs/27_api_reference_and_wiki.md) for local
-HTML output, CI validation and automatic wiki synchronization.
+and symbol references. PRs validate Doxygen generation; only `main` publishes wiki
+updates. Edit source comments rather than generated wiki pages.
 
-| Document | Topics |
+| Topic | Guides |
 | --- | --- |
-| [GPU resources](docs/30_renderer_resources.md) | Typed resources, GPU allocation, staging, descriptors, fences and job preparation boundaries |
-| [Graphics passes](docs/31_renderer_passes.md) | Immutable draw packets, shader ABI, attachments, blending/depth and ordered submission |
-| [Parallel recording](docs/32_renderer_recording.md) | Joined batches, job adapter, synchronization and measured grain policy |
-| [UI implementation](docs/36_ui_implementation_plan.md) | Focused runtime/editor phases, serial dispatch, joined jobs and command conflicts |
-| [Renderer readiness](docs/34_renderer_readiness.md) | Main/render ownership, device loss, GPU timing and validation |
-| [Renderer and streaming gaps](docs/35_renderer_and_streaming_backlog.md) | Priorities, optimization evidence and the next bounded UI slice |
-| [Renderer content](docs/33_renderer_content.md) | Streamed image/shader preparation, fenced uploads and device-local pipeline cache |
-| [Library diagnostics](docs/29_library_diagnostics.md) | Optional logging/profiling destinations, auto/on/off build policy and trace boundaries |
-| [Renderer foundation](docs/28_renderer_implementation_plan.md) | Six phases, D3D12 ownership, jobs/streamer boundaries and future world rendering |
-| [Scope](docs/01_scope.md) | Goals, boundaries, supported features |
-| [Architecture](docs/02_architecture.md) | Domain boundaries, libraries, applications, dependencies |
-| [UI and rendering](docs/03_ui_and_rendering.md) | Widgets, layout, invalidation, graphics, animation, video, localization |
-| [Job system](docs/04_job_system.md) | Persistent workers, DAGs, synchronization, frame boundaries |
-| [MVVM and events](docs/05_mvvm_and_events.md) | Source of truth, bindings, commands, generated wiring |
-| [Assets and pipelines](docs/06_assets_and_pipelines.md) | XML content, streaming, cooking, packaging |
-| [Editor and extensions](docs/07_editor_and_extensions.md) | Shared UI, local preview sessions, optional isolated preview and extensions |
-| [Quality and milestones](docs/08_quality_and_milestones.md) | TDD, fixtures, coverage, delivery sequence |
-| [Open design questions](docs/09_open_design_questions.md) | Remaining contracts |
-| [Windows development](docs/10_windows_development.md) | Build profiles, analysis, sanitizers, coverage |
-| [Technical decisions](docs/11_technical_decisions.md) | Rationale and implementation constraints |
-| [Continuous integration and delivery](docs/12_ci_and_delivery.md) | Impact selection, validation, packaging, release gates |
-| [Dependencies and media](docs/13_dependencies_and_media.md) | Pinned packages, AV1/WebM and UI sound effects |
-| [Job-system implementation plan](docs/14_job_system_implementation_plan.md) | Foundation, maturity milestones and the gate before UI |
-| [Streamer and media jobs](docs/15_streamer_and_media_jobs.md) | Exclusive storage boundary, memory/loose sources, bundle plan and decode scheduling |
-| [Streaming API and memory](libs/streaming/README.md) | Platform selection, allocator ownership, retained-byte quotas and runtime copy grain |
-| [Shared memory policy](libs/memory/README.md) | Application-owned PMR resources, mimalloc integration, ASan fallback and validation scope |
-| [Portability and naming](docs/16_portability_and_naming.md) | Platform boundaries, snake_case, exceptions and validation |
-| [Direct job dispatch](docs/18_job_dispatch_usage.md) | Injected clients, child lifetimes, ranges, sequencing and outcomes |
-| [Job workloads and profiling](docs/19_job_workloads_and_profiling.md) | Phased proof, scratch memory, benchmark methodology and XML traces |
-| [Job baseline measurements](docs/20_job_workload_baseline.md) | Reference hardware, observed speedups and small-workload overhead |
-| [Job scheduling and cancellation](docs/21_job_scheduling_and_cancellation.md) | Priority clients, fairness bounds, cooperative stop and lifecycle |
-| [Job completion callbacks](docs/22_job_completion_callbacks.md) | Outcome filters, caller pumping, worker affinity and joined listener scopes |
-| [Scheduler optimization](docs/23_job_scheduler_optimization.md) | Completion storage, measured allocations/timings and candidate decisions |
-| [Diagnostics and packages](docs/24_diagnostics_and_packages.md) | Logging, metrics/telemetry adapters, Chrome trace export, jobs integration and package strategy |
-| [Job-system backlog](docs/25_job_system_backlog.md) | Remaining gaps, priorities, completion criteria and deferred optimizations |
-| [Source style and documentation](docs/26_source_style_and_documentation.md) | Pinned formatters, reference comments, independent CI checks and IDE tools |
-| [API reference and wiki](docs/27_api_reference_and_wiki.md) | Doxygen generation, library navigation, wiki synchronization and credentials |
-| [Job safety and reuse](libs/jobs/README.md) | Declared-access sanitizer, limitations, standalone build and package |
-| [Job graph usage](docs/17_job_graph_usage.md) | Generic examples, dependencies, errors, ownership and diagnostics |
+| Product | [Scope](docs/scope.md), [architecture](docs/architecture.md), [application hosts](docs/application_hosts.md) |
+| UI | [Commands](docs/ui_commands.md), [public API and examples](libs/ui/README.md) |
+| Jobs | [Overview](docs/jobs.md), [dispatch](docs/job_dispatch.md), [graphs](docs/job_graphs.md), [scheduling](docs/job_scheduling.md), [callbacks](docs/job_callbacks.md), [measurement](docs/job_workloads.md), [safety](libs/jobs/README.md) |
+| Memory and storage | [PMR resources](libs/memory/README.md), [assets](docs/assets.md), [streaming](docs/streaming.md), [streaming API](libs/streaming/README.md) |
+| Rendering | [Contracts](docs/renderer.md), [resources](docs/renderer_resources.md), [passes](docs/renderer_passes.md), [recording](docs/renderer_recording.md), [content](docs/renderer_content.md), [render host/readiness](docs/render_host.md) |
+| Observability | [Diagnostics and packages](docs/diagnostics.md), [build/capture policy](docs/diagnostics_policy.md), [metrics](libs/diagnostics/README.md#metrics) |
+| Development | [Testing](docs/testing.md), [portability/naming](docs/portability_and_naming.md), [source style](docs/source_style.md), [dependencies](docs/dependencies.md), [CI/delivery](docs/ci_and_delivery.md), [API generation](docs/api_reference.md) |
 
-The integration branch is `main`. Pull requests run relevant validation; pushes to `main` also package the current deliverables. Releases require a `vMAJOR.MINOR.PATCH` or `VMAJOR.MINOR.PATCH` tag pointing to a commit in `main` history.
+Integration uses `main` through pull requests. Main packages current executable
+deliverables; publication additionally requires a strict `vMAJOR.MINOR.PATCH` or
+`VMAJOR.MINOR.PATCH` tag whose commit belongs to `main` history.

@@ -1,6 +1,6 @@
 # Job scheduling and cooperative cancellation
 
-Milestone 4 adds generic scheduling policy to the direct-dispatch API. It does not
+The scheduler provides generic scheduling policy to the direct-dispatch API. It does not
 introduce UI, storage, codec or application concepts into the jobs library.
 
 ## Configure a client, keep one pool
@@ -160,11 +160,11 @@ shutdown and completed-handle lifetimes. Tests use controlled gates rather than
 wall-time performance thresholds. Windows ASan/static analysis and repeated runs
 supplement these invariants; native Windows TSan remains unavailable.
 
-Work stealing, pools, priority donation, queue capacity limits, deadlines, automatic
-grain tuning and consumer-specific QoS budgets remain separate work. The
-[Milestone 3 baseline](20_job_workload_baseline.md) predates this scheduling policy
-and is historical performance evidence, not a new performance claim.
+The scheduler has no work stealing, priority donation, admission capacity limits,
+deadlines or automatic grain tuning. Consumer-specific QoS budgets are not established
+by these service bounds; follow-up work is tracked in
+[Jobs](https://github.com/ocarizr/atlas-ui/issues/24).
 
 Completion notifications add separate affinity queues and delivery counters; the
-[callback contract](22_job_completion_callbacks.md) explains their interaction with
+[callback contract](job_callbacks.md) explains their interaction with
 these general-work service bounds and the origin-thread lifecycle.
