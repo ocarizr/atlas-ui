@@ -1,4 +1,4 @@
-"""Keep UI state and commands independent from graphics, Lua, jobs and IPC."""
+"""Keep UI phases on injected jobs without pulling graphics, Lua or IPC dependencies."""
 
 import pytest
 
@@ -20,18 +20,27 @@ def ui_configuration():
         "tests/ui/command_merge_tests.cpp",
         "libs/ui/src/tree_application.cpp",
         "tests/ui/tree_transaction_tests.cpp",
+        "libs/ui/src/frame_work.cpp",
+        "benchmarks/ui/frame_execution_benchmark.cpp",
     ],
-    ids=["production-command-code", "command-tests", "tree-state", "tree-tests"],
+    ids=[
+        "production-command-code",
+        "command-tests",
+        "tree-state",
+        "tree-tests",
+        "frame-work",
+        "phase-benchmark",
+    ],
 )
 def test_command_changes_do_not_select_unrelated_consumers(ui_configuration, path):
     """UI has no declared application consumer; its state changes select its own validation."""
     assert select_components(ui_configuration, [path]) == {"ui"}
 
 
-def test_ui_uses_only_diagnostics_prerequisite(ui_configuration):
-    """UI uses EnTT from content vendors without pulling a scheduler or graphical/IPC vendors."""
+def test_ui_imports_the_shared_jobs_and_diagnostics_prerequisites(ui_configuration):
+    """UI reuses the shared pool and content vendors without graphical/IPC dependencies."""
     plan = plan_components(ui_configuration, {"ui"})
-    assert plan["components"] == ["diagnostics", "ui"]
-    assert plan["prerequisites"]["ui"] == ["diagnostics"]
+    assert plan["components"] == ["diagnostics", "jobs", "ui"]
+    assert plan["prerequisites"]["ui"] == ["diagnostics", "jobs"]
     assert plan["vendors"]["ui"] == ["content", "testing"]
     assert len(plan["matrices"]["ui"]["include"]) == len(ui_configuration["profiles"])

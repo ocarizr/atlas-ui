@@ -114,15 +114,19 @@ components:
     paths:
     - libs/ui/**
     - tests/ui/**
+    - benchmarks/ui/**
     depends_on:
     - diagnostics
+    - jobs
     build_targets:
     - atlas_ui
     - atlas_ui_tests
+    - atlas_ui_benchmark
     test_labels:
     - ui
     build_requires:
     - diagnostics
+    - jobs
     vendors:
     - testing
     - content

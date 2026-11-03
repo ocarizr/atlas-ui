@@ -19,7 +19,7 @@ data-oriented storage do not require an object-heavy domain model.
 | `renderer_jobs` | Joined recording through an injected dispatcher |
 | `renderer_content` | Streamer-fed image/HLSL preparation and fenced GPU ownership |
 | `render_host` | Bounded immutable main/render frame handoff and lifecycle coordination |
-| `ui` | EnTT-backed element tree, transactional requested state, invalidation and immutable commands |
+| `ui` | Element state/snapshots, immutable commands, named serial dispatch and bounded joined phases |
 | `ipc` / `protocol` | Session bootstrap and generated gRPC/Protobuf contracts |
 | `application` | Common executable bootstrap and service composition |
 

@@ -4,6 +4,9 @@
 immutable batches independently of native rendering. Its public API and examples are in the
 [UI library guide](../libs/ui/README.md).
 
+The [frame executor](ui_frames.md) runs named serial dispatch and joined work over
+owned snapshots, without giving workers access to the live tree.
+
 ## Command contract
 
 A creating-thread `command_buffer` accepts absolute assignments to width, height,

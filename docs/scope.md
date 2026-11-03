@@ -18,7 +18,7 @@ This repository contains the technology and its host applications, not a game.
 - Native windows, generic graphics passes/resources, optional parallel recording,
   streamed image/shader preparation and bounded main/render handoff.
 - SDK-free EnTT-backed elements, transactional requested properties, selective
-  invalidation, immutable batches and deterministic write merging.
+  invalidation, immutable snapshots/batches and joined phases on injected jobs.
 - Generated Protobuf/gRPC session contracts and executable bootstrap entry points.
 
 The game and editor executables display the same streamed textured quad. They do

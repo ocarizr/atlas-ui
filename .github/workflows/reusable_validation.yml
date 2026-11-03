@@ -391,6 +391,7 @@ jobs:
     - vendor-testing
     - vendor-content
     - diagnostics
+    - jobs
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'ui') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
