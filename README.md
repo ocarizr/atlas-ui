@@ -13,8 +13,9 @@ uses the application's existing pool. A bounded render host separates window
 messages from graphics coordination.
 
 The game and editor hosts display the same streamed textured quad. The independent
-UI library produces immutable command batches with deterministic merging and
-conflict diagnostics. Widget trees, layout, MVVM, Lua execution, visual authoring,
+UI library owns an EnTT-backed element tree with transactional requested properties,
+selective invalidation and immutable command batches with conflict diagnostics.
+Widgets, layout, MVVM, Lua execution, visual authoring,
 asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
 dependencies and bootstrap contracts are available; content-tool entry points are
 placeholders. Gameplay belongs outside this reusable-technology repository.
@@ -53,7 +54,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 
 | Component | Debug/tests | Release/tests | ASan | MSVC analysis | clang-tidy | Coverage | SDK-free |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| [UI](libs/ui/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Command contracts |
+| [UI](libs/ui/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tree and command contracts |
 | [Window](libs/window/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Renderer](libs/renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Render host](libs/render_host/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Handoff contracts |

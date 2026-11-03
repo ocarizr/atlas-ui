@@ -1,19 +1,36 @@
-# UI commands
+# UI element state and commands
 
-`atlas::ui` implements serial command production and immutable batches independently
-of native rendering. Its public API and examples are in the
+`atlas::ui` implements an EnTT-backed element tree, serial command production and
+immutable batches independently of native rendering. Its public API and examples are in the
 [UI library guide](../libs/ui/README.md).
 
 ## Command contract
 
 A creating-thread `command_buffer` accepts absolute assignments to width, height,
-opacity and visibility. Handles contain a slot and nonzero generation; numerical
-validity does not prove that a live element exists. The library has no live tree,
-state application, layout, painting, input routing, MVVM or Lua execution.
+opacity and visibility. Handles contain a session, slot and nonzero generation.
+Each tree owns its bound producer. Unbound or foreign batches cannot mutate it.
+The library has no layout, painting, input routing, MVVM or Lua execution.
+
+## State and hierarchy
+
+Tree creation/reparent/removal use explicit live-handle validation. Cycles are
+rejected before mutation; removal invalidates complete subtrees, and generation
+reuse never resurrects an old identity. Children preserve insertion order.
+
+Application validates every target before publishing any scalar write. Reads
+return committed local requested properties by value; pending commands are invisible.
+There are no computed layout/inherited-visibility results. Ordered frame/batch
+identities prevent replay. Rejection preserves properties, dirtiness and the
+application cursor; irrecoverably stale work requires an explicit newer frame.
+
+Size/topology changes conservatively invalidate affected ancestors and descendants;
+visual changes mark subtree paint only. Equal values leave flags unchanged, and
+unaffected branches stay clean. Acknowledgment clears only the addressed element.
+The live tree is owner-affine; workers cannot traverse its mutable registry.
 
 `begin_frame()` establishes a positive increasing identity. `set()` validates types
 and ranges before admission. `seal()` publishes an immutable batch with one last
-serial writer per element/generation/property. Sealed batches retain their own
+serial writer per session/element/generation/property. Sealed batches retain their own
 storage and can be read by workers after synchronized publication.
 
 Every repeated key within the frame is a conflict, even equal assignments by the

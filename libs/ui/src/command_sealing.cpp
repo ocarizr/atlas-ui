@@ -12,7 +12,8 @@ namespace
 /// @brief Preserve serial order inside each independent property key.
 auto sort_key(const property_write& write)
 {
-    return std::tuple{write.target.index, write.target.generation, write.field, write.sequence};
+    return std::tuple{write.target.session, write.target.index, write.target.generation,
+                      write.field, write.sequence};
 }
 
 /// @brief Only absolute writes to the exact same target generation/property may coalesce.
@@ -92,6 +93,7 @@ command_batch command_buffer::seal()
     const diagnostics::operation_scope scope{impl_->destinations, {"ui.commands.seal", "ui.cpu"}};
     auto data =
         std::make_shared<detail::command_data>(impl_->frame, impl_->memory, impl_->ordinal + 1);
+    data->session = impl_->session;
     std::pmr::vector<property_write> sorted{impl_->history, impl_->memory.get()};
     std::sort(sorted.begin(), sorted.end(),
               [](const auto& first, const auto& second)

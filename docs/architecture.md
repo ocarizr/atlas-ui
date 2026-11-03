@@ -19,7 +19,7 @@ data-oriented storage do not require an object-heavy domain model.
 | `renderer_jobs` | Joined recording through an injected dispatcher |
 | `renderer_content` | Streamer-fed image/HLSL preparation and fenced GPU ownership |
 | `render_host` | Bounded immutable main/render frame handoff and lifecycle coordination |
-| `ui` | Serial command production, immutable batches and conflict records |
+| `ui` | EnTT-backed element tree, transactional requested state, invalidation and immutable commands |
 | `ipc` / `protocol` | Session bootstrap and generated gRPC/Protobuf contracts |
 | `application` | Common executable bootstrap and service composition |
 
@@ -45,10 +45,10 @@ GPU fences or presentation. One injected pool serves all consumers. Immutable
 snapshots cross thread boundaries through explicit synchronization and bounded
 handoff. Graphics completion uses GPU fences, distinct from CPU job completion.
 
-UI command buffers are owner-affine and publish immutable batches. No live widget
-registry is implemented. EnTT is an integrated dependency, not an existing set of
-UI components. Library-owned state cannot be mutated concurrently merely because
-an ECS library is available.
+The live UI tree and its single bound command producer are owner-affine. EnTT stores
+private node components; immutable batches carry session identities across publication
+boundaries. Generic elements do not yet implement widgets or layout. Library-owned
+state cannot be mutated concurrently merely because an ECS library is available.
 
 ## Data and allocation
 

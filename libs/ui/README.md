@@ -1,24 +1,77 @@
-# UI command foundation
+# UI element state and commands
 
 `atlas::ui` is an independent SDK-free C++20 library. It provides serial command
-production and immutable batches; it does not yet create elements, apply state,
-schedule work or draw UI. See the [UI delivery tracking](https://github.com/ocarizr/atlas-ui/issues/27).
+production, immutable batches and an owner-thread EnTT-backed element tree.
+It does not schedule work or draw UI. See the [UI delivery tracking](https://github.com/ocarizr/atlas-ui/issues/27).
 
 ```cpp
-atlas::ui::command_buffer commands{limits, shared_memory, diagnostics};
+atlas::ui::element_tree tree{{}, shared_memory, diagnostics};
+const auto element = tree.create();
+auto& commands = tree.commands();
 commands.begin_frame(42);
 commands.set(element, atlas::ui::property::width, 240.f, producer_id);
 commands.set(element, atlas::ui::property::visible, true, producer_id);
 const auto batch = commands.seal();
-// Consumers own batch processing; this library does not apply live state.
+tree.apply(batch);
+const auto requested = tree.requested(element);
 // Keep the batch alive while a worker borrows batch.writes()/batch.conflicts().
 ```
 
-`element_handle` has a slot index and nonzero generation. Producer IDs are nonzero
-session-assigned diagnostic identities. There is no live-tree validation;
-passing a numerically valid handle does not prove liveness.
+`element_handle` has a slot, nonzero generation and session identity. Each tree owns
+one bound producer and validates all targets before application. A standalone
+`command_buffer` remains available for packet preparation; its batches have session
+zero and cannot be applied to a tree. Producer IDs are nonzero caller-assigned
+diagnostic identities. They are not access-control capabilities.
 Width/height accept finite nonnegative floats, opacity accepts [0, 1], and visible
 accepts bool. Unknown properties and mismatched values throw before admission.
+
+## Tree and publication
+
+`create(parent)` appends a child, or creates an independent root when parent is
+empty. `parent`, `first_child` and `next_sibling` return value handles; children
+follow insertion order. Independent roots have no sibling chain. `reparent`
+rejects self/descendant cycles before mutation; moving to the current parent is a
+no-op. `remove` destroys the complete subtree iteratively. Reused slots advance
+generation; exhausted generations retire the slot instead of wrapping.
+
+Topology edits are immediate owner-thread operations, each validated before its
+mutation. They are not deferred structural commands; batch transactions cover
+absolute scalar property writes. No external EnTT mutation/callback API is exposed.
+
+Sessions are unique within the process. Foreign, invalid and stale handles fail
+before topology/property mutation; `contains` returns false for them. Numeric
+handles are not serialized identities. Destroyed-session batches remain immutable
+but cannot apply to a replacement tree. No public header exposes EnTT storage.
+
+`requested()` returns committed **local requested values**, by value. Pending or
+sealed-but-unapplied commands are invisible. Child local visibility/opacity does
+not change when a parent changes. There is no computed layout, inherited opacity
+or culling result; those values must not be inferred from requested reads.
+
+`apply()` validates the session, batch order and every winning target before its
+nonallocating publication pass. Each frame begins with ordinal one; subsequent
+batches must be consecutive, and replay/older frames are rejected. Moving to a
+newer frame explicitly abandons unapplied work from older frames. Failed batches
+leave requested state, invalidation and the application cursor unchanged. An
+irrecoverably stale batch is discarded by beginning a newer frame, not by silently
+dropping its bad writes. Cross-batch conflict history remains in the producer.
+
+New elements are layout/paint dirty. Size and hierarchy changes dirty affected
+ancestry and the affected subtree; visual changes dirty only that subtree's paint.
+Unrelated branches remain unchanged. Equal committed assignments are no-ops.
+`acknowledge(handle)` clears only that element's flags. This is conservative
+invalidation, not a layout solver; overlapping writes can revisit descendants.
+
+Live capacity defaults to 4096, bounded to 1..65536. PMR owns preallocated slot,
+free-list/traversal and command storage. EnTT entity/component storage and PIMPL/control
+blocks use ordinary allocations; capacity is not a process-memory/fragmentation
+guarantee. Topology and property state are owner-only, including reads. Do not pass
+the live tree to workers. Immutable batch publication still requires synchronization.
+
+The header-only EnTT dependency is compiled privately into the archive. Installed
+consumers load the diagnostics target before `share/atlas/ui.cmake`; no EnTT header
+or target is required by their public API. Rebuild consumers with matching headers
+and archives because handles and command packet layouts include the session field.
 
 ## Deterministic preparation
 
@@ -75,3 +128,8 @@ Fix competing writers in the consumer; there are no per-property success logs.
 Both logging and profiling are opt-in through injected services; there is no file
 access or telemetry transport. Synchronous diagnostics cannot mutate the producer
 while sealing. Logger failures do not change the prepared batch.
+
+Tree create/remove/reparent/apply operations emit optional `ui.cpu` scopes; failed
+operations log through the injected destination without replacing exceptions.
+Initialization/release messages use debug severity, with no per-write success logs.
+Diagnostic callbacks cannot reenter either the tree or its bound producer.

@@ -20,6 +20,7 @@ class detail::command_data
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Keeps caller allocation policy alive.
     std::uint64_t frame;                               ///< Explicit session frame identity.
     std::uint32_t ordinal;                             ///< Sync-boundary ordinal.
+    std::uint64_t session = 0;               ///< Tree binding; zero is never applicable to a tree.
     std::pmr::vector<property_write> writes; ///< One current-batch winner per addressed key.
     std::pmr::vector<command_conflict>
         conflicts; ///< One current-batch diagnostic per repeated key.
@@ -49,13 +50,20 @@ class command_buffer::impl
             throw std::logic_error("UI command sealing cannot be reentered");
         }
 
+        if (tree_busy && *tree_busy)
+        {
+            throw std::logic_error("UI tree operation cannot be reentered through commands");
+        }
+
         if (need_frame && frame == 0)
         {
             throw std::logic_error("UI commands require begin_frame");
         }
     } ///< Check affinity before reading any mutable producer state.
 
-    command_limits limits;                             ///< Immutable validated admission policy.
+    command_limits limits;           ///< Immutable validated admission policy.
+    std::uint64_t session = 0;       ///< Nonzero only for a tree-owned producer.
+    const bool* tree_busy = nullptr; ///< Borrowed guard; the tree destroys this producer first.
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Outlives producer storage and batches.
     diagnostics::services destinations; ///< Optional library logging/profiling endpoints.
     const std::thread::id owner = std::this_thread::get_id(); ///< Sole admission coordinator.

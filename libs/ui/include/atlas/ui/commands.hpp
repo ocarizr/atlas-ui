@@ -14,11 +14,14 @@
 
 namespace atlas::ui
 {
-/// @brief Session-local opaque identity; the future tree validates generation/liveness.
+class element_tree; ///< Owner of session-bound elements and one serial command stream.
+
+/// @brief Opaque identity; a tree validates its session, slot and generation together.
 struct element_handle
 {
     std::uint32_t index = 0;      ///< Slot zero is usable; generations distinguish reuse.
     std::uint32_t generation = 0; ///< Zero denotes an invalid identity.
+    std::uint64_t session = 0;    ///< Zero is reserved for standalone, unbound command production.
     bool operator==(const element_handle&) const = default; ///< Compare complete identities.
 };
 
@@ -71,6 +74,7 @@ class command_batch
   public:
     std::uint64_t frame() const noexcept;   ///< Zero on a moved-from batch.
     std::uint32_t ordinal() const noexcept; ///< One-based sync-boundary identity within the frame.
+    std::uint64_t session() const noexcept; ///< Owning tree identity, or zero for unbound packets.
     std::span<const property_write>
     writes() const noexcept; ///< Winners in original sequence order.
     std::span<const command_conflict> conflicts() const noexcept; ///< Sorted by winning sequence.
@@ -98,6 +102,11 @@ class command_buffer
     void discard_pending();      ///< Roll back only unsealed writes after a dispatch failure.
     std::size_t pending() const; ///< Owner-thread observation; no synchronization guarantee.
   private:
+    friend class element_tree; ///< The tree binds its sole producer without exposing session
+                               ///< forgery.
+    command_buffer(std::uint64_t session, const bool* tree_busy, command_limits limits,
+                   std::shared_ptr<std::pmr::memory_resource> memory,
+                   diagnostics::services destinations); ///< Retain the tree's admission binding.
     class impl; ///< Frame history, owner guard, allocator and optional diagnostic endpoints.
     std::unique_ptr<impl> impl_; ///< Lives through all serial producer operations.
 };

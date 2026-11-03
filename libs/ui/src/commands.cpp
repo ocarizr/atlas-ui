@@ -62,6 +62,16 @@ command_buffer::command_buffer(command_limits limits,
     impl_ = std::make_unique<impl>(limits, std::move(memory), std::move(destinations));
 }
 
+/// @brief Bind the tree-owned producer to its session and borrowed reentrancy guard.
+command_buffer::command_buffer(std::uint64_t session, const bool* tree_busy, command_limits limits,
+                               std::shared_ptr<std::pmr::memory_resource> memory,
+                               diagnostics::services destinations)
+    : command_buffer(limits, std::move(memory), std::move(destinations))
+{
+    impl_->session = session;
+    impl_->tree_busy = tree_busy;
+}
+
 /// @brief Published batches may outlive this owner; producer destruction remains owner-affine.
 command_buffer::~command_buffer()
 {
@@ -97,6 +107,11 @@ void command_buffer::set(element_handle target, property field, property_value v
 {
     impl_->check();
     validate(target, field, value, producer);
+    if (impl_->session != 0 && target.session != impl_->session)
+    {
+        throw std::invalid_argument("UI command target belongs to another tree session");
+    }
+
     if (impl_->ordinal >= impl_->limits.max_batches)
     {
         throw std::overflow_error("UI frame batch capacity exhausted");
