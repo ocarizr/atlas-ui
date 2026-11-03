@@ -61,6 +61,19 @@ void append_nodes(layout_source& source, const element_snapshot& snapshot,
             source.slots.push_back(slot->slot);
         }
 
+        const auto stack_overrides = snapshot.stack_slots();
+        const auto stack =
+            std::lower_bound(stack_overrides.begin(), stack_overrides.end(), value.target.index,
+                             [](const stack_slot_record& entry, std::uint32_t index)
+                             {
+                                 return entry.target.index < index;
+                             });
+        if (stack != stack_overrides.end() && stack->target == value.target)
+        {
+            slot_index = static_cast<std::uint32_t>(source.stack_slots.size());
+            source.stack_slots.push_back(stack->slot);
+        }
+
         source.nodes.push_back({value.target, link(value.parent), link(value.first_child),
                                 link(value.next_sibling), value.panel, slot_index, value.layout,
                                 value.requested.width, value.requested.height,
@@ -147,6 +160,7 @@ layout_forest prepare_layout(const element_snapshot& snapshot,
             return index == no_layout_node ? no_layout_node : local[index];
         };
         append_nodes(*source, snapshot, order, link);
+        order_stack_children(*source);
 
         total += order.size();
         result.roots.push_back(std::move(source));

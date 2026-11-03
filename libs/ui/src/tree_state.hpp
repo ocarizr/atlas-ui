@@ -85,7 +85,9 @@ class element_tree::impl
     layout_rect viewport{};               ///< Logical root bounds.
     void ensure_layout_revision() const;  ///< Reject exhaustion before mutation.
     void validate_parent(std::uint32_t parent) const; ///< Enforce arity for a newly attached child.
-    canvas_slot child_slot(std::uint32_t index) const;    ///< Implicit default or sparse override.
+    canvas_slot child_slot(std::uint32_t index) const; ///< Implicit default or sparse override.
+    stack_slot
+    child_stack_slot(std::uint32_t index) const;          ///< Default or sparse stack relationship.
     visual_style child_visual(std::uint32_t index) const; ///< Default or sparse visual metadata.
     std::unique_ptr<command_buffer> commands; ///< Destroyed before its borrowed busy flag.
 };

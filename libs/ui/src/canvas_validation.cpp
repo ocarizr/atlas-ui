@@ -1,5 +1,6 @@
 /** @file @brief Bounded normalized slots and typed panel policy validation. */
 #include "canvas_validation.hpp"
+#include "stack_validation.hpp"
 #include <cmath>
 #include <stdexcept>
 #include <type_traits>
@@ -44,6 +45,7 @@ void validate_panel(const panel_layout& panel)
             if constexpr (std::is_same_v<policy, horizontal_layout> ||
                           std::is_same_v<policy, vertical_layout>)
             {
+                validate_stack_policy(value.distribution, value.fill, value.overflow);
                 if (!std::isfinite(value.spacing) || value.spacing < 0)
                 {
                     throw std::invalid_argument("invalid panel spacing");

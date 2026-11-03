@@ -1,5 +1,6 @@
 /** @file @brief Atomic policy changes validate arity and existing child slots before mutation. */
 #include "canvas_validation.hpp"
+#include "stack_validation.hpp"
 #include "tree_state.hpp"
 
 namespace atlas::ui
@@ -47,6 +48,14 @@ void element_tree::set_panel(element_handle target, const panel_layout& panel)
         for (auto child = node.first; child != impl::none; child = impl_->at(child).next)
         {
             impl_->registry.remove<canvas_slot>(impl_->slots[child].entity);
+        }
+    }
+
+    if (!detail::stack_panel(panel))
+    {
+        for (auto child = node.first; child != impl::none; child = impl_->at(child).next)
+        {
+            impl_->registry.remove<stack_slot>(impl_->slots[child].entity);
         }
     }
 

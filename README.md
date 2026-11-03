@@ -20,6 +20,8 @@ Layout measures and arranges constrained boxes, overlays and stacks with immutab
 geometry, revision-checked publication and independent-root reuse.
 Typed canvas slots support normalized anchors, offsets and placement pivots;
 general visual origins remain separate from layout geometry.
+Stacks support remaining-space distribution, opt-in weighted sizing and stable
+child order without mutating the live hierarchy.
 Painting, interactive widgets, MVVM, Lua execution, visual authoring,
 asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
 dependencies and bootstrap contracts are available; content-tool entry points are

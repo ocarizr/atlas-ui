@@ -51,6 +51,11 @@ class element_tree
     void reset_canvas_slot(element_handle target); ///< Restore implicit default placement.
     std::optional<canvas_slot>
     canvas_slot_for(element_handle target) const; ///< Empty outside a canvas relationship.
+    void set_stack_slot(element_handle target,
+                        const stack_slot& slot);  ///< Validate parent, order and weights.
+    void reset_stack_slot(element_handle target); ///< Restore default parent-owned metadata.
+    std::optional<stack_slot>
+    stack_slot_for(element_handle target) const; ///< Empty outside stack relationships.
     void set_visual(element_handle target,
                     visual_style visual);             ///< Paint-only general transform origin.
     visual_style visual(element_handle target) const; ///< Return committed metadata by value.

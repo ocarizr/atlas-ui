@@ -39,8 +39,9 @@ accept a finite nonnegative float for fixed sizing, including explicit zero;
 Own minimum/maximum constraints clamp both desired and arranged sizes. Automatic
 `stretch` fills the available slot; fixed sizes and `start`, `center` or `end`
 alignment use the desired extent capped by available space before constraints.
-Minimum sizes may overflow a parent slot. Stacks allocate natural major-axis slots;
-they have no flex distribution, shrinking or wrapping. Padding reduces content
+Minimum sizes may overflow a parent slot. Stacks default to natural major-axis slots
+and support explicit [space distribution, weighted fill/shrink and stable child order](ui_stacks.md).
+Wrapping is not implemented. Padding reduces content
 space, margins surround child borders, and alignment positions the border within
 the remaining slot. There is no clipping in this calculation. Visibility remains
 a paint property: hidden elements retain layout space.

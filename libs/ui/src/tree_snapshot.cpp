@@ -9,7 +9,7 @@ class detail::element_snapshot_data
   public:
     element_snapshot_data(std::uint64_t id, std::shared_ptr<std::pmr::memory_resource> resource)
         : session(id), memory(std::move(resource)), canvas_slots(0, memory.get()),
-          records(0, memory.get())
+          stack_slots(0, memory.get()), records(0, memory.get())
     {
     } ///< Counted construction permits debug metadata allocation failure.
 
@@ -18,6 +18,7 @@ class detail::element_snapshot_data
     const std::uint64_t session; ///< Retained capture identity, not tree ownership.
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Outlives PMR record destruction.
     std::pmr::vector<canvas_slot_record> canvas_slots; ///< Sparse explicit placement overrides.
+    std::pmr::vector<stack_slot_record> stack_slots;   ///< Sparse explicit stack metadata.
     std::pmr::vector<element_record> records;          ///< Copied in stable slot order.
 };
 
@@ -47,6 +48,13 @@ std::span<const canvas_slot_record> element_snapshot::canvas_slots() const noexc
                  : std::span<const canvas_slot_record>{};
 }
 
+/// @brief Default stack weights/order are implicit and consume no sparse record.
+std::span<const stack_slot_record> element_snapshot::stack_slots() const noexcept
+{
+    return data_ ? std::span<const stack_slot_record>{data_->stack_slots}
+                 : std::span<const stack_slot_record>{};
+}
+
 /// @brief Capture is owner-only; failed allocation never acknowledges or mutates live state.
 element_snapshot element_tree::snapshot() const
 {
@@ -59,6 +67,7 @@ element_snapshot element_tree::snapshot() const
     data->records.reserve(impl_->count);
     const auto& registry = impl_->registry;
     data->canvas_slots.reserve(registry.view<const canvas_slot>().size());
+    data->stack_slots.reserve(registry.view<const stack_slot>().size());
     for (std::uint32_t index = 0; index < impl_->slots.size(); ++index)
     {
         if (impl_->slots[index].entity == entt::null)
@@ -74,6 +83,11 @@ element_snapshot element_tree::snapshot() const
         if (const auto* slot = registry.try_get<canvas_slot>(impl_->slots[index].entity))
         {
             data->canvas_slots.push_back({impl_->handle(index), *slot});
+        }
+
+        if (const auto* slot = registry.try_get<stack_slot>(impl_->slots[index].entity))
+        {
+            data->stack_slots.push_back({impl_->handle(index), *slot});
         }
     }
 

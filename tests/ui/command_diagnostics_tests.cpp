@@ -246,4 +246,28 @@ TEST_F(command_diagnostics_test, canvas_operations_trace_and_reject_diagnostic_r
                   diagnostics::instrumentation_enabled);
     }
 }
+
+/// @brief Stack metadata follows the shared profiling policy and diagnostic callbacks cannot
+/// reenter mutation.
+TEST_F(command_diagnostics_test, stack_slot_scopes_and_failure_logging_remain_guarded)
+{
+    element_tree tree{{}, {}, {log, capture}};
+    const auto root = tree.create();
+    tree.set_panel(root, vertical_layout{});
+    const auto child = tree.create(root);
+    tree.set_stack_slot(child, {-1, 2, 1});
+    bool observed = false;
+    output->observe = [&]
+    {
+        observed = true;
+        EXPECT_THROW(tree.stack_slot_for(child), std::logic_error);
+    };
+    EXPECT_THROW(tree.set_stack_slot(child, {0, -1, 1}), std::invalid_argument);
+    output->observe = {};
+    EXPECT_TRUE(observed);
+    std::ostringstream trace;
+    capture->write_chrome_trace(trace);
+    EXPECT_EQ(trace.str().find("ui.tree.set_stack_slot") != std::string::npos,
+              diagnostics::instrumentation_enabled);
+}
 } // namespace atlas::ui::tests
