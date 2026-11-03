@@ -21,6 +21,8 @@ def ui_configuration():
         "libs/ui/src/tree_application.cpp",
         "tests/ui/tree_transaction_tests.cpp",
         "libs/ui/src/frame_work.cpp",
+        "libs/ui/src/layout_compute.cpp",
+        "tests/ui/data/layout_cases.xml",
         "benchmarks/ui/frame_execution_benchmark.cpp",
     ],
     ids=[
@@ -29,6 +31,8 @@ def ui_configuration():
         "tree-state",
         "tree-tests",
         "frame-work",
+        "layout-work",
+        "layout-fixtures",
         "phase-benchmark",
     ],
 )

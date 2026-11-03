@@ -19,10 +19,12 @@ This repository contains the technology and its host applications, not a game.
   streamed image/shader preparation and bounded main/render handoff.
 - SDK-free EnTT-backed elements, transactional requested properties, selective
   invalidation, immutable snapshots/batches and joined phases on injected jobs.
+- Constrained measure/arrange for size boxes, overlays and horizontal/vertical
+  containers, with revision-checked geometry publication and root reuse.
 - Generated Protobuf/gRPC session contracts and executable bootstrap entry points.
 
 The game and editor executables display the same streamed textured quad. They do
-not provide a widget tree, layout engine, editor interface, MVVM bindings, Lua
+not yet integrate the UI tree/layout engine or provide an editor interface, MVVM bindings, Lua
 execution or media playback. The cooking and packaging tool entry points are
 placeholders; executable CPack packaging is separate from asset cooking/bundles.
 EnTT, XML, YAML and codec dependencies are integrated, but linking a dependency

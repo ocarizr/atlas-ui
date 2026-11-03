@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cases>
+  <case name="overlay_center" width="320" height="180">
+    <element name="root" kind="overlay" actual_width="320" actual_height="180">
+      <element name="centered" kind="leaf" width="50" height="20" horizontal="center" vertical="center" x="135" y="80" actual_width="50" actual_height="20"/>
+    </element>
+  </case>
+  <case name="horizontal" width="200" height="100">
+    <element name="row" kind="horizontal" left="2" top="4" right="3" bottom="6" spacing="5" actual_width="200" actual_height="100">
+      <element name="first" kind="leaf" width="20" height="10" x="2" y="4" actual_width="20" actual_height="90"/>
+      <element name="second" kind="leaf" width="30" height="20" vertical="center" x="27" y="39" actual_width="30" actual_height="20"/>
+    </element>
+  </case>
+  <case name="vertical" width="100" height="200">
+    <element name="column" kind="vertical" spacing="3" actual_width="100" actual_height="200">
+      <element name="first" kind="leaf" width="10" height="20" actual_width="100" actual_height="20"/>
+      <element name="second" kind="leaf" width="30" height="40" horizontal="end" x="70" y="23" actual_width="30" actual_height="40"/>
+    </element>
+  </case>
+  <case name="size_box" width="80" height="40">
+    <element name="box" kind="size_box" left="5" top="3" right="7" bottom="9" actual_width="80" actual_height="40">
+      <element name="content" kind="leaf" x="5" y="3" actual_width="68" actual_height="28"/>
+    </element>
+  </case>
+  <case name="nested" width="120" height="80">
+    <element name="root" kind="overlay" actual_width="120" actual_height="80">
+      <element name="column" kind="vertical" spacing="2" actual_width="120" actual_height="80">
+        <element name="row" kind="horizontal" spacing="1" actual_width="120" actual_height="10">
+          <element name="a" kind="leaf" width="15" height="10" actual_width="15" actual_height="10"/>
+          <element name="b" kind="leaf" width="20" height="5" x="16" actual_width="20" actual_height="10"/>
+        </element>
+        <element name="last" kind="leaf" width="5" height="8" y="12" actual_width="120" actual_height="8"/>
+      </element>
+    </element>
+  </case>
+  <case name="zero" width="0" height="0">
+    <element name="root" kind="overlay">
+      <element name="empty" kind="leaf"/>
+    </element>
+  </case>
+</cases>

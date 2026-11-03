@@ -110,7 +110,7 @@ components:
     build_targets: []
     test_labels: []
   ui:
-    # Tree storage uses the EnTT package from the existing content vendor product.
+    # EnTT tree storage and XML geometry fixtures use the content vendor product.
     paths:
     - libs/ui/**
     - tests/ui/**

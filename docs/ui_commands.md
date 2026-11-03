@@ -12,7 +12,9 @@ owned snapshots, without giving workers access to the live tree.
 A creating-thread `command_buffer` accepts absolute assignments to width, height,
 opacity and visibility. Handles contain a session, slot and nonzero generation.
 Each tree owns its bound producer. Unbound or foreign batches cannot mutate it.
-The library has no layout, painting, input routing, MVVM or Lua execution.
+Width/height accept explicit fixed zero or `std::monostate{}` to reset automatic
+sizing. The [layout engine](ui_layout.md) consumes committed requests; painting,
+input routing, MVVM and Lua execution are not implemented.
 
 ## State and hierarchy
 
@@ -22,7 +24,8 @@ reuse never resurrects an old identity. Children preserve insertion order.
 
 Application validates every target before publishing any scalar write. Reads
 return committed local requested properties by value; pending commands are invisible.
-There are no computed layout/inherited-visibility results. Ordered frame/batch
+Computed geometry is queried separately with `computed()` after layout publication;
+requested properties do not contain inherited visibility. Ordered frame/batch
 identities prevent replay. Rejection preserves properties, dirtiness and the
 application cursor; irrecoverably stale work requires an explicit newer frame.
 

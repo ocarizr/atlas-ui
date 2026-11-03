@@ -19,7 +19,7 @@ data-oriented storage do not require an object-heavy domain model.
 | `renderer_jobs` | Joined recording through an injected dispatcher |
 | `renderer_content` | Streamer-fed image/HLSL preparation and fenced GPU ownership |
 | `render_host` | Bounded immutable main/render frame handoff and lifecycle coordination |
-| `ui` | Element state/snapshots, immutable commands, named serial dispatch and bounded joined phases |
+| `ui` | Element state/snapshots, immutable commands, joined phases and constrained measure/arrange |
 | `ipc` / `protocol` | Session bootstrap and generated gRPC/Protobuf contracts |
 | `application` | Common executable bootstrap and service composition |
 
@@ -47,7 +47,8 @@ handoff. Graphics completion uses GPU fences, distinct from CPU job completion.
 
 The live UI tree and its single bound command producer are owner-affine. EnTT stores
 private node components; immutable batches carry session identities across publication
-boundaries. Generic elements do not yet implement widgets or layout. Library-owned
+boundaries. The [layout engine](ui_layout.md) publishes immutable geometry after joined
+measure/arrange work; interactive widgets and painting are not implemented. Library-owned
 state cannot be mutated concurrently merely because an ECS library is available.
 
 ## Data and allocation

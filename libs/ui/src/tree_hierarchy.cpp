@@ -61,6 +61,7 @@ void element_tree::impl::ancestors(std::uint32_t index)
     {
         auto& value = at(index);
         value.dirty = {true, true};
+        value.computed_valid = false;
         index = value.parent;
     }
 }
@@ -75,6 +76,11 @@ void element_tree::impl::subtree(std::uint32_t index, bool layout)
         auto& value = at(work[cursor]);
         value.dirty.paint = true;
         value.dirty.layout = value.dirty.layout || layout;
+        if (layout)
+        {
+            value.computed_valid = false;
+        }
+
         for (auto child = value.first; child != none; child = at(child).next)
         {
             work.push_back(child);
@@ -89,6 +95,8 @@ element_handle element_tree::create(element_handle parent)
     const impl::guard guard{impl_->busy};
     const diagnostics::operation_scope scope{impl_->destinations, {"ui.tree.create", "ui.cpu"}};
     const auto parent_index = parent == element_handle{} ? impl::none : impl_->require(parent);
+    impl_->validate_parent(parent_index);
+    impl_->ensure_layout_revision();
     if (impl_->free.empty())
     {
         throw std::overflow_error("UI tree element capacity exhausted");
@@ -111,6 +119,7 @@ element_handle element_tree::create(element_handle parent)
     ++impl_->count;
     impl_->attach(index, parent_index);
     impl_->ancestors(parent_index);
+    ++impl_->layout_revision;
     return impl_->handle(index);
 }
 
@@ -138,8 +147,11 @@ void element_tree::reparent(element_handle target, element_handle parent)
         return;
     }
 
+    impl_->validate_parent(parent_index);
+    impl_->ensure_layout_revision();
     impl_->detach(index);
     impl_->attach(index, parent_index);
+    ++impl_->layout_revision;
     impl_->ancestors(previous);
     impl_->ancestors(parent_index);
     impl_->subtree(index, true);
@@ -153,6 +165,7 @@ void element_tree::remove(element_handle target)
     const diagnostics::operation_scope scope{impl_->destinations, {"ui.tree.remove", "ui.cpu"}};
     const auto index = impl_->require(target);
     const auto parent = impl_->at(index).parent;
+    impl_->ensure_layout_revision();
     impl_->subtree(index, true);
     impl_->detach(index);
     impl_->ancestors(parent);
@@ -169,5 +182,7 @@ void element_tree::remove(element_handle target)
 
         --impl_->count;
     }
+
+    ++impl_->layout_revision;
 }
 } // namespace atlas::ui

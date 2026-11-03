@@ -16,7 +16,9 @@ The game and editor hosts display the same streamed textured quad. The independe
 UI library owns an EnTT-backed element tree with transactional requested properties,
 selective invalidation and immutable command batches with conflict diagnostics.
 Named serial/work phases reuse the shared job pool, with bounded ranges and sequential fallback.
-Widgets, layout, MVVM, Lua execution, visual authoring,
+Layout measures and arranges constrained boxes, overlays and stacks with immutable
+geometry, revision-checked publication and independent-root reuse.
+Painting, interactive widgets, MVVM, Lua execution, visual authoring,
 asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
 dependencies and bootstrap contracts are available; content-tool entry points are
 placeholders. Gameplay belongs outside this reusable-technology repository.
@@ -91,7 +93,7 @@ updates. Edit source comments rather than generated wiki pages.
 | Topic | Guides |
 | --- | --- |
 | Product | [Scope](docs/scope.md), [architecture](docs/architecture.md), [application hosts](docs/application_hosts.md) |
-| UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [API and examples](libs/ui/README.md) |
+| UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [API and examples](libs/ui/README.md) |
 | Jobs | [Overview](docs/jobs.md), [dispatch](docs/job_dispatch.md), [graphs](docs/job_graphs.md), [scheduling](docs/job_scheduling.md), [callbacks](docs/job_callbacks.md), [measurement](docs/job_workloads.md), [safety](libs/jobs/README.md) |
 | Memory and storage | [PMR resources](libs/memory/README.md), [assets](docs/assets.md), [streaming](docs/streaming.md), [streaming API](libs/streaming/README.md) |
 | Rendering | [Contracts](docs/renderer.md), [resources](docs/renderer_resources.md), [passes](docs/renderer_passes.md), [recording](docs/renderer_recording.md), [content](docs/renderer_content.md), [render host/readiness](docs/render_host.md) |

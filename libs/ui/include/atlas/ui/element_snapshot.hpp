@@ -19,6 +19,8 @@ class element_snapshot
     element_snapshot() = default;           ///< Empty identity-zero snapshot.
     std::uint64_t session() const noexcept; ///< Capture session, or zero for empty/moved-from.
     std::span<const element_record> elements() const noexcept; ///< Ascending live slot order.
+    std::uint64_t revision() const noexcept; ///< Geometry-input revision, independent of paint.
+    layout_rect viewport() const noexcept;   ///< Available logical root rectangle.
   private:
     friend class element_tree; ///< Only owner-thread capture can read registry state.
     explicit element_snapshot(

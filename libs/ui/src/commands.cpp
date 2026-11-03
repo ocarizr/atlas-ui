@@ -31,6 +31,12 @@ void validate(element_handle target, property field, const property_value& value
             throw std::invalid_argument("unknown UI property");
     }
 
+    if ((field == property::width || field == property::height) &&
+        std::holds_alternative<std::monostate>(value))
+    {
+        return;
+    }
+
     const auto* scalar = std::get_if<float>(&value);
     if (!scalar || !std::isfinite(*scalar) || *scalar < 0.f ||
         (field == property::opacity && *scalar > 1.f))

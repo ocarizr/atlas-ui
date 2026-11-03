@@ -12,6 +12,8 @@ class detail::element_snapshot_data
     {
     } ///< Counted construction permits debug metadata allocation failure.
 
+    std::uint64_t revision = 0;  ///< Geometry-input revision at capture.
+    layout_rect viewport{};      ///< Logical root bounds at capture.
     const std::uint64_t session; ///< Retained capture identity, not tree ownership.
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Outlives PMR record destruction.
     std::pmr::vector<element_record> records;          ///< Copied in stable slot order.
@@ -43,6 +45,8 @@ element_snapshot element_tree::snapshot() const
     const impl::guard guard{impl_->busy};
     const diagnostics::operation_scope scope{impl_->destinations, {"ui.tree.snapshot", "ui.cpu"}};
     auto data = std::make_shared<detail::element_snapshot_data>(impl_->session, impl_->memory);
+    data->revision = impl_->layout_revision;
+    data->viewport = impl_->viewport;
     data->records.reserve(impl_->count);
     for (std::uint32_t index = 0; index < impl_->slots.size(); ++index)
     {
@@ -54,9 +58,21 @@ element_snapshot element_tree::snapshot() const
         const auto& node = impl_->at(index);
         data->records.push_back({impl_->handle(index), impl_->handle(node.parent),
                                  impl_->handle(node.first), impl_->handle(node.next),
-                                 node.requested, node.dirty});
+                                 node.requested, node.dirty, node.layout});
     }
 
     return element_snapshot{std::move(data)};
+}
+
+/// @brief Input revision does not change for paint-only updates.
+std::uint64_t element_snapshot::revision() const noexcept
+{
+    return data_ ? data_->revision : 0;
+}
+
+/// @brief Empty snapshots have an empty viewport.
+layout_rect element_snapshot::viewport() const noexcept
+{
+    return data_ ? data_->viewport : layout_rect{};
 }
 } // namespace atlas::ui

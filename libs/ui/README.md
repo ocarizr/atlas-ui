@@ -3,7 +3,8 @@
 `atlas::ui` is an independent SDK-free C++20 library. It provides serial command
 production, immutable batches and an owner-thread EnTT-backed element tree.
 Named phases reuse an injected jobs dispatcher with joined outputs and sequential
-fallback. The library does not implement layout or draw UI. See
+fallback. Constrained measure/arrange produces immutable layout geometry; the library
+does not draw UI. See [layout contracts](../../docs/ui_layout.md),
 [frame execution](../../docs/ui_frames.md) and [UI delivery tracking](https://github.com/ocarizr/atlas-ui/issues/27).
 
 ```cpp
@@ -19,12 +20,42 @@ const auto requested = tree.requested(element);
 // Keep the batch alive while a worker borrows batch.writes()/batch.conflicts().
 ```
 
+## Layout example
+
+```cpp
+#include <atlas/ui/layout_engine.hpp>
+#include <atlas/ui/element_tree.hpp>
+
+atlas::ui::layout_style column;
+column.kind = atlas::ui::layout_kind::vertical;
+column.spacing = 8.f;
+tree.set_layout(element, column);
+
+const auto child = tree.create(element);
+atlas::ui::layout_style label;
+label.kind = atlas::ui::layout_kind::leaf;
+label.intrinsic = {120.f, 24.f};
+label.horizontal = atlas::ui::layout_alignment::center;
+tree.set_layout(child, label);
+
+atlas::ui::layout_engine layout{shared_jobs, {}, shared_memory, diagnostics};
+const auto geometry = layout.update(tree, {0.f, 0.f, 1280.f, 720.f});
+const auto child_bounds = geometry.find(child)->bounds;
+// Keep geometry alive while borrowing geometry.items(); no paint is submitted.
+```
+
+The engine borrows the existing dispatcher. Independent changed roots may execute
+in parallel; a small workload or a single changed root stays sequential. Layout
+styles and computed geometry are separate from command-driven requested properties.
+See [sizing, invalidation, cache and failure semantics](../../docs/ui_layout.md).
+
 `element_handle` has a slot, nonzero generation and session identity. Each tree owns
 one bound producer and validates all targets before application. A standalone
 `command_buffer` remains available for packet preparation; its batches have session
 zero and cannot be applied to a tree. Producer IDs are nonzero caller-assigned
 diagnostic identities. They are not access-control capabilities.
-Width/height accept finite nonnegative floats, opacity accepts [0, 1], and visible
+Width/height accept finite nonnegative floats or `std::monostate{}` for automatic
+sizing, opacity accepts [0, 1], and visible
 accepts bool. Unknown properties and mismatched values throw before admission.
 
 ## Tree and publication
@@ -47,8 +78,8 @@ but cannot apply to a replacement tree. No public header exposes EnTT storage.
 
 `requested()` returns committed **local requested values**, by value. Pending or
 sealed-but-unapplied commands are invisible. Child local visibility/opacity does
-not change when a parent changes. There is no computed layout, inherited opacity
-or culling result; those values must not be inferred from requested reads.
+not change when a parent changes. Computed geometry is queried separately with
+`computed()`; inherited opacity and culling must not be inferred from requested reads.
 
 `apply()` validates the session, batch order and every winning target before its
 nonallocating publication pass. Each frame begins with ordinal one; subsequent
@@ -62,7 +93,8 @@ New elements are layout/paint dirty. Size and hierarchy changes dirty affected
 ancestry and the affected subtree; visual changes dirty only that subtree's paint.
 Unrelated branches remain unchanged. Equal committed assignments are no-ops.
 `acknowledge(handle)` clears only that element's flags. This is conservative
-invalidation, not a layout solver; overlapping writes can revisit descendants.
+invalidation; overlapping writes can revisit descendants. Acknowledgment does not
+make invalidated computed geometry valid.
 
 Live capacity defaults to 4096, bounded to 1..65536. PMR owns preallocated slot,
 free-list/traversal and command storage. EnTT entity/component storage and PIMPL/control
