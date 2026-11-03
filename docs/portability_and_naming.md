@@ -1,6 +1,6 @@
 # Portability and naming
 
-Root configuration now exposes `ATLAS_TARGET_PLATFORM` with `windows` as the only
+Root configuration exposes `ATLAS_TARGET_PLATFORM` with `windows` as the only
 implemented target. Other enumerated desktop/mobile/console values are reserved and
 fail explicitly. Native streamer sources are selected behind a shared private file
 interface; the Windows SDK remains under `libs/platform/windows/streaming/` and the
@@ -39,8 +39,8 @@ Use lowercase acronym words in owned APIs (`ipc`, `ecs`, `ui`). Includes use the
 - Public headers and portable implementation must not include native SDK headers or expose native handles/types. Use domain values/contracts and hide implementation details; do not invent empty abstractions for systems that do not exist yet.
 - Native Windows implementations/dependency targets belong in `libs/platform/windows/`; SDK integration tests belong in `tests/platform/windows/`. Future native backends follow the same separation.
 - Generic `atlas::audio_dependencies` supplies Opus. `atlas::windows_dependencies` supplies D3D12, DXGI, DirectWrite, WIC, DXC, XAudio2 and COM. Portable jobs/streaming/application targets do not link the latter.
-- The current production libraries use standard C++/shared dependencies. The Windows target currently groups SDK integration; full renderer/audio backend interfaces are still future work.
-- The streamer's standard-library loose-file reader is portable storage infrastructure. Future overlapped Windows I/O belongs in a native storage adapter implementing the streamer's contract; codecs still never open files independently.
+- The current production libraries use standard C++/shared dependencies. The Windows target groups SDK integration. Renderer/window contracts have native and unavailable adapters; there is no audio playback abstraction.
+- The streamer selects bounded Windows IOCP or an SDK-free standard-library reference adapter behind its private file interface. Codecs never open files independently.
 - Compiler flags follow the selected compiler. MSVC sanitizer/runtime policy is isolated in `cmake/platform/msvc.cmake`. Windows triplets belong to Windows presets; DXC is a Windows-conditional manifest dependency. Windows packaging remains explicitly selected for Windows.
 
 `ATLAS_BUILD_WINDOWS_INTEGRATION` defaults to the Windows target condition and can be disabled. The `windows-portable` preset builds the current portable foundation on the validated host with SDK integration omitted. It demonstrates dependency separation; it is not a test of another operating system.
@@ -53,6 +53,9 @@ ctest --test-dir build/windows-portable -C Debug --output-on-failure --no-tests=
 ```
 
 ## Enforcement and extension
+
+GitHub requires the `.github/ISSUE_TEMPLATE` directory name. Only that exact path
+segment is exempt from snake_case; template filenames retain the owned naming rule.
 
 clang-tidy checks owned C++ naming. Pytest/repository quality checks owned source-path naming and native-header containment; tool/upstream exceptions are explicit. CI's component map separately registers portable dependencies and Windows integration. The temporary-asset fixture uses standard C++ instead of Win32; random temporary names only ensure isolation and do not change reproducible test data.
 

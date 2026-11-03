@@ -17,7 +17,7 @@ Pull requests also require independent Doxygen reference generation, without wik
 credentials. The separate `documentation.yml` workflow generates and publishes
 the API wiki on `main`, independently of package/release jobs. Its reusable build,
 temporary transfer artifact, synchronization policy and retry procedure are
-described in [API reference and wiki](27_api_reference_and_wiki.md).
+described in [API reference and wiki](api_reference.md).
 
 ```mermaid
 flowchart LR
@@ -81,7 +81,7 @@ Required shared libraries still need producer jobs to provide link inputs.
 
 Formatting selects direct source owners independently of build-consumer expansion.
 Shared formatter-policy changes recheck every populated formatting context; an
-unmapped owned source fails planning. See the [source style contract](26_source_style_and_documentation.md)
+unmapped owned source fails planning. See the [source style contract](source_style.md)
 for CLI/IDE commands, reference comments and required-gate behavior.
 
 Documentation-only changes start no native compilation. Shared build/tool changes
@@ -169,27 +169,15 @@ mix. Source products are retained for one day and are not looked up across runs.
 If these short-lived products expire, rerun the full validation rather than only
 a downstream failed job, so its producers generate fresh same-run link inputs.
 
-### Unchanged-library reuse follow-up
+### Source-product reuse boundary
 
-A streaming source edit does not mark jobs as changed: impact propagates toward
-consumers, not prerequisites. The current planner still schedules prerequisite
-producers with their validation matrices because owned products are available only
-inside the current run. Shared CMake/CI changes conservatively select all components.
-This explains jobs validation even when its C++ sources were not edited.
-
-The next CI optimization is to distinguish affected validation from unchanged link
-inputs and recover prevalidated owned products from trusted main producers. Reuse
-must identify the library source/public and generated headers, tests/validation
-policy, transitive inputs, vendor identities, CMake settings, compiler/SDK, profile,
-configuration and instrumentation ABI. Expired/missing/incompatible products must
-fall back to a producer; a failed producer must block its consumers. A downstream
-change alone must not trigger unchanged upstream tests when compatible validated
-inputs exist. Changes to shared build rules or an upstream dependency still require
-affected-consumer validation.
-
-Cross-run owned-product lookup is not implemented by the input-restoration fix;
-current run/revision provenance checks remain enforced. Do not bypass them or accept
-arbitrary PR/fork artifacts to obtain a cache hit.
+A streaming-only source edit propagates impact toward consumers, not prerequisites.
+The planner also schedules prerequisite producers with their validation matrices
+because owned products are reused only within the current run. Shared CMake/CI
+changes conservatively select all components. Cross-run reuse of prevalidated owned
+libraries is not implemented; it is tracked in [#106](https://github.com/ocarizr/atlas-ui/issues/107).
+Current run/revision/profile provenance remains enforced. Vendor products have a
+separate persistent cache identity and retention policy described above.
 
 Each component retains its own coverage report. Reports contain fresh profiles
 and may include exercised imported library code. Formatting is global, not repeated
@@ -201,14 +189,15 @@ vendor binaries retain their normal non-ASan ABI. Native Windows TSan is unavail
 Assets require `assets/manifest.xml` when files exist. Validation checks XML syntax,
 unique IDs/paths, mapped existing files, containment and declared dependencies.
 DTD/entity declarations are rejected. Empty assets need no invented inventory.
-Full UI/ViewModel schemas remain future work.
+UI/ViewModel schemas are not implemented.
 
 PRs validate and export internal build products; they do not create deliverable
 packages or publish. Main pushes run full validation and assemble the four already
 compiled **MSVC Release** applications, runtime DLLs, docs, an XML version manifest
 and notices. Duplicate package paths must have identical contents. Packaging
 verifies run/revision/configuration provenance and creates ZIP/SHA256 artifacts
-without another native build. The applications remain headless bootstrap programs.
+without another native build. Game/editor also provide native graphics demonstrations;
+the content-tool entry points remain placeholders.
 
 Only `vMAJOR.MINOR.PATCH` or `VMAJOR.MINOR.PATCH` tags qualify for publishing; no
 leading zeros, suffixes or partial versions. The gate peels annotated tags, verifies
@@ -218,9 +207,8 @@ Publishing downloads that run's package and uses `gh release create --verify-tag
 it does not create tags or overwrite releases. Standard SemVer applies.
 
 Local CMake/pytest/actionlint checks cannot prove artifact-service permissions,
-retention settings, hosted concurrency or hosted timing. Verify those in the first
-run after this workflow revision is pushed. No hosted performance result is implied
-by editing these workflow definitions.
+retention settings, hosted concurrency or hosted timing. Hosted runs provide that
+evidence; local workflow checks do not establish hosted performance.
 
 
 ## Job contract instrumentation
@@ -242,4 +230,4 @@ vendor product for the pinned build toolchain. It validates smoke/empty/error/he
 paths on each configured profile, without timing assertions. Its executable is
 retained as a development product and does not enter application release packaging.
 Phased reference sources are also owned by jobs because the native jobs suite uses
-them. See [benchmark methodology](19_job_workloads_and_profiling.md).
+them. See [benchmark methodology](job_workloads.md).

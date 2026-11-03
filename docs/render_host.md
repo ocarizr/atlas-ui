@@ -1,15 +1,15 @@
 # Renderer foundation readiness
 
-Phase six completes the initial Windows Desktop x64 foundation for a controlled
+The render host provides the Windows Desktop x64 foundation for a controlled
 2D UI implementation. It establishes explicit thread ownership, bounded handoff,
 fail-stop device-loss behavior, actual GPU timing and integration/pressure checks.
 It does not certify arbitrary production workloads or close every optimization
-candidate. Remaining work is tracked in the [renderer/streaming backlog](35_renderer_and_streaming_backlog.md)
-and the [job-system backlog](25_job_system_backlog.md).
+candidate. Remaining work is tracked in the [renderer/streaming backlog](https://github.com/ocarizr/atlas-ui/issues/26)
+and the [job-system backlog](https://github.com/ocarizr/atlas-ui/issues/24).
 
 ## Main and render ownership
 
-Game and editor now create an application-owned `render_host::render_loop`.
+Game and editor create an application-owned `render_host::render_loop`.
 Main owns the native window, message dispatch, the shared job pool and publication
 of frame snapshots. The dedicated render coordinator creates and destroys the
 device, surface, resource store, streamer, content loader and scene. CPU recording
@@ -158,8 +158,3 @@ coordinator polling/wakeup overhead; it does not isolate decoder cost. Release
 with profiling `auto` reports GPU samples as unavailable; use Debug or explicitly
 enable profiling for that measurement. These samples establish a reproducible
 baseline, not a cross-machine performance guarantee.
-
-The next implementation is a small shared UI runtime: programmatic rectangles and
-images, layout/clip/paint, immutable frame publication and deterministic sequential
-references before increasing job granularity. Bundles, an editor and world rendering
-are not prerequisites for that first bounded UI slice.

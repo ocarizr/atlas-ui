@@ -5,7 +5,7 @@ streaming, codec, frame, ECS or platform-specific concepts. Link `atlas::jobs` a
 include `<atlas/jobs/job_system.hpp>`.
 
 For incremental submission without a graph builder, start with the
-[direct dispatch API](18_job_dispatch_usage.md). Both APIs use the same pool.
+[direct dispatch API](job_dispatch.md). Both APIs use the same pool.
 
 ## First graph
 
@@ -130,4 +130,4 @@ The queue remains shared and mutex-protected. There are no priorities, cancellat
 dynamic dependency edits, cross-graph edges, work stealing or timing traces.
 Direct dispatch supplies child joins, parallel ranges and per-task timings. Graph
 results are deterministic only when the application's data access and callbacks are deterministic; worker execution order
-is deliberately unspecified. See the [implementation plan](14_job_system_implementation_plan.md).
+is deliberately unspecified. See the [tracked follow-up work](https://github.com/ocarizr/atlas-ui/issues/24).

@@ -51,7 +51,9 @@ def validate_architecture(root):
             relative = path.relative_to(root)
             if "__pycache__" in relative.parts:
                 continue
-            for part in relative.parts[1:]:
+            for index, part in enumerate(relative.parts[1:], start=1):
+                if relative.parts[0] == ".github" and index == 1 and part == "ISSUE_TEMPLATE":
+                    continue
                 if part not in REQUIRED_NAMES and not re.fullmatch(
                     r"[a-z0-9_]+(?:\.[a-z0-9_]+)*", part
                 ):

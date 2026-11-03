@@ -166,7 +166,7 @@ merging when observable side effects require deterministic order.
 
 ## Scheduling and diagnostics
 
-General ready work retains Milestone 4's global weighted priority credits. Each
+General ready work uses global weighted priority credits. Each
 worker alternates eligible pinned notifications with general work; local notification
 queues use their own weighted credits and never refill the global queue's credits.
 This prevents affinity traffic from silently invalidating the general queue's

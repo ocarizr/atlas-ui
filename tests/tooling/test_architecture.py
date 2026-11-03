@@ -49,6 +49,8 @@ def test_windows_boundary_accepts_native_sdk_headers(tmp_path):
         pytest.param("libs/Jobs/job_system.hpp", id="mixed-case-directory"),
         pytest.param("libs/jobs/MixedName.hpp", id="mixed-case-file"),
         pytest.param("libs/jobs/job-system.hpp", id="mixed-file-separator"),
+        pytest.param("libs/ISSUE_TEMPLATE/work_item.md", id="github-exception-outside-github"),
+        pytest.param(".github/ISSUE_TEMPLATE/WorkItem.md", id="mixed-case-issue-template"),
     ],
 )
 def test_owned_paths_use_snake_case(tmp_path, relative):
@@ -63,3 +65,11 @@ def test_owned_paths_use_snake_case(tmp_path, relative):
 def test_repository_follows_the_architecture_contract():
     """Verify repository follows the architecture contract."""
     validate_architecture(Path(__file__).resolve().parents[2])
+
+
+def test_github_issue_template_directory_is_a_tool_owned_exception(tmp_path):
+    """Accept GitHub's required directory while retaining snake_case template names."""
+    template = tmp_path / ".github/ISSUE_TEMPLATE/work_item.md"
+    template.parent.mkdir(parents=True)
+    template.write_text("## Purpose\n", encoding="utf-8")
+    validate_architecture(tmp_path)

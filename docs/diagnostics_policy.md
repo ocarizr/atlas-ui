@@ -33,8 +33,7 @@ Configure CMake with `-DATLAS_PROFILING=auto|on|off`:
 The exported diagnostics target propagates `ATLAS_PROFILING_ENABLED` to consumers.
 Rebuild diagnostics and its affected consumers together when changing policy;
 prebuilt products carry their producer's policy. Current CI component products use
-the default `auto` policy. Future configurable product reuse must include policy
-in product identity. Do not override the propagated macro independently.
+the default `auto` policy. A change of policy requires compatible producer/consumer products; current CI does not expose configurable cross-policy product reuse. Do not override the propagated macro independently.
 
 Compiled probes record only if a profiler is explicitly injected. They perform
 no clock reads when the capture destination is absent. Disabled probes contain no
@@ -53,9 +52,9 @@ a bounded capture; instrumentation affects measured timings.
 ## Captured boundaries
 
 - Renderer: device and surface initialization/release, frame submission, resize,
-  explicit idle waits and readback. These are **CPU wall intervals**, including
-  coordinator waits and Present. They are not GPU timestamp measurements. Future
-  GPU timing remains in renderer hardening. Exceptions mark scopes as failed;
+  explicit idle waits and readback. These scopes are **CPU wall intervals**, including
+  coordinator waits and Present. Separate fenced GPU duration counters cover pass execution;
+  they are not clock-calibrated GPU timeline slices. Exceptions mark scopes as failed;
   logger endpoints report operation labels without changing original exceptions.
 - Streamer: initialization, admission, completion delivery, child copy bodies and
   draining. `read.lifetime` in `streaming.async` covers accepted request lifetime,

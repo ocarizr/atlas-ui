@@ -112,7 +112,7 @@ and tests remain necessary. Unsupported/new schema syntax needs checker tests.
 
 Doxygen generation, per-library reference navigation and synchronization of generated
 pages to the repository wiki are implemented separately from source-style checks.
-See [API reference and wiki](27_api_reference_and_wiki.md) for generation, publication
+See [API reference and wiki](api_reference.md) for generation, publication
 and credential setup. Wiki pages are generated from the reviewed source comments.
 
 ## IDE integration

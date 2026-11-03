@@ -10,5 +10,5 @@ Use `window::share_presentation()` for a synchronized native presentation endpoi
 Keep the native window alive and pumping until `stop_and_join(pump)` returns,
 including exception paths. Optional immutable `frame_payload` objects carry CPU
 packets through the queue; their destructors must be safe on either handoff thread.
-See [renderer readiness](../../docs/34_renderer_readiness.md) for the complete
+See [renderer readiness](../../docs/render_host.md) for the complete
 ownership, failure, backpressure and diagnostics contracts.

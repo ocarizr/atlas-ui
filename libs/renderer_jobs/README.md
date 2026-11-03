@@ -9,4 +9,4 @@ uses capture-free joined ranges and creates no threads or graphics services.
 All accepted recording work joins before return or exception. Worker bodies never
 wait for storage, presentation or GPU fences. Resource validation, queue submission
 and lifetime publication remain on the renderer coordinator. The pool must outlive
-the adapter's use. See [parallel recording](../../docs/32_renderer_recording.md).
+the adapter's use. See [parallel recording](../../docs/renderer_recording.md).

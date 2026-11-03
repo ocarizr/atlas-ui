@@ -94,9 +94,9 @@ pending records fail benchmark collection rather than silently producing partial
 metrics. Full causal/lock tracing, allocator pools, automatic grain policies and
 work stealing remain measurement-driven follow-up work.
 
-See the [recorded baseline](20_job_workload_baseline.md) and the
-[implementation plan](14_job_system_implementation_plan.md).
+Consumer-specific evidence and measurement work are tracked in
+[Jobs](https://github.com/ocarizr/atlas-ui/issues/24).
 
 Completion-listener traces additionally distinguish caller-thread and worker-bound
 affinity deliveries; caller intervals are excluded from worker occupancy. See the
-[notification diagnostics contract](22_job_completion_callbacks.md).
+[notification diagnostics contract](job_callbacks.md).

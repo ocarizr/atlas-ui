@@ -3,7 +3,7 @@
 `atlas::streaming` is the exclusive running-application storage boundary. Consumers
 request logical asset ranges and receive immutable owned bytes or an acquisition
 exception. Memory sources and registered loose files are implemented. Bundles,
-compression, caches, writes and complete media playback are future increments.
+compression, caches, writes and complete media playback are not implemented.
 
 ```cpp
 atlas::jobs::job_system pool{4};
@@ -90,9 +90,8 @@ be drained even if a device is slow or an OS cancellation call fails.
 
 ## Memory ownership and allocation
 
-`asset_bytes` is now `std::pmr::vector<std::uint8_t>` rather than `std::vector`.
-Existing named-alias construction, spans and immutable result handles remain usable;
-code explicitly expecting the old vector type or ABI must rebuild/adapt.
+`asset_bytes` is `std::pmr::vector<std::uint8_t>`. Consumers must use matching
+headers and binaries; allocator ownership is part of the buffer contract.
 
 The constructor optionally accepts `std::shared_ptr<std::pmr::memory_resource>`
 after `streamer_limits`. Null selects `new_delete_resource`. The resource must
@@ -104,7 +103,7 @@ releases the buffer. An injected resource that itself borrows an upstream resour
 must keep that upstream chain valid for its own lifetime.
 
 The composition root can supply [Atlas memory](../memory/README.md), sharing the
-same application-selected PMR backend with job scratch and future subsystems.
+same application-selected PMR backend with job scratch and other allocating consumers.
 Streaming does not depend directly on mimalloc or change global allocator state.
 
 Buffers may safely outlive the streamer. A source supplied as a `memory_asset` has
@@ -184,7 +183,7 @@ assembly depend on a reviewed format contract and are deferred. Continue with
 registered loose assets; memory sources remain supported. Do not assume a temporary
 bundle layout in consumers. Format decisions and independent follow-ups are tracked
 in the bundle dependency section of the design below.
-See the [design and implementation sequence](../../docs/15_streamer_and_media_jobs.md).
+See the [design and implementation sequence](../../docs/streaming.md).
 
 ## Validation and remaining gates
 
@@ -213,4 +212,4 @@ References: [C++ pool-resource contracts](https://eel.is/c++draft/mem.res.pool) 
 [CancelIoEx ownership rules](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-cancelioex)
 and [completion packet semantics](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-getqueuedcompletionstatus).
 
-See [library diagnostics and build policy](../../docs/29_library_diagnostics.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.
+See [library diagnostics and build policy](../../docs/diagnostics_policy.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.

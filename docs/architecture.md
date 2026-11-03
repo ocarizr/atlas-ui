@@ -1,0 +1,62 @@
+# Architecture
+
+## Libraries and composition roots
+
+Atlas uses explicit ownership and small CMake libraries. Applications select
+services and own their lifetimes. Domain logic stays independent of native SDKs
+and application implementations. DDD defines vocabulary and invariants; ECS and
+data-oriented storage do not require an object-heavy domain model.
+
+| Library | Current responsibility |
+| --- | --- |
+| `jobs` | Persistent workers, dispatch/dependencies, joins, ranges, cancellation and callbacks |
+| `memory` | Shared PMR resource policy and mimalloc/system adapters |
+| `diagnostics` | Logging, metric snapshots and bounded trace collection/export |
+| `jobs_diagnostics` | Optional scheduler observer forwarding logs and profiling |
+| `streaming` | Catalog, exact-range reads, retained-byte/request budgets and storage adapters |
+| `window` | Native window lifecycle, messages and synchronized presentation leases |
+| `renderer` | Platform-neutral device, resources, passes, fences and presentation |
+| `renderer_jobs` | Joined recording through an injected dispatcher |
+| `renderer_content` | Streamer-fed image/HLSL preparation and fenced GPU ownership |
+| `render_host` | Bounded immutable main/render frame handoff and lifecycle coordination |
+| `ui` | Serial command production, immutable batches and conflict records |
+| `ipc` / `protocol` | Session bootstrap and generated gRPC/Protobuf contracts |
+| `application` | Common executable bootstrap and service composition |
+
+`atlas_game` and `atlas_editor` currently share a generic rendering demonstration.
+The editor has no authoring state or preview session implementation. Existing IPC
+bootstrap linkage does not mean that isolated preview/frame transport exists.
+`atlas_cook` and `atlas_package` expose placeholder tool entry points.
+
+## Native boundary
+
+Public headers expose neither Windows SDK types nor COM/D3D12 objects. Native
+sources and vendor integration live under `libs/platform/windows/`; native tests
+live under `tests/platform/windows/`. `ATLAS_TARGET_PLATFORM` selects the target,
+and CMake selects only the implemented native sources. An SDK-free unavailable
+backend validates portable contracts on Windows; it is not another supported OS.
+See [portability and naming](portability_and_naming.md).
+
+## Concurrency and ownership
+
+Main owns window messages. An application-owned render coordinator owns device,
+resources and submission. Workers execute ready CPU work; they do not wait on disk,
+GPU fences or presentation. One injected pool serves all consumers. Immutable
+snapshots cross thread boundaries through explicit synchronization and bounded
+handoff. Graphics completion uses GPU fences, distinct from CPU job completion.
+
+UI command buffers are owner-affine and publish immutable batches. No live widget
+registry is implemented. EnTT is an integrated dependency, not an existing set of
+UI components. Library-owned state cannot be mutated concurrently merely because
+an ECS library is available.
+
+## Data and allocation
+
+XML is the serialized-content policy, YAML is configuration, and Protobuf is IPC.
+Tool-owned JSON/YAML formats follow their tools. The asset inventory has an actual
+XML validator; UI/ViewModel schemas and cooked bundle layouts are not implemented.
+Runtime consumers request logical asset IDs and byte ranges through streaming.
+
+Composition roots inject a retained PMR resource into allocating consumers.
+CPU PMR, GPU D3D12MA allocation and third-party/driver heaps are separate domains.
+See [memory](../libs/memory/README.md) and [assets](assets.md).

@@ -14,7 +14,7 @@ implementation. Reserved platform names are not validated support. See the
 
 Source formatting uses the pinned clang-format/Ruff tools installed with those
 requirements, independently of the compiler's bundled formatter. Follow the
-[style/documentation commands and IDE setup](26_source_style_and_documentation.md).
+[style/documentation commands and IDE setup](source_style.md).
 
 Use a Developer PowerShell x64 with CMake/Ninja/LLVM on PATH, especially for Ninja profiles. Keep the matching ASan runtime DLL discoverable when executing instrumented binaries outside the debugger.
 
@@ -42,7 +42,7 @@ ctest --preset windows-debug
 
 Builds live under `build/<preset>`. Local overrides use untracked `CMakeUserPresets.json`. Owned targets call `atlas_configure_target(name)` and tests use `atlas_configure_test(name)`; each library also declares public requirements and dependencies. Do not impose project warnings on third parties.
 
-The jobs, protocol, dependency and entry-point targets now have real CTest labels. CTest fails if a selected component has no tests. The applications remain bootstrap programs, not a rendered UI or running editor service. If upgrading a build directory created before vcpkg integration, configure once with `cmake --fresh --preset windows-msvc`. The first dependency build downloads/builds Debug and Release packages; later profiles reuse the binary cache.
+Owned test targets have component CTest labels. CTest fails if a selected component has no tests. Game/editor display a generic streamed textured quad; no widget UI or editor service is implemented. If upgrading a build directory created before vcpkg integration, configure once with `cmake --fresh --preset windows-msvc`. The first dependency build downloads/builds Debug and Release packages; later profiles reuse the binary cache.
 
 ## Style and analysis
 
@@ -63,7 +63,7 @@ and a 100-column target. The shared tool checks registered tracked/unignored own
 sources, documentation and control-block spacing, excluding external/generated
 code. `-Component` and `-Path` limit scope; `-ClangFormat` may select another path
 to the same pinned version. An empty selection is reported as no formatting work,
-not a completed code-quality audit. See the [complete style guide](26_source_style_and_documentation.md).
+not a completed code-quality audit. See the [complete style guide](source_style.md).
 
 clang-tidy needs actual compiler includes/defines. Ninja exports compile commands. Selected diagnostics fail the check; suppressions need a concrete reason. Keep tool versions aligned between local use and CI.
 
@@ -104,6 +104,6 @@ prerequisites and restores version/ABI-keyed vendor products. Consumer CMake use
 the bundled vcpkg helpers with manifest installation disabled. Main packaging
 assembles the validated Release applications without rebuilding them. Normal
 local full configure may still install missing manifest packages. See
-[cold-build cost and recovery](12_ci_and_delivery.md#cold-build-cost-and-cache-recovery).
+[cold-build cost and recovery](ci_and_delivery.md#cold-build-cost-and-cache-recovery).
 
-See [CI and delivery](12_ci_and_delivery.md) for selective builds, packages and release rules.
+See [CI and delivery](ci_and_delivery.md) for selective builds, packages and release rules.

@@ -1,11 +1,11 @@
 # GPU resources and transfers
 
-Renderer phase two adds `resource_store`, a platform-neutral device-coordinator
+The renderer provides `resource_store`, a platform-neutral device-coordinator
 API for buffers, single-mip RGBA8 UNORM textures, shader-resource descriptors and
 bounded uploads. Native implementation remains selected by
-`ATLAS_TARGET_PLATFORM=windows` and `ATLAS_BUILD_WINDOWS_INTEGRATION`. No storage
-access or widgets are introduced. Phase three extends this foundation with
-[graphics pipelines and ordered passes](31_renderer_passes.md), including explicit
+`ATLAS_TARGET_PLATFORM=windows` and `ATLAS_BUILD_WINDOWS_INTEGRATION`. There is no storage
+access or widget dependency. Resources integrate with
+[graphics pipelines and ordered passes](renderer_passes.md), including explicit
 color/depth allocation roles and automatic fence tracking for draw/presentation use.
 
 ## Ownership and identities
@@ -31,7 +31,7 @@ CPU workers must not call these operations or wait for GPU completion.
 
 ## GPU and CPU allocation
 
-The pinned vcpkg graphics group now includes MIT-licensed D3D12 Memory Allocator
+The pinned vcpkg graphics group includes MIT-licensed D3D12 Memory Allocator
 3.2.0. It suballocates native default/upload/readback resources from GPU heaps.
 This complements CPU mimalloc/PMR; it does not replace the CPU allocation policy.
 Allocator-internal CPU bookkeeping and COM/driver allocations retain their vendor
@@ -60,7 +60,7 @@ auto uploaded = resources.upload(texture, tight_rgba_bytes);
 
 // In a normal loop, keep a placeholder until this nonblocking query succeeds.
 if (resources.ready(texture)) {
-    // Phase three will consume the view through render-pass/draw-packet APIs.
+    // A draw packet retains the view through render-pass submission.
 }
 
 // At a deliberate coordinator sync point, never inside a CPU worker:
@@ -87,23 +87,21 @@ the same ordered queue and preserve initialized contents.
 `completion_token` belongs to the device queue and differs from a CPU job handle.
 Unknown future values and foreign-device tokens are rejected. `mark_used` extends
 resource/descriptor retention through an already issued device submission; a view
-also extends its texture's lifetime. Future pass submission must register actual
-GPU use through this mechanism. Current phase-two transfers already do so internally.
+also extends its texture's lifetime. Pass submission and transfers register actual GPU use internally.
 
 `collect` never waits. `wait` is an explicit bounded coordinator operation and also
 collects completed work. Diagnostic `readback` waits, returns exact buffer bytes or
 tight RGBA rows, and restores the scheduled resource state; it is not a frame path.
-Device-removal recovery and live-device timeout policy remain as documented in
-phase one; no retry on a broken native context is promised.
+Device-removal and live-device timeout behavior follow the
+[renderer contract](renderer.md); no retry on a broken native context is promised.
 
 ## Jobs, diagnostics and content boundaries
 
 Job workers prepare/decode/generate ready CPU data through the application's one
 scheduler. The coordinator observes CPU completion and then submits the upload.
 Resources, descriptors and fence bookkeeping are intentionally not dispatched as
-tiny jobs. This phase adds no renderer-owned pool or unnecessary payload-copy jobs;
-parallel recording remains phase four and storage/codec orchestration remains phase
-five. Consumers obtain source bytes from the streamer, never through renderer I/O.
+tiny jobs. The renderer creates no pool. Optional [parallel recording](renderer_recording.md)
+and [content orchestration](renderer_content.md) use separate consumer adapters. Consumers obtain source bytes from the streamer, never through renderer I/O.
 
 A native memory-consumer integration test uses two attached, capture-free child
 jobs to fill independently cache-line-aligned PMR rows, joins them before upload,
@@ -113,11 +111,11 @@ the CPU/GPU boundary; it is not a performance recommendation or threshold benchm
 Injected diagnostics capture initialization, resource creation, uploads, transitions,
 descriptor creation, reclamation, readback and explicit waits. Lifecycle logging
 remains separate from per-frame work; failures retain their original exceptions.
-`ATLAS_PROFILING=auto|on|off` follows the [shared policy](29_library_diagnostics.md).
+`ATLAS_PROFILING=auto|on|off` follows the [shared policy](diagnostics_policy.md).
 These are CPU wall intervals, not GPU timestamp measurements. Admission statistics
 are observational counters rather than automatic application analytics.
 
-## Validation and next gate
+## Validation
 
 WARP tests use CPU-signaled GPU queue gates, not sleeps, to prove that in-flight
 resources/staging/descriptors cannot be reused. Other cases cover exact buffer and
@@ -125,8 +123,3 @@ odd-width texture roundtrips, reuploads, transitions, stale/foreign identities,
 descriptor parent retention, byte/slot exhaustion, owner-thread checks and readiness
 independent of later GPU use. SDK-free validation covers descriptions and explicit
 backend unavailability. Native SDK/vendor headers remain restricted to Windows paths.
-
-Phase three will add pipeline/pass descriptions, immutable draw packets, actual
-resource bindings, offscreen/depth targets and generic draw operations. No production
-UI starts until the remaining [renderer foundation gates](28_renderer_implementation_plan.md)
-are complete.

@@ -1,7 +1,7 @@
 # Direct job dispatch
 
 Link `atlas::jobs` and include `<atlas/jobs/job_system.hpp>`. Direct dispatch is
-the recommended starting point. The [sealed graph API](17_job_graph_usage.md)
+the recommended starting point. The [sealed graph API](job_graphs.md)
 remains available when an entire topology is known before submission.
 
 ## One pool, injected clients
@@ -147,7 +147,7 @@ destruction, but dispatchers and contexts do not keep the pool alive. Stop exter
 users before destroying the runtime. `shutdown()` rejects new roots, allows active
 contexts to finish admitting children, drains accepted work and joins workers.
 Callbacks and cleanup must finish; there is no preemption. The [scheduling and
-cancellation API](21_job_scheduling_and_cancellation.md) supports cooperative stop tokens,
+cancellation API](job_scheduling.md) supports cooperative stop tokens,
 priority clients and inherited child policy.
 `wait_idle()` does not aggregate failures. Observe failures through task handles.
 
@@ -170,5 +170,5 @@ limitations, false-sharing warnings and CMake package consumption.
 
 `after` and `continue_with` remain success-gated jobs. For notifications on any
 terminal result or a specific failure/cancellation/skipped result, use
-`jobs.callbacks()`/`context.callbacks()`. See the [callback contract](22_job_completion_callbacks.md)
+`jobs.callbacks()`/`context.callbacks()`. See the [callback contract](job_callbacks.md)
 for owner-thread delivery, pumping and notification handles.

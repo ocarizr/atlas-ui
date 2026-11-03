@@ -4,7 +4,7 @@
 
 Atlas UI has a cross-platform C++20 architecture. Windows Desktop x64 is currently the only supported and validated target; Direct3D 12 is its graphics backend. Keep platform-agnostic libraries separate from native implementations. Use EnTT for ECS, XML for serialized content, YAML for configuration and gRPC/Protocol Buffers for IPC.
 
-Follow [portability and naming](docs/16_portability_and_naming.md): owned directories/files and C++ identifiers use snake_case, with explicit tool/API exceptions. Public library headers must not expose Windows SDK types. Native SDK dependencies belong under `libs/platform/windows/`; native integration tests belong under `tests/platform/windows/`. Compiler/toolchain policies are conditional, not global Windows requirements for every library.
+Follow [portability and naming](docs/portability_and_naming.md): owned directories/files and C++ identifiers use snake_case, with explicit tool/API exceptions. Public library headers must not expose Windows SDK types. Native SDK dependencies belong under `libs/platform/windows/`; native integration tests belong under `tests/platform/windows/`. Compiler/toolchain policies are conditional, not global Windows requirements for every library.
 
 External libraries use the pinned vcpkg manifest. AV1/Opus use dav1d, libopus and libwebm; XAudio2 2.9 plays decoded PCM. The streamer is the sole application-managed storage boundary. Media consumers receive buffers and use ready jobs without blocking CPU workers on I/O. Establish the streamer foundation and complete the job-system UI-readiness gate before production UI.
 
@@ -37,12 +37,30 @@ Use the pinned C++/Protobuf/Python formatters and document owned source contract
 with Doxygen comments or Python docstrings, including internal helpers and test
 fixtures. Run `python -m scripts.ci.format_sources --fix` to apply style, then the
 same command without `--fix` to check it. Missing contracts require authored prose;
-the formatter does not synthesize documentation. See [source style and documentation](docs/26_source_style_and_documentation.md)
+the formatter does not synthesize documentation. See [source style and documentation](docs/source_style.md)
 for component/file selection, control-block spacing, IDE tasks and CI gates.
 
-Run the relevant [Windows checks](docs/10_windows_development.md). Report actual results; no discovered tests must never be described as a passing suite. Coverage includes lines and branches but does not prove correctness or absence of races.
+Run the relevant [Windows checks](docs/windows_development.md). Report actual results; no discovered tests must never be described as a passing suite. Coverage includes lines and branches but does not prove correctness or absence of races.
 
 ASan is available on the Windows toolchain. Native LLVM ThreadSanitizer is unavailable; retain explicit ownership, static analysis, dependency tests, and stress coverage without presenting these as equivalent race detection.
+
+## Issue and milestone workflow
+
+Use repository issues for delivery scope, acceptance criteria and dependencies.
+Group work by subsystem milestone and attach child issues to the corresponding
+tracking issue. Use `area:*` for ownership and `type:*` for the kind of change;
+labels also apply to pull requests. `blocked` requires an explicit unresolved
+dependency in the issue body. Reassess it when prerequisites close.
+
+Keep runtime contracts, examples and supported limitations in repository docs.
+Do not duplicate phase tables, prioritized backlogs or chronological delivery
+reports there. Preserve historical evidence through commit/PR links. There is no
+GitHub Project dependency. A completed implementation issue must cite its merged
+PR and validation; do not mark a proposal complete based on intent alone.
+
+PRs link the issue they deliver with `Closes #number`; partial work uses `Refs #number`.
+Keep issue titles and repository content in English. Do not create project-specific
+game content inside this reusable technology repository.
 
 ## Branching and commits
 
@@ -76,6 +94,6 @@ PRs validate; they do not package or publish. The main-branch workflow packages.
 The generated API wiki has an independent documentation workflow: PRs validate
 Doxygen generation, and pushes to `main` publish the current reference without a
 release tag. Edit source comments rather than wiki pages. See the
-[wiki publication guide](docs/27_api_reference_and_wiki.md).
+[wiki publication guide](docs/api_reference.md).
 
 Keep generated output, local SDKs, machine settings, and temporary work outside tracked source paths. Maintain `.gitignore` without hiding source assets or test fixtures.

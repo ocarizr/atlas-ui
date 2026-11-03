@@ -27,7 +27,7 @@ while (true) {
 Use the creating thread for all calls and destruction. Surfaces retain native
 device/window lifetimes and drain GPU work before release. The caller supplies
 current physical dimensions; zero-size surfaces suspend submission. Device
-removal is terminal for this increment; destroy/recreate services rather than
+removal is terminal; destroy/recreate services rather than
 continuing to render after native errors. A live-device drain timeout terminates
 teardown to prevent release of resources still in use by the GPU.
 
@@ -42,8 +42,8 @@ reports adapter identity and actual debug-layer availability. Tests can request
 `debug_validation::required` when the host has Graphics Tools installed.
 
 The original startup triangle remains a diagnostic probe. The generic draw API
-now uses immutable passes; no resource loading is performed here. See the
-[six-phase plan](../../docs/28_renderer_implementation_plan.md) for resources,
+uses immutable passes; no resource loading is performed here. See the
+[renderer contracts](../../docs/renderer.md) for resources,
 passes, job recording, content orchestration and production-readiness gates.
 
 After building, run `atlas_game` or `atlas_editor` for a streamed textured quad, `--warp`
@@ -51,30 +51,30 @@ for software presentation, `--graphics-smoke-test` for three hidden WARP frames,
 or `--smoke-test` for the existing headless bootstrap. Graphics smoke checks require
 a textured frame to reach presentation. There are no widgets yet.
 
-See [library diagnostics and build policy](../../docs/29_library_diagnostics.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.
+See [library diagnostics and build policy](../../docs/diagnostics_policy.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.
 
-Phase two provides `resource_store` in `<atlas/renderer/resources.hpp>`. See [GPU resources and transfers](../../docs/30_renderer_resources.md) for typed handles, byte/slot quotas, descriptor retention, upload readiness and destruction fences.
+The resource API provides `resource_store` in `<atlas/renderer/resources.hpp>`. See [GPU resources and transfers](../../docs/renderer_resources.md) for typed handles, byte/slot quotas, descriptor retention, upload readiness and destruction fences.
 
-Phase three provides `pass_renderer` and `frame_plan` in
-`<atlas/renderer/passes.hpp>`. See [pipelines and ordered passes](../../docs/31_renderer_passes.md)
+The pass API provides `pass_renderer` and `frame_plan` in
+`<atlas/renderer/passes.hpp>`. See [pipelines and ordered passes](../../docs/renderer_passes.md)
 for builtins/custom in-memory shaders, fixed vertex ABI, color/depth targets,
 blending, viewport/scissor, transactional validation and presentation. Editor and
-game render their foundation triangle through this shared path. Content orchestration and hardening remain later phases.
+game render their streamed textured quad through this shared path.
 
-Phase four adds a joined `recording_executor` interface and bounded contiguous
+The recording API provides a joined `recording_executor` interface and bounded contiguous
 command batches. The optional `atlas::renderer_jobs` adapter reuses an injected
 application dispatcher; core rendering remains independent of jobs. See
-[parallel recording](../../docs/32_renderer_recording.md) for ownership, failure
-atomicity, cancellation, profiling, benchmarking and the separate application
-main/render-thread integration gate.
+[parallel recording](../../docs/renderer_recording.md) for ownership, failure
+atomicity, cancellation, profiling, benchmarking and application
+main/render-thread ownership.
 
-Phase five adds the separate [renderer content consumer](../renderer_content/README.md):
+The separate [renderer content consumer](../renderer_content/README.md) provides
 streamer-fed image/HLSL preparation, native buffer decoding, fenced texture ownership
 and device-local pipeline caching. Core rendering still performs no file access.
 
-Phase six adds `device::status()` and typed fail-stop device-loss reporting,
+The device API provides `device::status()` and typed fail-stop device-loss reporting,
 fence-completed GPU duration counters, visibility probes and cross-thread native
 presentation through a synchronized window lease. Application-owned
 `atlas::render_host` coordinates the persistent render thread; renderer still owns
-no thread or pool. See [readiness](../../docs/34_renderer_readiness.md) and the
-[remaining renderer/streaming gaps](../../docs/35_renderer_and_streaming_backlog.md).
+no thread or pool. See [readiness](../../docs/render_host.md) and the
+[remaining renderer/streaming gaps](https://github.com/ocarizr/atlas-ui/issues/26).
