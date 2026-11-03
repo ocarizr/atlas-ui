@@ -34,7 +34,8 @@ enum class property : std::uint8_t
     visible  ///< Boolean visibility request.
 };
 
-using property_value = std::variant<float, bool>; ///< Validated against the selected property.
+using property_value =
+    std::variant<float, bool, std::monostate>; ///< Monostate restores automatic width/height.
 
 /// @brief One admitted absolute write; ordering follows serial production, never worker arrival.
 struct property_write

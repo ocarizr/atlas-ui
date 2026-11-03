@@ -17,13 +17,16 @@ class element_tree::impl
     /// @brief Intrusive links avoid per-element child-vector allocations.
     struct node
     {
-        requested_properties requested; ///< Committed local properties.
-        invalidation dirty;             ///< Accumulated conservative work.
-        std::uint32_t parent = none;    ///< Ancestor slot or none.
-        std::uint32_t first = none;     ///< First child in insertion order.
-        std::uint32_t last = none;      ///< Last child, allowing constant-time append.
-        std::uint32_t previous = none;  ///< Previous child in the parent's list.
-        std::uint32_t next = none;      ///< Next child in the parent's list.
+        layout_style layout{};                   ///< Geometry-affecting inputs.
+        std::optional<layout_geometry> computed; ///< Last published geometry.
+        bool computed_valid = false;             ///< Independent from dirty acknowledgment.
+        requested_properties requested;          ///< Committed local properties.
+        invalidation dirty;                      ///< Accumulated conservative work.
+        std::uint32_t parent = none;             ///< Ancestor slot or none.
+        std::uint32_t first = none;              ///< First child in insertion order.
+        std::uint32_t last = none;               ///< Last child, allowing constant-time append.
+        std::uint32_t previous = none;           ///< Previous child in the parent's list.
+        std::uint32_t next = none;               ///< Next child in the parent's list.
     };
 
     /// @brief Public generation is independent of EnTT's private entity encoding.
@@ -71,12 +74,16 @@ class element_tree::impl
     diagnostics::services destinations;                       ///< Optional logging and CPU capture.
     entt::registry registry;      ///< Private component/entity ownership; uses EnTT's allocator.
     std::pmr::vector<slot> slots; ///< Fixed public identity space.
-    std::pmr::vector<std::uint32_t> free;     ///< Reserved reusable slot stack.
-    std::pmr::vector<std::uint32_t> work;     ///< Reserved iterative traversal scratch.
-    std::size_t count = 0;                    ///< Live node count.
-    std::uint64_t frame = 0;                  ///< Last successfully applied frame.
-    std::uint32_t ordinal = 0;                ///< Last successfully applied batch in that frame.
-    bool busy = false;                        ///< Guard shared with the owned command producer.
-    std::unique_ptr<command_buffer> commands; ///< Destroyed before its borrowed busy flag.
+    std::pmr::vector<std::uint32_t> free; ///< Reserved reusable slot stack.
+    std::pmr::vector<std::uint32_t> work; ///< Reserved iterative traversal scratch.
+    std::size_t count = 0;                ///< Live node count.
+    std::uint64_t frame = 0;              ///< Last successfully applied frame.
+    std::uint32_t ordinal = 0;            ///< Last successfully applied batch in that frame.
+    bool busy = false;                    ///< Guard shared with the owned command producer.
+    std::uint64_t layout_revision = 1;    ///< Nonwrapping geometry-input identity.
+    layout_rect viewport{};               ///< Logical root bounds.
+    void ensure_layout_revision() const;  ///< Reject exhaustion before mutation.
+    void validate_parent(std::uint32_t parent) const; ///< Enforce arity for a newly attached child.
+    std::unique_ptr<command_buffer> commands;         ///< Destroyed before its borrowed busy flag.
 };
 } // namespace atlas::ui

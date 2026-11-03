@@ -34,10 +34,13 @@ original index and a cooperative stop token.
 ## Snapshot and publication contracts
 
 `tree.snapshot()` copies committed handles, parent/child/sibling links, requested
-properties and dirty flags in ascending live-slot order. Slot order is not a
+properties, layout styles and dirty flags in ascending live-slot order. It also
+captures the layout revision and viewport. Slot order is not a
 parent-first traversal guarantee. Capture does not acknowledge dirtiness. Snapshots
 survive tree mutation/destruction and retain their PMR resource. Their handles still
 need live validation for later commands; capture does not reconcile stale results.
+The [layout engine](ui_layout.md) uses these captures for joined measure/arrange and
+validates revision/session before live geometry publication.
 
 `run_phase<Output>()` privately default-constructs outputs before job admission.
 Workers declare slice reads/writes through the jobs access checker. Every accepted

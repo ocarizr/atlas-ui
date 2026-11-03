@@ -3,6 +3,16 @@
 
 namespace atlas::ui
 {
+namespace
+{
+/// @brief Decode only validated width/height commands; zero and automatic are distinct.
+std::pair<float, bool> extent_value(const property_value& value)
+{
+    return std::holds_alternative<std::monostate>(value) ? std::pair{0.f, false}
+                                                         : std::pair{std::get<float>(value), true};
+}
+} // namespace
+
 /// @brief Immutable packets originate from the sole bound producer; validate freshness atomically.
 void element_tree::apply(const command_batch& batch)
 {
@@ -21,6 +31,25 @@ void element_tree::apply(const command_batch& batch)
         (void)impl_->require(write.target);
     }
 
+    bool geometry_changed = false;
+    for (const auto& write : batch.writes())
+    {
+        const auto& current = impl_->at(write.target.index).requested;
+        if (write.field == property::width || write.field == property::height)
+        {
+            const auto [value, fixed] = extent_value(write.value);
+            geometry_changed = geometry_changed ||
+                               (write.field == property::width
+                                    ? current.width != value || current.width_fixed != fixed
+                                    : current.height != value || current.height_fixed != fixed);
+        }
+    }
+
+    if (geometry_changed)
+    {
+        impl_->ensure_layout_revision();
+    }
+
     for (const auto& write : batch.writes())
     {
         auto& value = impl_->at(write.target.index).requested;
@@ -29,15 +58,23 @@ void element_tree::apply(const command_batch& batch)
         switch (write.field)
         {
             case property::width:
-                changed = value.width != std::get<float>(write.value);
-                value.width = std::get<float>(write.value);
+            {
+                const auto [extent, fixed] = extent_value(write.value);
+                changed = value.width != extent || value.width_fixed != fixed;
+                value.width = extent;
+                value.width_fixed = fixed;
                 layout = true;
                 break;
+            }
             case property::height:
-                changed = value.height != std::get<float>(write.value);
-                value.height = std::get<float>(write.value);
+            {
+                const auto [extent, fixed] = extent_value(write.value);
+                changed = value.height != extent || value.height_fixed != fixed;
+                value.height = extent;
+                value.height_fixed = fixed;
                 layout = true;
                 break;
+            }
             case property::opacity:
                 changed = value.opacity != std::get<float>(write.value);
                 value.opacity = std::get<float>(write.value);
@@ -60,5 +97,9 @@ void element_tree::apply(const command_batch& batch)
 
     impl_->frame = batch.frame();
     impl_->ordinal = batch.ordinal();
+    if (geometry_changed)
+    {
+        ++impl_->layout_revision;
+    }
 }
 } // namespace atlas::ui

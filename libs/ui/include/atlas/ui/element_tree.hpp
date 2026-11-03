@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <atlas/ui/element_snapshot.hpp>
+#include <atlas/ui/layout_snapshot.hpp>
 
 namespace atlas::ui
 {
@@ -39,6 +40,13 @@ class element_tree
     void apply(const command_batch& batch); ///< Ordered, all-or-nothing scalar state publication.
     element_snapshot
     snapshot() const; ///< Copy committed values and links; never clears dirty flags.
+    void set_layout(element_handle target,
+                    const layout_style& style);       ///< Validate before changing inputs.
+    layout_style layout(element_handle target) const; ///< Committed parameters by value.
+    void set_viewport(layout_rect viewport); ///< Changed bounds invalidate all computed geometry.
+    void publish_layout(const layout_snapshot& result); ///< Atomically reject old/foreign inputs.
+    std::optional<layout_geometry>
+    computed(element_handle target) const; ///< Empty until current geometry is published.
   private:
     class impl; ///< Registry, hierarchy links, generation slots and diagnostic guards.
     std::unique_ptr<impl> impl_; ///< Keeps private EnTT/native-free implementation out of headers.

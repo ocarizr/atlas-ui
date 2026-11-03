@@ -4,6 +4,7 @@
 #include <atlas/ui/commands.hpp>
 #include <atlas/ui/element_tree.hpp>
 #include <atlas/ui/frame_executor.hpp>
+#include <atlas/ui/layout_engine.hpp>
 #include <functional>
 #include <gtest/gtest.h>
 #include <sstream>
@@ -187,6 +188,31 @@ TEST_F(command_diagnostics_test, frame_scopes_own_names_and_reject_logging_reent
     std::ostringstream trace;
     capture->write_chrome_trace(trace);
     EXPECT_EQ(trace.str().find("original_dispatch_name") != std::string::npos,
+              diagnostics::instrumentation_enabled);
+}
+
+/// @brief Layout scopes/logs remain optional and synchronous outputs cannot reenter the engine.
+TEST_F(command_diagnostics_test, layout_capture_and_failure_logging_keep_the_owner_guard)
+{
+    jobs::job_system pool{1};
+    element_tree tree;
+    tree.create();
+    layout_engine engine{pool.dispatcher(), {}, {}, {log, capture}};
+    engine.update(tree, {0, 0, 100, 50});
+    bool observed = false;
+    output->observe = [&]
+    {
+        observed = true;
+        EXPECT_THROW(engine.statistics(), std::logic_error);
+    };
+    EXPECT_THROW(engine.calculate({}), std::invalid_argument);
+    output->observe = {};
+    EXPECT_TRUE(observed);
+    std::ostringstream trace;
+    capture->write_chrome_trace(trace);
+    EXPECT_EQ(trace.str().find("ui.layout.measure") != std::string::npos,
+              diagnostics::instrumentation_enabled);
+    EXPECT_EQ(trace.str().find("ui.layout.arrange") != std::string::npos,
               diagnostics::instrumentation_enabled);
 }
 } // namespace atlas::ui::tests
