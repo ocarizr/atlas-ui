@@ -3,6 +3,7 @@
  * @brief Typed container policies, separate from common element sizing and child slots.
  */
 #pragma once
+#include <atlas/ui/stack_layout.hpp>
 #include <cstdint>
 #include <variant>
 
@@ -26,13 +27,19 @@ struct overlay_layout
 struct horizontal_layout
 {
     float spacing = 0; ///< Finite nonnegative gap between children.
-    bool operator==(const horizontal_layout&) const = default; ///< Exact policy equality.
+    stack_distribution distribution = stack_distribution::start; ///< Remaining-space placement.
+    stack_fill fill = stack_fill::none;                          ///< Explicit growth policy.
+    stack_overflow overflow = stack_overflow::allow;             ///< Explicit deficit policy.
+    bool operator==(const horizontal_layout&) const = default;   ///< Exact policy equality.
 }; ///< Natural-width child slots.
 
 struct vertical_layout
 {
     float spacing = 0; ///< Finite nonnegative gap between children.
-    bool operator==(const vertical_layout&) const = default; ///< Exact policy equality.
+    stack_distribution distribution = stack_distribution::start; ///< Remaining-space placement.
+    stack_fill fill = stack_fill::none;                          ///< Explicit growth policy.
+    stack_overflow overflow = stack_overflow::allow;             ///< Explicit deficit policy.
+    bool operator==(const vertical_layout&) const = default;     ///< Exact policy equality.
 }; ///< Natural-height child slots.
 
 /// @brief Explicitly avoid parent-relative/content-size equations.

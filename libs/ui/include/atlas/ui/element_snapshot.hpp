@@ -24,6 +24,8 @@ class element_snapshot
     layout_rect viewport() const noexcept;   ///< Available logical root rectangle.
     std::span<const canvas_slot_record>
     canvas_slots() const noexcept; ///< Explicit sparse overrides.
+    std::span<const stack_slot_record>
+    stack_slots() const noexcept; ///< Sparse overrides, ordered by live slot.
   private:
     friend class element_tree; ///< Only owner-thread capture can read registry state.
     explicit element_snapshot(

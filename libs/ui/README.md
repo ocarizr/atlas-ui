@@ -68,6 +68,19 @@ units above the canvas bottom. See [canvas slot formulas](../../docs/ui_canvas.m
 for offsets, margins, stretch, measurement and pivot semantics. Placement pivots
 and general visual transform origins are separate values.
 
+## Stack distribution and order
+
+`horizontal_layout` and `vertical_layout` default to natural sizing and fixed
+spacing. Select `distribution` for start/center/end or between/around/evenly free
+space. Enable `fill = stack_fill::weighted` or `overflow = stack_overflow::shrink`
+explicitly; child `stack_slot` weights default to one, and fixed requests retain
+their constrained sizes. `set_stack_slot(child, {-1, 2.f, 1.f})` puts that child
+before the default order group and gives it twice the surplus weight.
+
+Equal order keys preserve insertion order. Sorting affects numeric layout only;
+live hierarchy and paint depth are separate. See [stack contracts](../../docs/ui_stacks.md)
+for min/max redistribution, content sizing, overflow, sparse ownership and examples.
+
 `element_handle` has a slot, nonzero generation and session identity. Each tree owns
 one bound producer and validates all targets before application. A standalone
 `command_buffer` remains available for packet preparation; its batches have session

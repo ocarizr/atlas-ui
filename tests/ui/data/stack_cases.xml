@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cases>
+  <case name="start" spacing="2"><child size="20" position="0" actual="20"/><child size="30" position="22" actual="30"/></case>
+  <case name="center" distribution="center" spacing="2"><child size="20" position="24" actual="20"/><child size="30" position="46" actual="30"/></case>
+  <case name="end" distribution="end" spacing="2"><child size="20" position="48" actual="20"/><child size="30" position="70" actual="30"/></case>
+  <case name="between" distribution="space_between" spacing="2"><child size="20" position="0" actual="20"/><child size="30" position="70" actual="30"/></case>
+  <case name="around" distribution="space_around" spacing="2"><child size="20" position="12" actual="20"/><child size="30" position="58" actual="30"/></case>
+  <case name="evenly" distribution="space_evenly" spacing="2"><child size="20" position="16" actual="20"/><child size="30" position="54" actual="30"/></case>
+  <case name="equal_fill" fill="true"><child size="23" position="0" actual="25"/><child size="23" position="25" actual="25"/><child size="23" position="50" actual="25"/><child size="23" position="75" actual="25"/></case>
+  <case name="weighted_fill" fill="true"><child size="10" grow="1" position="0" actual="30"/><child size="10" grow="3" position="30" actual="70"/></case>
+  <case name="capped_fill" fill="true"><child size="10" maximum="20" position="0" actual="20"/><child size="10" maximum="30" position="20" actual="30"/><child size="10" position="50" actual="50"/></case>
+  <case name="fill_opt_out" fill="true"><child size="10" grow="0" position="0" actual="10"/><child size="10" position="10" actual="90"/></case>
+  <case name="weighted_shrink" extent="60" shrink="true"><child size="30" shrink="1" position="0" actual="20"/><child size="30" shrink="1" position="20" actual="20"/><child size="40" shrink="2" position="40" actual="20"/></case>
+  <case name="capped_shrink" extent="40" shrink="true"><child size="40" minimum="30" position="0" actual="30"/><child size="40" position="30" actual="10"/></case>
+  <case name="allowed_overflow" spacing="5" distribution="center"><child size="60" position="0" actual="60"/><child size="60" position="65" actual="60"/></case>
+  <case name="minimum_overflow" shrink="true"><child size="60" minimum="55" position="0" actual="55"/><child size="60" minimum="55" position="55" actual="55"/></case>
+  <case name="zero_extent" extent="0" shrink="true"><child size="20" position="0" actual="0"/><child size="20" position="0" actual="0"/></case>
+  <case name="single_evenly" distribution="space_evenly"><child size="20" position="40" actual="20"/></case>
+  <case name="empty" distribution="space_between" fill="true" shrink="true"/>
+  <case name="margins"><child size="20" before="2.5" after="2.5" position="2.5" actual="20"/><child size="20" before="2.5" after="2.5" position="27.5" actual="20"/><child size="20" before="2.5" after="2.5" position="52.5" actual="20"/><child size="20" before="2.5" after="2.5" position="77.5" actual="20"/></case>
+  <case name="content_sized" content="true" spacing="2" fill="true" distribution="center" actual_root="52"><child size="20" position="0" actual="20"/><child size="30" position="22" actual="30"/></case>
+  <case name="fixed_shrink" extent="50" shrink="true"><child size="40" fixed="true" position="0" actual="40"/><child size="40" position="40" actual="10"/></case>
+</cases>

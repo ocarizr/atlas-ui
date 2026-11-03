@@ -35,7 +35,7 @@ original index and a cooperative stop token.
 
 `tree.snapshot()` copies committed handles, parent/child/sibling links, requested
 properties, common layout styles, typed panel policies, visual origins and dirty
-flags in ascending live-slot order. Canvas overrides use a separate sparse span. It also
+flags in ascending live-slot order. Canvas and stack overrides use separate sparse spans. It also
 captures the layout revision and viewport. Slot order is not a
 parent-first traversal guarantee. Capture does not acknowledge dirtiness. Snapshots
 survive tree mutation/destruction and retain their PMR resource. Their handles still

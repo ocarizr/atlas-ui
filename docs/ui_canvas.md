@@ -9,8 +9,8 @@ Common `layout_style` sizing, `panel_layout` container policy, `canvas_slot`
 parent-child placement and `visual_style` transform-origin metadata are distinct
 contracts. `horizontal_layout` and `vertical_layout` own fixed spacing; other
 panels do not carry unused gap settings. There is no universal string property bag
-or per-widget virtual allocation. Grid, dynamic distribution and explicit order
-overrides are not implemented.
+or per-widget virtual allocation. Grid is not implemented. Dynamic distribution
+and explicit order are available for [stack relationships](ui_stacks.md), not canvas slots.
 
 ## Canvas axes
 

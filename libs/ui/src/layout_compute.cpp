@@ -44,7 +44,8 @@ layout_engine::impl::compute(const element_snapshot& snapshot, const jobs::job_o
         const auto index = root->nodes[0].target.index;
         if (reusable && index < cache.size() && cache[index] &&
             cache[index]->measured->source->nodes == root->nodes &&
-            cache[index]->measured->source->slots == root->slots)
+            cache[index]->measured->source->slots == root->slots &&
+            cache[index]->measured->source->stack_slots == root->stack_slots)
         {
             next[index] = cache[index];
             ++stats.cached_roots;
