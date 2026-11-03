@@ -78,6 +78,27 @@ void append_nodes(layout_source& source, const element_snapshot& snapshot,
                                 link(value.next_sibling), value.panel, slot_index, value.layout,
                                 value.requested.width, value.requested.height,
                                 value.requested.width_fixed, value.requested.height_fixed});
+        const auto boundaries = snapshot.boundaries();
+        const auto boundary =
+            std::lower_bound(boundaries.begin(), boundaries.end(), value.target.index,
+                             [](const boundary_record& entry, std::uint32_t slot)
+                             {
+                                 return entry.target.index < slot;
+                             });
+        if (boundary != boundaries.end() && boundary->target == value.target)
+        {
+            const auto append =
+                [&](const std::optional<boundary_relation>& relation, bool horizontal)
+            {
+                if (relation)
+                {
+                    source.boundaries.push_back(
+                        {link(value.target), link(relation->source), horizontal, *relation});
+                }
+            };
+            append(boundary->boundaries.horizontal, true);
+            append(boundary->boundaries.vertical, false);
+        }
     }
 }
 } // namespace
@@ -161,6 +182,7 @@ layout_forest prepare_layout(const element_snapshot& snapshot,
         };
         append_nodes(*source, snapshot, order, link);
         order_stack_children(*source);
+        order_boundary_children(*source);
 
         total += order.size();
         result.roots.push_back(std::move(source));

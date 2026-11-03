@@ -1,4 +1,5 @@
 /** @file @brief Sparse overrides exist only on children whose current parent is a canvas. */
+#include "boundary_validation.hpp"
 #include "canvas_validation.hpp"
 #include "tree_state.hpp"
 
@@ -21,6 +22,7 @@ void element_tree::set_canvas_slot(element_handle target, const canvas_slot& slo
     }
 
     detail::validate_slot(slot, *canvas);
+    detail::validate_boundary_values(impl_->child_boundaries(index), slot);
     if (impl_->child_slot(index) == slot)
     {
         return;

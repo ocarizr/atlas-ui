@@ -270,4 +270,29 @@ TEST_F(command_diagnostics_test, stack_slot_scopes_and_failure_logging_remain_gu
     EXPECT_EQ(trace.str().find("ui.tree.set_stack_slot") != std::string::npos,
               diagnostics::instrumentation_enabled);
 }
+
+/// @brief Dependency authoring keeps diagnostics optional and rejects synchronous callback reentry.
+TEST_F(command_diagnostics_test, boundary_scopes_and_failure_logging_remain_guarded)
+{
+    element_tree tree{{}, {}, {log, capture}};
+    const auto root = tree.create();
+    tree.set_panel(root, canvas_layout{});
+    const auto source = tree.create(root);
+    const auto target = tree.create(root);
+    tree.set_boundaries(target, {{}, boundary_relation{source}});
+    bool observed = false;
+    output->observe = [&]
+    {
+        observed = true;
+        EXPECT_THROW(tree.boundaries(target), std::logic_error);
+    };
+    EXPECT_THROW(tree.set_boundaries(source, {{}, boundary_relation{target}}),
+                 std::invalid_argument);
+    output->observe = {};
+    EXPECT_TRUE(observed);
+    std::ostringstream trace;
+    capture->write_chrome_trace(trace);
+    EXPECT_EQ(trace.str().find("ui.tree.set_boundaries") != std::string::npos,
+              diagnostics::instrumentation_enabled);
+}
 } // namespace atlas::ui::tests

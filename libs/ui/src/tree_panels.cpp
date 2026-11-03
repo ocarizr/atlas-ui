@@ -20,6 +20,7 @@ void element_tree::set_panel(element_handle target, const panel_layout& panel)
     const diagnostics::operation_scope scope{impl_->destinations, {"ui.tree.set_panel", "ui.cpu"}};
     const auto index = impl_->require(target);
     detail::validate_panel(panel);
+    impl_->validate_boundary_panel(index, panel);
     auto& node = impl_->at(index);
     if ((std::holds_alternative<leaf_layout>(panel) && node.first != impl::none) ||
         (std::holds_alternative<size_box_layout>(panel) && node.first != impl::none &&

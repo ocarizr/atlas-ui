@@ -11,6 +11,8 @@ contracts. `horizontal_layout` and `vertical_layout` own fixed spacing; other
 panels do not carry unused gap settings. There is no universal string property bag
 or per-widget virtual allocation. Grid is not implemented. Dynamic distribution
 and explicit order are available for [stack relationships](ui_stacks.md), not canvas slots.
+Directional [sibling boundaries](ui_boundaries.md) can replace individual placement
+axes under an intrinsic canvas, with validated acyclic dependencies.
 
 ## Canvas axes
 
@@ -69,7 +71,9 @@ validated mutation contract. A different parent resets placement, even between
 two canvases; reparenting to the current parent is a no-op.
 
 Converting a canvas to another panel clears only its immediate children's canvas
-overrides. Their own nested canvas relationships remain intact. Arity and slot
+overrides unless children retain explicit sibling boundary dependencies, in which
+case conversion rejects until those dependencies are reset. Their own nested
+canvas relationships remain intact. Arity and slot
 validation complete before conversion, so rejection preserves all metadata.
 
 `element_snapshot` copies common layout, typed panel and visual values into records

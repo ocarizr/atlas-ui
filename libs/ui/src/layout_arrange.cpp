@@ -108,10 +108,14 @@ void arrange_children(const arrange_input& input, arranged_branch& result, std::
             cursor += slot.height + spacing.gap;
         }
 
-        result.items[child].geometry.bounds =
-            canvas ? place_canvas(nodes[child], desired, content,
-                                  placement(*input.measured->source, nodes[child]))
-                   : place(nodes[child], desired, slot, flow);
+        if (canvas)
+        {
+            place_boundaries(result, child, content);
+        }
+        else
+        {
+            result.items[child].geometry.bounds = place(nodes[child], desired, slot, flow);
+        }
     }
 }
 } // namespace
