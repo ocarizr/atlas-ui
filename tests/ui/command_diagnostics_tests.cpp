@@ -1,6 +1,7 @@
 /** @file @brief Conflict diagnostics remain bounded, optional and unable to mutate active sealing.
  */
 #include <atlas/ui/commands.hpp>
+#include <atlas/ui/element_tree.hpp>
 #include <functional>
 #include <gtest/gtest.h>
 #include <sstream>
@@ -121,5 +122,32 @@ TEST_F(command_diagnostics_test, rejects_diagnostic_reentrancy_without_partial_m
     EXPECT_EQ(buffer.pending(), 0U);
     EXPECT_EQ(batch.writes()[0].value, property_value{2.f});
     buffer.begin_frame(2);
+}
+
+/// @brief Failed publication is observable but its sink cannot reenter tree or bound commands.
+TEST_F(command_diagnostics_test, tree_failure_logs_and_rejects_reentrant_mutation)
+{
+    element_tree tree{{4}, {}, {log, capture}};
+    const auto root = tree.create();
+    auto& commands = tree.commands();
+    commands.begin_frame(1);
+    const auto batch = commands.seal();
+    tree.apply(batch);
+    bool observed = false;
+    output->observe = [&]
+    {
+        observed = true;
+        EXPECT_THROW(tree.create(), std::logic_error);
+        EXPECT_THROW(commands.set(root, property::width, 1.f, 1), std::logic_error);
+    };
+    EXPECT_THROW(tree.apply(batch), std::invalid_argument);
+    output->observe = {};
+    EXPECT_TRUE(observed);
+    EXPECT_EQ(tree.size(), 1U);
+    EXPECT_EQ(commands.pending(), 0U);
+    std::ostringstream trace;
+    capture->write_chrome_trace(trace);
+    EXPECT_EQ(trace.str().find("ui.tree.apply") != std::string::npos,
+              diagnostics::instrumentation_enabled);
 }
 } // namespace atlas::ui::tests

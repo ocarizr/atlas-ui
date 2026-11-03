@@ -3,6 +3,12 @@
 
 namespace atlas::ui
 {
+/// @brief Tree binding survives producer destruction through the immutable payload.
+std::uint64_t command_batch::session() const noexcept
+{
+    return data_ ? data_->session : 0;
+}
+
 /// @brief Share only already prepared data and retain its allocation resource.
 command_batch::command_batch(std::shared_ptr<const detail::command_data> data)
     : data_(std::move(data))

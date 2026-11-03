@@ -1,5 +1,9 @@
 include_guard(GLOBAL)
 
+if(ui IN_LIST atlas_build_components)
+    find_package(EnTT CONFIG REQUIRED)
+endif()
+
 if(renderer IN_LIST atlas_build_components AND ATLAS_BUILD_WINDOWS_INTEGRATION)
     find_package(D3D12MemoryAllocator CONFIG REQUIRED)
     find_package(directx-dxc CONFIG REQUIRED)

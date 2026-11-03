@@ -78,4 +78,21 @@ TEST_F(command_merge_test, does_not_merge_distinct_properties_or_generations)
     EXPECT_EQ(batch.writes().size(), 3U);
     EXPECT_TRUE(batch.conflicts().empty());
 }
+
+/// @brief Equal slot/generation/property values in different sessions never coalesce.
+TEST(command_merge, standalone_keys_include_the_session_identity)
+{
+    command_buffer commands;
+    commands.begin_frame(1);
+    commands.set({0, 1, 1}, property::width, 10.f, 1);
+    commands.set({0, 1, 2}, property::width, 20.f, 1);
+    commands.set({0, 1, 1}, property::width, 30.f, 1);
+    const auto batch = commands.seal();
+    ASSERT_EQ(batch.writes().size(), 2U);
+    EXPECT_EQ(batch.writes()[0].target.session, 2U);
+    EXPECT_EQ(batch.writes()[1].target.session, 1U);
+    EXPECT_EQ(batch.writes()[1].value, property_value{30.f});
+    ASSERT_EQ(batch.conflicts().size(), 1U);
+    EXPECT_EQ(batch.conflicts()[0].replacement.target.session, 1U);
+}
 } // namespace atlas::ui::tests
