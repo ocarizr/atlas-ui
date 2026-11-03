@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <atlas/ui/element_state.hpp>
+#include <atlas/ui/layout_boundary.hpp>
 #include <atlas/ui/layout_slot.hpp>
 
 namespace atlas::ui
@@ -26,6 +27,7 @@ class element_snapshot
     canvas_slots() const noexcept; ///< Explicit sparse overrides.
     std::span<const stack_slot_record>
     stack_slots() const noexcept; ///< Sparse overrides, ordered by live slot.
+    std::span<const boundary_record> boundaries() const noexcept; ///< Sparse directed dependencies.
   private:
     friend class element_tree; ///< Only owner-thread capture can read registry state.
     explicit element_snapshot(

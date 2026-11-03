@@ -89,6 +89,13 @@ class element_tree::impl
     stack_slot
     child_stack_slot(std::uint32_t index) const;          ///< Default or sparse stack relationship.
     visual_style child_visual(std::uint32_t index) const; ///< Default or sparse visual metadata.
+    layout_boundaries child_boundaries(std::uint32_t index) const; ///< Sparse dependency lookup.
+    /// @brief Reject identity/scope/graph errors without mutation.
+    void validate_boundaries(std::uint32_t index, const layout_boundaries& value);
+    void require_unreferenced(std::uint32_t index) const; ///< Structural source edits need reset.
+    /// @brief Only intrinsic canvas domains can own relationships.
+    void validate_boundary_panel(std::uint32_t index, const panel_layout& panel) const;
+    void invalidate_boundary_domain(std::uint32_t index); ///< Conservative nonallocating traversal.
     std::unique_ptr<command_buffer> commands; ///< Destroyed before its borrowed busy flag.
 };
 } // namespace atlas::ui

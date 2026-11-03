@@ -9,9 +9,12 @@ applied before capture. See the [library example](../libs/ui/README.md).
 
 Coordinates are logical floating-point units, with the origin at the top left.
 Measure traverses each tree bottom-up; arrange assigns rectangles top-down. Both
-traversals are iterative. Child order is insertion order, and result items use
-ascending live-slot order. Results are identical for sequential and parallel paths
+traversals are iterative. Child order defaults to insertion order; stack order keys
+and canvas sibling dependencies alter private layout links without mutating live
+hierarchy traversal. Result items use ascending live-slot order. Results are identical for sequential and parallel paths
 on the same build and inputs; cross-toolchain bitwise equivalence is not promised.
+See [sibling boundary relationships](ui_boundaries.md) for directional placement,
+remaining-space allocation and supported acyclic domains.
 
 `layout_style` supplies common intrinsic content size, padding, outer margin,
 minimum/maximum constraints and per-axis flow alignment. `tree.set_panel()` selects

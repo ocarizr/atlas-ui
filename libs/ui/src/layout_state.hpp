@@ -27,12 +27,22 @@ struct layout_node
     bool operator==(const layout_node&) const = default; ///< No hash-only cache decisions.
 };
 
+/// @brief Resolved immutable dependency edge, ready for future subtree scheduling.
+struct resolved_boundary
+{
+    std::uint32_t target;     ///< Local dependent index.
+    std::uint32_t source;     ///< Validated local sibling index.
+    bool horizontal;          ///< Selects the axis without changing graph ownership.
+    boundary_relation policy; ///< Full exact cache identity and checked numeric policy.
+    bool operator==(const resolved_boundary&) const = default; ///< No hash-only reuse.
+};
+
 /// @brief One immutable independently owned preorder branch.
 struct layout_source
 {
     explicit layout_source(std::shared_ptr<std::pmr::memory_resource> resource)
         : memory(std::move(resource)), slots(0, memory.get()), stack_slots(0, memory.get()),
-          nodes(0, memory.get())
+          nodes(0, memory.get()), boundaries(0, memory.get())
     {
     } ///< Retain resource before vectors.
 
@@ -40,6 +50,7 @@ struct layout_source
     std::pmr::vector<canvas_slot> slots;      ///< Allocate only for explicit canvas overrides.
     std::pmr::vector<stack_slot> stack_slots; ///< Only explicit stack overrides.
     std::pmr::vector<layout_node> nodes; ///< Parents precede descendants; child order is stable.
+    std::pmr::vector<resolved_boundary> boundaries; ///< Target-preorder then horizontal/vertical.
 };
 
 /// @brief Default placement is a shared constant, not per-node allocation/storage.
@@ -57,6 +68,7 @@ inline const stack_slot& stack_placement(const layout_source& source, const layo
 }
 
 void order_stack_children(layout_source& source); ///< Sort private sibling links with stable ties.
+void order_boundary_children(layout_source& source); ///< Stable topological canvas child links.
 
 /// @brief Measure outputs remain private until the phase joins.
 struct measured_branch

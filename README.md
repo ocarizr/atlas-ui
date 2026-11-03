@@ -22,6 +22,8 @@ Typed canvas slots support normalized anchors, offsets and placement pivots;
 general visual origins remain separate from layout geometry.
 Stacks support remaining-space distribution, opt-in weighted sizing and stable
 child order without mutating the live hierarchy.
+Directional sibling boundaries provide acyclic placement and remaining-space sizing
+within intrinsic canvas domains.
 Painting, interactive widgets, MVVM, Lua execution, visual authoring,
 asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
 dependencies and bootstrap contracts are available; content-tool entry points are

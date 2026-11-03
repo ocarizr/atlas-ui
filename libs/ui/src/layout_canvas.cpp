@@ -40,17 +40,21 @@ std::pair<float, float> place_axis(const canvas_axis_input& input)
 
 /// @brief Common min/max, requested sizing and margins remain active inside canvas slots.
 layout_rect place_canvas(const layout_node& node, layout_extent desired, slot_rect content,
-                         const canvas_slot& slot)
+                         const canvas_slot& slot, canvas_axes axes)
 {
     const auto& style = node.style;
     const auto [x, width] =
-        place_axis({content.x, content.width, style.margin.left, style.margin.right, desired.width,
-                    style.constraints.minimum.width, style.constraints.maximum.width,
-                    node.width_fixed, slot.horizontal});
+        axes.horizontal
+            ? place_axis({content.x, content.width, style.margin.left, style.margin.right,
+                          desired.width, style.constraints.minimum.width,
+                          style.constraints.maximum.width, node.width_fixed, slot.horizontal})
+            : std::pair{0.f, 0.f};
     const auto [y, height] =
-        place_axis({content.y, content.height, style.margin.top, style.margin.bottom,
-                    desired.height, style.constraints.minimum.height,
-                    style.constraints.maximum.height, node.height_fixed, slot.vertical});
+        axes.vertical
+            ? place_axis({content.y, content.height, style.margin.top, style.margin.bottom,
+                          desired.height, style.constraints.minimum.height,
+                          style.constraints.maximum.height, node.height_fixed, slot.vertical})
+            : std::pair{0.f, 0.f};
     return {x, y, width, height};
 }
 

@@ -56,6 +56,10 @@ class element_tree
     void reset_stack_slot(element_handle target); ///< Restore default parent-owned metadata.
     std::optional<stack_slot>
     stack_slot_for(element_handle target) const; ///< Empty outside stack relationships.
+    /// @brief Validate sibling scope, axis conflicts and acyclicity before changing state.
+    void set_boundaries(element_handle target, const layout_boundaries& boundaries);
+    void reset_boundaries(element_handle target); ///< Remove both dependencies atomically.
+    layout_boundaries boundaries(element_handle target) const; ///< Empty when no overrides exist.
     void set_visual(element_handle target,
                     visual_style visual);             ///< Paint-only general transform origin.
     visual_style visual(element_handle target) const; ///< Return committed metadata by value.

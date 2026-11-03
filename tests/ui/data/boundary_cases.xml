@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cases>
+  <case name="after_desired" gap="5" position="25" size="10" />
+  <case name="before_desired" before="true" source_offset="50" gap="5" position="35" size="10" />
+  <case name="after_remaining" remaining="true" gap="5" position="25" size="75" />
+  <case name="before_remaining" before="true" remaining="true" source_offset="50" gap="5" position="0" size="45" />
+  <case name="maximum_caps_remaining" remaining="true" gap="5" maximum="30" position="25" size="30" />
+  <case name="minimum_overflows" remaining="true" source_size="90" gap="5" minimum="10" position="95" size="10" />
+  <case name="minimum_rejected" remaining="true" source_size="90" gap="5" minimum="10" reject="true" failure="true" />
+  <case name="desired_overflows" source_size="90" gap="5" position="95" size="10" />
+  <case name="desired_rejected" source_size="90" gap="5" reject="true" failure="true" />
+  <case name="fixed_remaining" remaining="true" gap="5" fixed="23" position="25" size="23" />
+  <case name="fixed_zero" remaining="true" gap="5" fixed="0" position="25" size="0" />
+  <case name="outer_margins_after" remaining="true" source_before="2" source_after="3" gap="4" target_before="5" target_after="6" position="34" size="60" />
+  <case name="outer_margins_before" before="true" remaining="true" source_offset="70" source_before="2" source_after="3" gap="4" target_before="5" target_after="6" position="5" size="55" />
+  <case name="parent_padding" remaining="true" gap="5" padding_before="5" padding_after="7" position="30" size="63" />
+  <case name="source_outside" remaining="true" source_offset="120" position="140" size="0" />
+  <case name="source_outside_rejected" remaining="true" source_offset="120" reject="true" failure="true" />
+  <case name="before_negative" before="true" gap="5" position="-15" size="10" />
+  <case name="before_negative_rejected" before="true" gap="5" reject="true" failure="true" />
+  <case name="exact_fit" source_size="90" reject="true" position="90" size="10" />
+  <case name="zero_available" remaining="true" source_size="100" reject="true" position="100" size="0" />
+</cases>

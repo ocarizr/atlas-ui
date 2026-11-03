@@ -62,6 +62,7 @@ void element_tree::impl::ancestors(std::uint32_t index)
         auto& value = at(index);
         value.dirty = {true, true};
         value.computed_valid = false;
+        invalidate_boundary_domain(index);
         index = value.parent;
     }
 }
@@ -149,7 +150,8 @@ void element_tree::reparent(element_handle target, element_handle parent)
 
     impl_->validate_parent(parent_index);
     impl_->ensure_layout_revision();
-    impl_->registry.remove<canvas_slot, stack_slot>(impl_->slots[index].entity);
+    impl_->require_unreferenced(index);
+    impl_->registry.remove<canvas_slot, stack_slot, layout_boundaries>(impl_->slots[index].entity);
     impl_->detach(index);
     impl_->attach(index, parent_index);
     ++impl_->layout_revision;
@@ -166,6 +168,7 @@ void element_tree::remove(element_handle target)
     const diagnostics::operation_scope scope{impl_->destinations, {"ui.tree.remove", "ui.cpu"}};
     const auto index = impl_->require(target);
     const auto parent = impl_->at(index).parent;
+    impl_->require_unreferenced(index);
     impl_->ensure_layout_revision();
     impl_->subtree(index, true);
     impl_->detach(index);

@@ -5,6 +5,7 @@ production, immutable batches and an owner-thread EnTT-backed element tree.
 Named phases reuse an injected jobs dispatcher with joined outputs and sequential
 fallback. Constrained measure/arrange produces immutable layout geometry; the library
 does not draw UI. See [layout contracts](../../docs/ui_layout.md),
+[sibling boundary relationships](../../docs/ui_boundaries.md),
 [frame execution](../../docs/ui_frames.md) and [UI delivery tracking](https://github.com/ocarizr/atlas-ui/issues/27).
 
 ```cpp
