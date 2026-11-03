@@ -26,6 +26,11 @@ clang-tidy, MSVC analysis, ASan and line/branch coverage as configured in
 Windows host. Native WARP tests inspect real pixels and exercise lifecycle/pressure;
 hardware benchmarks are separate measurements.
 
+Diagnostics test discovery has a 30-second startup budget for listing GoogleTest
+cases, including cold ASan startup on hosted Windows runners. Each diagnostics
+case retains its separate 20-second execution timeout. Discovery failure occurs
+before test execution and must not be reported as a failed assertion or a passing suite.
+
 No approved universal coverage percentage or production frame-time budget exists.
 Coverage does not prove assertion quality or race freedom. Windows native LLVM
 ThreadSanitizer is unavailable; stress tests, declared-access checking, ownership
