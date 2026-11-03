@@ -4,6 +4,8 @@
  */
 #pragma once
 #include <atlas/ui/layout_types.hpp>
+#include <atlas/ui/panel_layout.hpp>
+#include <atlas/ui/visual_style.hpp>
 
 namespace atlas::ui
 {
@@ -36,5 +38,7 @@ struct element_record
     requested_properties requested; ///< Committed local scalar requests at capture time.
     invalidation dirty;             ///< Local work flags at capture time.
     layout_style layout{};          ///< Geometry inputs independent of visual visibility.
+    panel_layout panel{};           ///< Typed parent policy; defaults to overlay.
+    visual_style visual{};          ///< Transform origin does not affect layout measurement.
 };
 } // namespace atlas::ui

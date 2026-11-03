@@ -47,11 +47,8 @@ float layout_float(double value)
 /// @brief Validation precedes live state mutation.
 void validate_style(const layout_style& value)
 {
-    if ((value.kind != layout_kind::leaf && value.kind != layout_kind::size_box &&
-         value.kind != layout_kind::overlay && value.kind != layout_kind::horizontal &&
-         value.kind != layout_kind::vertical) ||
-        !nonnegative(value.intrinsic.width) || !nonnegative(value.intrinsic.height) ||
-        !nonnegative(value.spacing) || !insets(value.padding) || !insets(value.margin) ||
+    if (!nonnegative(value.intrinsic.width) || !nonnegative(value.intrinsic.height) ||
+        !insets(value.padding) || !insets(value.margin) ||
         !bound(value.constraints.minimum.width, value.constraints.maximum.width) ||
         !bound(value.constraints.minimum.height, value.constraints.maximum.height) ||
         !alignment(value.horizontal) || !alignment(value.vertical))

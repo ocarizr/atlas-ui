@@ -215,4 +215,35 @@ TEST_F(command_diagnostics_test, layout_capture_and_failure_logging_keep_the_own
     EXPECT_EQ(trace.str().find("ui.layout.arrange") != std::string::npos,
               diagnostics::instrumentation_enabled);
 }
+
+/// @brief New policy/slot/visual operations follow the same optional trace and guarded failure
+/// rules.
+TEST_F(command_diagnostics_test, canvas_operations_trace_and_reject_diagnostic_reentry)
+{
+    element_tree tree{{}, {}, {log, capture}};
+    const auto root = tree.create();
+    const auto child = tree.create(root);
+    tree.set_panel(root, canvas_layout{});
+    canvas_slot slot;
+    slot.horizontal.offset_min = 10;
+    tree.set_canvas_slot(child, slot);
+    tree.set_visual(child, {{0, 0}});
+    bool observed = false;
+    output->observe = [&]
+    {
+        observed = true;
+        EXPECT_THROW(tree.panel(root), std::logic_error);
+    };
+    slot.horizontal.pivot = -1;
+    EXPECT_THROW(tree.set_canvas_slot(child, slot), std::invalid_argument);
+    output->observe = {};
+    EXPECT_TRUE(observed);
+    std::ostringstream trace;
+    capture->write_chrome_trace(trace);
+    for (const auto* name : {"ui.tree.set_panel", "ui.tree.set_canvas_slot", "ui.tree.set_visual"})
+    {
+        EXPECT_EQ(trace.str().find(name) != std::string::npos,
+                  diagnostics::instrumentation_enabled);
+    }
+}
 } // namespace atlas::ui::tests

@@ -17,6 +17,8 @@ struct layout_node
     std::uint32_t parent = no_layout_node; ///< Local preorder parent index.
     std::uint32_t first = no_layout_node;  ///< Local first-child index.
     std::uint32_t next = no_layout_node;   ///< Local next-sibling index.
+    panel_layout panel{};                  ///< Typed container policy.
+    std::uint32_t slot = no_layout_node;   ///< Sparse canvas override index.
     layout_style style;                    ///< Validated parameters copied from the tree.
     float width = 0;                       ///< Requested numeric width.
     float height = 0;                      ///< Requested numeric height.
@@ -29,13 +31,21 @@ struct layout_node
 struct layout_source
 {
     explicit layout_source(std::shared_ptr<std::pmr::memory_resource> resource)
-        : memory(std::move(resource)), nodes(0, memory.get())
+        : memory(std::move(resource)), slots(0, memory.get()), nodes(0, memory.get())
     {
     } ///< Retain resource before vectors.
 
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Outlives input storage.
+    std::pmr::vector<canvas_slot> slots; ///< Allocate only for explicit canvas overrides.
     std::pmr::vector<layout_node> nodes; ///< Parents precede descendants; child order is stable.
 };
+
+/// @brief Default placement is a shared constant, not per-node allocation/storage.
+inline const canvas_slot& placement(const layout_source& source, const layout_node& node)
+{
+    static constexpr canvas_slot default_slot{};
+    return node.slot == no_layout_node ? default_slot : source.slots[node.slot];
+}
 
 /// @brief Measure outputs remain private until the phase joins.
 struct measured_branch

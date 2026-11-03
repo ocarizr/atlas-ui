@@ -22,8 +22,8 @@ void element_tree::impl::validate_parent(std::uint32_t parent) const
     }
 
     const auto& value = at(parent);
-    if (value.layout.kind == layout_kind::leaf ||
-        (value.layout.kind == layout_kind::size_box && value.first != none))
+    if (std::holds_alternative<leaf_layout>(value.panel) ||
+        (std::holds_alternative<size_box_layout>(value.panel) && value.first != none))
     {
         throw std::invalid_argument("UI layout container child capacity exceeded");
     }
@@ -38,13 +38,6 @@ void element_tree::set_layout(element_handle target, const layout_style& style)
     const auto index = impl_->require(target);
     detail::validate_style(style);
     auto& value = impl_->at(index);
-    if ((style.kind == layout_kind::leaf && value.first != impl::none) ||
-        (style.kind == layout_kind::size_box && value.first != impl::none &&
-         impl_->at(value.first).next != impl::none))
-    {
-        throw std::invalid_argument("UI layout style is incompatible with existing children");
-    }
-
     if (style == value.layout)
     {
         return;

@@ -1,4 +1,6 @@
 /** @file @brief Top-down slot placement with checked finite output and stable child ordering. */
+#include "layout_flow.hpp"
+#include "layout_numeric.hpp"
 #include "layout_state.hpp"
 #include <algorithm>
 
@@ -6,15 +8,6 @@ namespace atlas::ui::detail
 {
 namespace
 {
-/// @brief Intermediate slots use double accumulation, never prematurely overflowing float extents.
-struct slot_rect
-{
-    double x;      ///< Left logical position.
-    double y;      ///< Top logical position.
-    double width;  ///< Available outer width.
-    double height; ///< Available outer height.
-};
-
 /// @brief One axis is passed as an aggregate to keep origin/extent/bounds roles explicit.
 struct axis_input
 {
@@ -107,6 +100,8 @@ arrange_output arrange_layout(const arrange_input& input, const std::stop_token&
             static_cast<double>(border.y) + padding.top,
             std::max(0., static_cast<double>(border.width) - padding.left - padding.right),
             std::max(0., static_cast<double>(border.height) - padding.top - padding.bottom)};
+        const auto flow = describe_flow(value.panel);
+        const bool canvas = std::holds_alternative<canvas_layout>(value.panel);
         double cursor = 0;
         for (auto child = value.first; child != no_layout_node; child = nodes[child].next)
         {
@@ -118,21 +113,24 @@ arrange_output arrange_layout(const arrange_input& input, const std::stop_token&
             auto slot = content;
             const auto desired = input.measured->desired[child];
             const auto margin = nodes[child].style.margin;
-            if (value.style.kind == layout_kind::horizontal)
+            if (flow.horizontal)
             {
                 slot.x += cursor;
                 slot.width = static_cast<double>(desired.width) + margin.left + margin.right;
-                cursor += slot.width + value.style.spacing;
+                cursor += slot.width + flow.spacing;
             }
 
-            if (value.style.kind == layout_kind::vertical)
+            if (flow.vertical)
             {
                 slot.y += cursor;
                 slot.height = static_cast<double>(desired.height) + margin.top + margin.bottom;
-                cursor += slot.height + value.style.spacing;
+                cursor += slot.height + flow.spacing;
             }
 
-            result->items[child].geometry.bounds = place(nodes[child], desired, slot);
+            result->items[child].geometry.bounds =
+                canvas ? place_canvas(nodes[child], desired, content,
+                                      placement(*input.measured->source, nodes[child]))
+                       : place(nodes[child], desired, slot);
         }
     }
 

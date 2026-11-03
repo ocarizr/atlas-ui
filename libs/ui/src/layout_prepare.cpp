@@ -37,6 +37,36 @@ std::pmr::vector<std::uint32_t> map_records(const element_snapshot& snapshot,
 
     return records;
 }
+
+/// @brief Copy only geometry inputs and sparse placement overrides into one independent branch.
+template <class Link>
+void append_nodes(layout_source& source, const element_snapshot& snapshot,
+                  std::span<const std::uint32_t> order, const Link& link)
+{
+    const auto elements = snapshot.elements();
+    source.nodes.reserve(order.size());
+    for (const auto index : order)
+    {
+        const auto& value = elements[index];
+        auto slot_index = no_layout_node;
+        const auto overrides = snapshot.canvas_slots();
+        const auto slot = std::lower_bound(overrides.begin(), overrides.end(), value.target.index,
+                                           [](const canvas_slot_record& entry, std::uint32_t slot)
+                                           {
+                                               return entry.target.index < slot;
+                                           });
+        if (slot != overrides.end() && slot->target == value.target)
+        {
+            slot_index = static_cast<std::uint32_t>(source.slots.size());
+            source.slots.push_back(slot->slot);
+        }
+
+        source.nodes.push_back({value.target, link(value.parent), link(value.first_child),
+                                link(value.next_sibling), value.panel, slot_index, value.layout,
+                                value.requested.width, value.requested.height,
+                                value.requested.width_fixed, value.requested.height_fixed});
+    }
+}
 } // namespace
 
 /// @brief Only a tree-created snapshot can supply input; validate identities before local indexing.
@@ -111,20 +141,12 @@ layout_forest prepare_layout(const element_snapshot& snapshot,
         }
 
         auto source = std::make_shared<layout_source>(memory);
-        source->nodes.reserve(order.size());
         const auto link = [&](element_handle handle)
         {
             const auto index = lookup(handle);
             return index == no_layout_node ? no_layout_node : local[index];
         };
-        for (const auto index : order)
-        {
-            const auto& value = elements[index];
-            source->nodes.push_back({value.target, link(value.parent), link(value.first_child),
-                                     link(value.next_sibling), value.layout, value.requested.width,
-                                     value.requested.height, value.requested.width_fixed,
-                                     value.requested.height_fixed});
-        }
+        append_nodes(*source, snapshot, order, link);
 
         total += order.size();
         result.roots.push_back(std::move(source));

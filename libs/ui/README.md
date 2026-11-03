@@ -26,14 +26,11 @@ const auto requested = tree.requested(element);
 #include <atlas/ui/layout_engine.hpp>
 #include <atlas/ui/element_tree.hpp>
 
-atlas::ui::layout_style column;
-column.kind = atlas::ui::layout_kind::vertical;
-column.spacing = 8.f;
-tree.set_layout(element, column);
+tree.set_panel(element, atlas::ui::vertical_layout{8.f});
 
 const auto child = tree.create(element);
 atlas::ui::layout_style label;
-label.kind = atlas::ui::layout_kind::leaf;
+tree.set_panel(child, atlas::ui::leaf_layout{});
 label.intrinsic = {120.f, 24.f};
 label.horizontal = atlas::ui::layout_alignment::center;
 tree.set_layout(child, label);
@@ -48,6 +45,28 @@ The engine borrows the existing dispatcher. Independent changed roots may execut
 in parallel; a small workload or a single changed root stays sequential. Layout
 styles and computed geometry are separate from command-driven requested properties.
 See [sizing, invalidation, cache and failure semantics](../../docs/ui_layout.md).
+
+## Canvas placement
+
+```cpp
+const auto canvas = tree.create();
+tree.set_panel(canvas, atlas::ui::canvas_layout{});
+const auto item = tree.create(canvas);
+atlas::ui::layout_style size;
+size.intrinsic = {120.f, 24.f};
+tree.set_layout(item, size);
+atlas::ui::canvas_slot slot;
+slot.horizontal = {0.5f, 0.5f, 0.f, 0.f, 0.5f};
+slot.vertical = {1.f, 1.f, -8.f, 0.f, 1.f};
+tree.set_canvas_slot(item, slot);
+const auto result = layout.update(tree, {0.f, 0.f, 1280.f, 720.f});
+```
+
+The normalized anchors refer to the canvas content rectangle after padding. This
+item uses its desired size, is horizontally centered and places its bottom eight
+units above the canvas bottom. See [canvas slot formulas](../../docs/ui_canvas.md)
+for offsets, margins, stretch, measurement and pivot semantics. Placement pivots
+and general visual transform origins are separate values.
 
 `element_handle` has a slot, nonzero generation and session identity. Each tree owns
 one bound producer and validates all targets before application. A standalone

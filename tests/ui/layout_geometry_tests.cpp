@@ -10,29 +10,29 @@
 namespace atlas::ui::tests
 {
 /// @brief Small fixture vocabulary is independent from the future authored-UI XML schema.
-layout_kind kind(std::string_view name)
+panel_layout kind(std::string_view name, float spacing)
 {
     if (name == "horizontal")
     {
-        return layout_kind::horizontal;
+        return horizontal_layout{spacing};
     }
 
     if (name == "vertical")
     {
-        return layout_kind::vertical;
+        return vertical_layout{spacing};
     }
 
     if (name == "size_box")
     {
-        return layout_kind::size_box;
+        return size_box_layout{};
     }
 
     if (name == "leaf")
     {
-        return layout_kind::leaf;
+        return leaf_layout{};
     }
 
-    return layout_kind::overlay;
+    return overlay_layout{};
 }
 
 /// @brief Missing alignment means stretch, matching the public default.
@@ -69,13 +69,13 @@ void populate(element_tree& tree, pugi::xml_node xml, element_handle parent,
 {
     const auto target = tree.create(parent);
     layout_style style;
-    style.kind = kind(xml.attribute("kind").as_string());
+    tree.set_panel(target,
+                   kind(xml.attribute("kind").as_string(), xml.attribute("spacing").as_float()));
     style.intrinsic = {xml.attribute("width").as_float(), xml.attribute("height").as_float()};
     style.horizontal = alignment(xml.attribute("horizontal").as_string());
     style.vertical = alignment(xml.attribute("vertical").as_string());
     style.padding = {xml.attribute("left").as_float(), xml.attribute("top").as_float(),
                      xml.attribute("right").as_float(), xml.attribute("bottom").as_float()};
-    style.spacing = xml.attribute("spacing").as_float();
     tree.set_layout(target, style);
     expected.push_back({target, xml});
     for (auto child : xml.children("element"))

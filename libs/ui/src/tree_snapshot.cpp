@@ -8,7 +8,8 @@ class detail::element_snapshot_data
 {
   public:
     element_snapshot_data(std::uint64_t id, std::shared_ptr<std::pmr::memory_resource> resource)
-        : session(id), memory(std::move(resource)), records(0, memory.get())
+        : session(id), memory(std::move(resource)), canvas_slots(0, memory.get()),
+          records(0, memory.get())
     {
     } ///< Counted construction permits debug metadata allocation failure.
 
@@ -16,6 +17,7 @@ class detail::element_snapshot_data
     layout_rect viewport{};      ///< Logical root bounds at capture.
     const std::uint64_t session; ///< Retained capture identity, not tree ownership.
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Outlives PMR record destruction.
+    std::pmr::vector<canvas_slot_record> canvas_slots; ///< Sparse explicit placement overrides.
     std::pmr::vector<element_record> records;          ///< Copied in stable slot order.
 };
 
@@ -38,6 +40,13 @@ std::span<const element_record> element_snapshot::elements() const noexcept
                  : std::span<const element_record>{};
 }
 
+/// @brief Default slots have no explicit record; retained overrides outlive the source tree.
+std::span<const canvas_slot_record> element_snapshot::canvas_slots() const noexcept
+{
+    return data_ ? std::span<const canvas_slot_record>{data_->canvas_slots}
+                 : std::span<const canvas_slot_record>{};
+}
+
 /// @brief Capture is owner-only; failed allocation never acknowledges or mutates live state.
 element_snapshot element_tree::snapshot() const
 {
@@ -48,6 +57,8 @@ element_snapshot element_tree::snapshot() const
     data->revision = impl_->layout_revision;
     data->viewport = impl_->viewport;
     data->records.reserve(impl_->count);
+    const auto& registry = impl_->registry;
+    data->canvas_slots.reserve(registry.view<const canvas_slot>().size());
     for (std::uint32_t index = 0; index < impl_->slots.size(); ++index)
     {
         if (impl_->slots[index].entity == entt::null)
@@ -58,7 +69,12 @@ element_snapshot element_tree::snapshot() const
         const auto& node = impl_->at(index);
         data->records.push_back({impl_->handle(index), impl_->handle(node.parent),
                                  impl_->handle(node.first), impl_->handle(node.next),
-                                 node.requested, node.dirty, node.layout});
+                                 node.requested, node.dirty, node.layout, node.panel,
+                                 impl_->child_visual(index)});
+        if (const auto* slot = registry.try_get<canvas_slot>(impl_->slots[index].entity))
+        {
+            data->canvas_slots.push_back({impl_->handle(index), *slot});
+        }
     }
 
     return element_snapshot{std::move(data)};
