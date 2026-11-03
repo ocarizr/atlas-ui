@@ -18,8 +18,8 @@ TEST(layout_execution, sequential_and_parallel_forests_are_identical)
     {
         const auto root = tree.create();
         layout_style row;
-        row.kind = layout_kind::horizontal;
-        row.spacing = 3;
+        tree.set_panel(root, horizontal_layout{});
+        tree.set_panel(root, horizontal_layout{3});
         tree.set_layout(root, row);
         for (int child_index = 0; child_index < 4; ++child_index)
         {
@@ -74,7 +74,7 @@ TEST(layout_execution, numerical_failure_does_not_poison_future_calculations)
     {
         const auto root = tree.create();
         layout_style row;
-        row.kind = layout_kind::horizontal;
+        tree.set_panel(root, horizontal_layout{});
         tree.set_layout(root, row);
         for (int child_index = 0; child_index < 2; ++child_index)
         {

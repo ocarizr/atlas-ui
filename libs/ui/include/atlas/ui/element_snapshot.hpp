@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <atlas/ui/element_state.hpp>
+#include <atlas/ui/layout_slot.hpp>
 
 namespace atlas::ui
 {
@@ -21,6 +22,8 @@ class element_snapshot
     std::span<const element_record> elements() const noexcept; ///< Ascending live slot order.
     std::uint64_t revision() const noexcept; ///< Geometry-input revision, independent of paint.
     layout_rect viewport() const noexcept;   ///< Available logical root rectangle.
+    std::span<const canvas_slot_record>
+    canvas_slots() const noexcept; ///< Explicit sparse overrides.
   private:
     friend class element_tree; ///< Only owner-thread capture can read registry state.
     explicit element_snapshot(

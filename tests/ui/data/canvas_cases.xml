@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cases>
+  <case name="top_left" width="200" height="100" offset_x="10" offset_y="20" x="10" y="20" actual_width="20" actual_height="10"/>
+  <case name="bottom_right" width="200" height="100" min_x="1" max_x="1" min_y="1" max_y="1" pivot_x="1" pivot_y="1" x="180" y="90" actual_width="20" actual_height="10"/>
+  <case name="center" width="200" height="100" min_x="0.5" max_x="0.5" min_y="0.5" max_y="0.5" pivot_x="0.5" pivot_y="0.5" x="90" y="45" actual_width="20" actual_height="10"/>
+  <case name="padding_and_margins" width="200" height="100" left="10" top="20" right="30" bottom="40" stretch="true" max_x="1" max_y="1" offset_x="5" offset_y="3" end_x="7" end_y="9" margin_left="1" margin_top="2" margin_right="3" margin_bottom="4" x="16" y="25" actual_width="144" actual_height="22"/>
+  <case name="signed_offsets" width="200" height="100" offset_x="-15" offset_y="-7" x="-15" y="-7" actual_width="20" actual_height="10"/>
+  <case name="anchor_interval" width="200" height="100" min_x="0.25" max_x="0.75" min_y="0.25" max_y="0.75" pivot_x="0.5" pivot_y="1" x="90" y="65" actual_width="20" actual_height="10"/>
+  <case name="fixed_overrides_stretch" width="100" height="100" stretch="true" fixed="true" max_x="1" max_y="1" pivot_x="0.5" pivot_y="0.5" x="38.5" y="44.5" actual_width="23" actual_height="11"/>
+  <case name="minimum_overflow" width="10" height="5" stretch="true" max_x="1" max_y="1" minimum_width="20" minimum_height="10" pivot_x="1" pivot_y="1" x="-10" y="-5" actual_width="20" actual_height="10"/>
+  <case name="zero_stretch" width="0" height="0" stretch="true" max_x="1" max_y="1" actual_width="0" actual_height="0"/>
+</cases>

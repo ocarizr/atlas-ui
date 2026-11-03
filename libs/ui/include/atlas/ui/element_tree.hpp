@@ -43,6 +43,17 @@ class element_tree
     void set_layout(element_handle target,
                     const layout_style& style);       ///< Validate before changing inputs.
     layout_style layout(element_handle target) const; ///< Committed parameters by value.
+    void set_panel(element_handle target,
+                   const panel_layout& panel); ///< Validate policy and child slots atomically.
+    panel_layout panel(element_handle target) const; ///< Typed container policy by value.
+    void set_canvas_slot(element_handle target,
+                         const canvas_slot& slot); ///< Require a canvas parent.
+    void reset_canvas_slot(element_handle target); ///< Restore implicit default placement.
+    std::optional<canvas_slot>
+    canvas_slot_for(element_handle target) const; ///< Empty outside a canvas relationship.
+    void set_visual(element_handle target,
+                    visual_style visual);             ///< Paint-only general transform origin.
+    visual_style visual(element_handle target) const; ///< Return committed metadata by value.
     void set_viewport(layout_rect viewport); ///< Changed bounds invalidate all computed geometry.
     void publish_layout(const layout_snapshot& result); ///< Atomically reject old/foreign inputs.
     std::optional<layout_geometry>

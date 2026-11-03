@@ -44,15 +44,6 @@ struct layout_constraints
                           std::numeric_limits<float>::infinity()}; ///< Unbounded by default.
     bool operator==(const layout_constraints&) const = default;    ///< Compare both bounds.
 };
-/// @brief Basic containers without implicit flex weighting or clipping.
-enum class layout_kind : std::uint8_t
-{
-    leaf,       ///< Intrinsic content without children.
-    size_box,   ///< At most one child.
-    overlay,    ///< Children share a content slot; default generic element.
-    horizontal, ///< Natural-width slots with cross-axis alignment.
-    vertical    ///< Natural-height slots with cross-axis alignment.
-};
 /// @brief Own alignment inside a parent slot, after margins.
 enum class layout_alignment : std::uint8_t
 {
@@ -65,12 +56,10 @@ enum class layout_alignment : std::uint8_t
 /// @brief Geometry-affecting properties; width/height requests remain in command state.
 struct layout_style
 {
-    layout_kind kind = layout_kind::overlay; ///< Generic nodes can have children.
     layout_extent intrinsic{}; ///< Minimum natural content hint before padding and constraints.
     layout_insets padding{};   ///< Inside-border content insets.
     layout_insets margin{};    ///< Outside-border space within a parent slot.
-    layout_constraints constraints{}; ///< Bounds on border size.
-    float spacing = 0;                ///< Gap between successive stack children only.
+    layout_constraints constraints{};                        ///< Bounds on border size.
     layout_alignment horizontal = layout_alignment::stretch; ///< Own horizontal alignment.
     layout_alignment vertical = layout_alignment::stretch;   ///< Own vertical alignment.
     bool operator==(const layout_style&) const = default;    ///< Exact cache input comparison.

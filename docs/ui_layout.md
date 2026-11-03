@@ -13,16 +13,22 @@ traversals are iterative. Child order is insertion order, and result items use
 ascending live-slot order. Results are identical for sequential and parallel paths
 on the same build and inputs; cross-toolchain bitwise equivalence is not promised.
 
-`layout_style` supplies the container kind, intrinsic content size, padding, outer
-margin, minimum/maximum constraints, spacing and per-axis alignment:
+`layout_style` supplies common intrinsic content size, padding, outer margin,
+minimum/maximum constraints and per-axis flow alignment. `tree.set_panel()` selects
+a typed `panel_layout`; stack alternatives own their spacing. Canvas-specific
+child slots and general visual origins have separate APIs and storage.
 
 | Kind | Child sizing |
 | --- | --- |
-| `leaf` | No children; intrinsic content plus padding |
-| `size_box` | At most one child, placed inside padding |
-| `overlay` | Children share the content rectangle; natural size is their outer maximum |
-| `horizontal` | Natural outer widths are summed; cross-axis height is the maximum |
-| `vertical` | Natural outer heights are summed; cross-axis width is the maximum |
+| `leaf_layout` | No children; intrinsic content plus padding |
+| `size_box_layout` | At most one child, placed inside padding |
+| `overlay_layout` | Children share the content rectangle; natural size is their outer maximum |
+| `horizontal_layout` | Natural outer widths are summed; cross-axis height is the maximum |
+| `vertical_layout` | Natural outer heights are summed; cross-axis width is the maximum |
+| `canvas_layout` | Anchors/offsets with per-axis desired/stretch child placement |
+
+See [canvas placement and visual origins](ui_canvas.md) for slot formulas, content
+measurement, sparse ownership and source compatibility.
 
 Default nodes are overlays. Stack spacing appears only between children. Intrinsic
 size is a minimum natural content hint, not a fixed request. Width/height commands
@@ -39,7 +45,7 @@ space, margins surround child borders, and alignment positions the border within
 the remaining slot. There is no clipping in this calculation. Visibility remains
 a paint property: hidden elements retain layout space.
 
-Styles reject negative/nonfinite extents, margins, padding and spacing. Constraint
+Styles/panel policies reject negative/nonfinite extents, margins, padding and spacing. Constraint
 maxima may be positive infinity; minima must be finite and not exceed maxima.
 Viewport positions may be negative but all positions/extents and resulting edges
 must be representable finite floats. Invalid styles, incompatible child counts and
@@ -47,9 +53,15 @@ numeric overflow fail explicitly.
 
 ## Revision and publication
 
-`tree.set_layout()` changes requested layout style. `tree.set_viewport()` changes
+`tree.set_layout()` changes common sizing. `tree.set_panel()` changes the container
+policy; `tree.set_canvas_slot()` changes a child's parent-owned placement.
+`tree.set_visual()` changes paint-only transform-origin metadata.
+`tree.set_viewport()` changes
 the available root rectangle. Topology, actual size-request changes, style and
 viewport changes advance the layout revision; opacity/visibility do not.
+Visual origins do not change that revision either. Reparenting to a different
+parent resets explicit canvas placement; converting a canvas to another panel
+clears its immediate children's overrides. Failed validation changes neither.
 
 `calculate(tree.snapshot())` returns owned immutable geometry without publishing.
 `update(tree, viewport)` sets the viewport, captures, calculates and publishes.

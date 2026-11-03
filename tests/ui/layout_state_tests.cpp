@@ -81,7 +81,7 @@ TEST(layout_state, stack_siblings_follow_ancestor_invalidation)
     element_tree tree;
     const auto root = tree.create();
     layout_style row;
-    row.kind = layout_kind::horizontal;
+    tree.set_panel(root, horizontal_layout{});
     tree.set_layout(root, row);
     const auto first = tree.create(root);
     const auto second = tree.create(root);

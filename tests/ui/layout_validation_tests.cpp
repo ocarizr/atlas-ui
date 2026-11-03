@@ -45,11 +45,6 @@ std::vector<invalid_style_case> invalid_styles()
         {
             value.padding.top = std::numeric_limits<float>::infinity();
         });
-    add("negative_spacing",
-        [](auto& value)
-        {
-            value.spacing = -1;
-        });
     add("reversed_bounds",
         [](auto& value)
         {
@@ -68,11 +63,6 @@ std::vector<invalid_style_case> invalid_styles()
         });
     // NOLINTBEGIN(clang-analyzer-optin.core.EnumCastOutOfRange) -- Deliberate public-input
     // rejection.
-    add("unknown_kind",
-        [](auto& value)
-        {
-            value.kind = static_cast<layout_kind>(255);
-        });
     add("unknown_alignment",
         [](auto& value)
         {
@@ -119,7 +109,7 @@ TEST(layout_constraints, margins_and_bounds_position_the_border)
     const auto root = tree.create();
     const auto child = tree.create(root);
     layout_style style;
-    style.kind = layout_kind::leaf;
+    tree.set_panel(child, leaf_layout{});
     style.intrinsic = {100, 50};
     style.margin = {10, 5, 20, 15};
     style.constraints = {{20, 10}, {60, 30}};
@@ -154,17 +144,14 @@ TEST(layout_constraints, leaf_and_size_box_reject_extra_children)
 {
     element_tree tree;
     const auto box = tree.create();
-    layout_style style;
-    style.kind = layout_kind::size_box;
-    tree.set_layout(box, style);
+    tree.set_panel(box, size_box_layout{});
     const auto first = tree.create(box);
     const auto other = tree.create();
     EXPECT_THROW(tree.create(box), std::invalid_argument);
     EXPECT_THROW(tree.reparent(other, box), std::invalid_argument);
     EXPECT_EQ(tree.parent(other), element_handle{});
-    style.kind = layout_kind::leaf;
-    EXPECT_THROW(tree.set_layout(box, style), std::invalid_argument);
-    tree.set_layout(other, style);
+    EXPECT_THROW(tree.set_panel(box, leaf_layout{}), std::invalid_argument);
+    tree.set_panel(other, leaf_layout{});
     EXPECT_THROW(tree.create(other), std::invalid_argument);
     EXPECT_EQ(tree.first_child(box), first);
     EXPECT_EQ(tree.size(), 3U);
