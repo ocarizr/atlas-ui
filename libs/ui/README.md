@@ -2,7 +2,9 @@
 
 `atlas::ui` is an independent SDK-free C++20 library. It provides serial command
 production, immutable batches and an owner-thread EnTT-backed element tree.
-It does not schedule work or draw UI. See the [UI delivery tracking](https://github.com/ocarizr/atlas-ui/issues/27).
+Named phases reuse an injected jobs dispatcher with joined outputs and sequential
+fallback. The library does not implement layout or draw UI. See
+[frame execution](../../docs/ui_frames.md) and [UI delivery tracking](https://github.com/ocarizr/atlas-ui/issues/27).
 
 ```cpp
 atlas::ui::element_tree tree{{}, shared_memory, diagnostics};
@@ -69,7 +71,7 @@ guarantee. Topology and property state are owner-only, including reads. Do not p
 the live tree to workers. Immutable batch publication still requires synchronization.
 
 The header-only EnTT dependency is compiled privately into the archive. Installed
-consumers load the diagnostics target before `share/atlas/ui.cmake`; no EnTT header
+consumers load the jobs and diagnostics targets before `share/atlas/ui.cmake`; no EnTT header
 or target is required by their public API. Rebuild consumers with matching headers
 and archives because handles and command packet layouts include the session field.
 

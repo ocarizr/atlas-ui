@@ -1,7 +1,9 @@
 /** @file @brief Conflict diagnostics remain bounded, optional and unable to mutate active sealing.
  */
+#include <atlas/jobs/job_system.hpp>
 #include <atlas/ui/commands.hpp>
 #include <atlas/ui/element_tree.hpp>
+#include <atlas/ui/frame_executor.hpp>
 #include <functional>
 #include <gtest/gtest.h>
 #include <sstream>
@@ -148,6 +150,43 @@ TEST_F(command_diagnostics_test, tree_failure_logs_and_rejects_reentrant_mutatio
     std::ostringstream trace;
     capture->write_chrome_trace(trace);
     EXPECT_EQ(trace.str().find("ui.tree.apply") != std::string::npos,
+              diagnostics::instrumentation_enabled);
+}
+
+/// @brief Phase names remain owned/stable while callbacks mutate their original strings.
+TEST_F(command_diagnostics_test, frame_scopes_own_names_and_reject_logging_reentrancy)
+{
+    jobs::job_system pool{1};
+    frame_executor executor{pool.dispatcher(), {}, {}, {log, capture}};
+    executor.begin_frame(1);
+    std::string label = "original_dispatch_name";
+    executor.dispatch(label,
+                      [&]
+                      {
+                          label.assign(256, 'x');
+                      });
+    bool observed = false;
+    output->observe = [&]
+    {
+        observed = true;
+        EXPECT_THROW(executor.dispatch("reentrant",
+                                       []
+                                       {
+                                       }),
+                     std::logic_error);
+        EXPECT_THROW(executor.statistics(), std::logic_error);
+    };
+    EXPECT_THROW(executor.dispatch("failed_dispatch",
+                                   []
+                                   {
+                                       throw std::domain_error("controlled");
+                                   }),
+                 std::domain_error);
+    output->observe = {};
+    EXPECT_TRUE(observed);
+    std::ostringstream trace;
+    capture->write_chrome_trace(trace);
+    EXPECT_EQ(trace.str().find("original_dispatch_name") != std::string::npos,
               diagnostics::instrumentation_enabled);
 }
 } // namespace atlas::ui::tests

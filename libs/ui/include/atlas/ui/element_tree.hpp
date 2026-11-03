@@ -3,27 +3,10 @@
  * @brief Session-owned element hierarchy and transactional requested-property state.
  */
 #pragma once
-#include <atlas/ui/commands.hpp>
+#include <atlas/ui/element_snapshot.hpp>
 
 namespace atlas::ui
 {
-/// @brief Committed requested properties; no computed layout state exists in this API.
-struct requested_properties
-{
-    float width = 0.f;   ///< Requested width, independent of any computed arrangement.
-    float height = 0.f;  ///< Requested height, independent of any computed arrangement.
-    float opacity = 1.f; ///< Local opacity; inherited/computed opacity is not evaluated.
-    bool visible = true; ///< Local visibility request, not a computed culling result.
-    bool operator==(const requested_properties&) const = default; ///< Compare complete state.
-};
-
-/// @brief Conservative pending work flags; acknowledgment is explicit and owner-only.
-struct invalidation
-{
-    bool layout = true; ///< Geometry-affecting state or hierarchy has changed.
-    bool paint = true;  ///< Visual state or hierarchy has changed.
-};
-
 /// @brief Fixed live-element capacity and the single producer's per-frame command budgets.
 struct tree_limits
 {
@@ -54,6 +37,8 @@ class element_tree
     void acknowledge(element_handle target);         ///< Clear only this live element's work flags.
     command_buffer& commands(); ///< Sole session-bound stream; reference cannot outlive the tree.
     void apply(const command_batch& batch); ///< Ordered, all-or-nothing scalar state publication.
+    element_snapshot
+    snapshot() const; ///< Copy committed values and links; never clears dirty flags.
   private:
     class impl; ///< Registry, hierarchy links, generation slots and diagnostic guards.
     std::unique_ptr<impl> impl_; ///< Keeps private EnTT/native-free implementation out of headers.

@@ -1,0 +1,3 @@
+add_executable(atlas_ui_benchmark frame_execution_benchmark.cpp)
+target_link_libraries(atlas_ui_benchmark PRIVATE atlas::ui)
+atlas_configure_target(atlas_ui_benchmark)
