@@ -2,6 +2,8 @@ add_library(atlas_ui STATIC src/commands.cpp src/command_sealing.cpp src/command
 target_sources(atlas_ui PRIVATE src/element_tree.cpp src/tree_hierarchy.cpp src/tree_application.cpp)
 target_sources(atlas_ui PRIVATE src/tree_snapshot.cpp src/frame_executor.cpp src/frame_work.cpp)
 add_library(atlas::ui ALIAS atlas_ui)
+target_sources(atlas_ui PRIVATE src/tree_paint.cpp src/paint_engine.cpp src/paint_prepare.cpp src/paint_jobs.cpp)
+target_sources(atlas_ui PRIVATE src/paint_order.cpp)
 target_sources(atlas_ui PRIVATE src/layout_partition.cpp src/layout_subtrees.cpp)
 target_sources(atlas_ui PRIVATE src/boundary_validation.cpp src/tree_boundaries.cpp
     src/tree_boundary_lifetime.cpp src/layout_boundaries.cpp src/layout_boundary_order.cpp)

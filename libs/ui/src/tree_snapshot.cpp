@@ -89,6 +89,11 @@ element_snapshot element_tree::snapshot() const
                                  impl_->handle(node.first), impl_->handle(node.next),
                                  node.requested, node.dirty, node.layout, node.panel,
                                  impl_->child_visual(index)});
+        if (const auto* value = registry.try_get<paint_style>(impl_->slots[index].entity))
+        {
+            data->records.back().paint = *value;
+        }
+
         if (const auto* slot = registry.try_get<canvas_slot>(impl_->slots[index].entity))
         {
             data->canvas_slots.push_back({impl_->handle(index), *slot});

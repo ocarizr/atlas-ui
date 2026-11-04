@@ -5,6 +5,7 @@
 #include <atlas/ui/element_tree.hpp>
 #include <atlas/ui/frame_executor.hpp>
 #include <atlas/ui/layout_engine.hpp>
+#include <atlas/ui/paint_engine.hpp>
 #include <functional>
 #include <gtest/gtest.h>
 #include <sstream>
@@ -319,5 +320,37 @@ TEST_F(command_diagnostics_test, subtree_layout_scopes_follow_optional_profiling
         EXPECT_EQ(trace.str().find(name) != std::string::npos,
                   diagnostics::instrumentation_enabled);
     }
+}
+
+/// @brief Joined paint scopes obey compile-time profiling policy without changing results.
+TEST_F(command_diagnostics_test, paint_profiles_order_clipping_tessellation_and_join)
+{
+    jobs::job_system workers{2};
+    element_tree tree;
+    for (unsigned i = 0; i < 8; ++i)
+    {
+        const auto root = tree.create();
+        paint_style style;
+        style.fill = true;
+        tree.set_paint(root, style);
+    }
+
+    tree.set_viewport({0, 0, 80, 60});
+    layout_engine layout{workers.dispatcher()};
+    const auto source = tree.snapshot();
+    const auto geometry = layout.calculate(source);
+    paint_engine paint{
+        workers.dispatcher(), {4096, 1, 4, paint_execution::chunks}, {}, {log, capture}};
+    EXPECT_EQ(paint.calculate(source, geometry).quads().size(), 8);
+    std::ostringstream trace;
+    capture->write_chrome_trace(trace);
+    for (const auto* name : {"ui.paint.calculate", "ui.paint.order_clip", "ui.paint.tessellate",
+                             "ui.paint.chunk", "ui.paint.join"})
+    {
+        EXPECT_EQ(trace.str().find(name) != std::string::npos,
+                  diagnostics::instrumentation_enabled);
+    }
+
+    EXPECT_EQ(capture->statistics().errors, 0);
 }
 } // namespace atlas::ui::tests

@@ -57,6 +57,7 @@ Optional PMR storage must support concurrent release when batches are released o
 workers. The buffer is owner-affine and non-reentrant; diagnostics cannot mutate it
 during sealing. Profiling follows the shared build policy, and logging is injected.
 
-The current native application draws a textured quad through generic renderer
-passes; it does not consume UI commands. UI delivery is tracked in the
+The native applications author a generic UI tree directly, prepare layout/paint
+packets on main and consume them through the renderer adapter. The demonstration
+does not produce application command batches. UI delivery is tracked in the
 [UI milestone](https://github.com/ocarizr/atlas-ui/milestone/4).

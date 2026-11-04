@@ -1,6 +1,7 @@
 /** @file @brief Main-owned window messages and application-owned persistent render coordination. */
 #include "renderer_host.hpp"
 #include "graphics_handler.hpp"
+#include "ui_demo.hpp"
 #include <algorithm>
 #include <atlas/memory/memory_resource.hpp>
 #include <string_view>
@@ -12,7 +13,8 @@ namespace
 {
 /// @brief Keep dispatching window messages during full queues, initialization and render teardown.
 void run_frames(window::window& target, render_host::render_loop& loop, bool smoke,
-                const presentation_feedback& presented, const diagnostics::services& destinations)
+                const presentation_feedback& presented, const diagnostics::services& destinations,
+                ui_demo& ui)
 {
     const auto pump = [&]
     {
@@ -32,7 +34,7 @@ void run_frames(window::window& target, render_host::render_loop& loop, bool smo
                 break;
             }
 
-            if (loop.try_submit({next_id, state}))
+            if (loop.try_submit({next_id, state, ui.snapshot(state)}))
             {
                 ++next_id;
             }
@@ -103,6 +105,7 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
         options.worker_count = std::clamp(std::thread::hardware_concurrency(), 1U, 4U);
         options.scratch.upstream = memory.get();
         jobs::job_system workers{options};
+        ui_demo ui{workers.dispatcher(), memory, {log, {}}};
         const auto content_root = std::filesystem::absolute(argv[0]).parent_path() / "content";
         presentation_feedback presented;
         render_host::render_loop loop{[&]
@@ -114,7 +117,7 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
                                       },
                                       {},
                                       {log, {}}};
-        run_frames(target, loop, smoke, presented, {log, {}});
+        run_frames(target, loop, smoke, presented, {log, {}}, ui);
         return 0;
     }
     catch (const std::exception& error)

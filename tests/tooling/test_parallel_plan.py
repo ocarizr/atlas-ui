@@ -40,6 +40,8 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
     plan = plan_components(configuration, {"editor"})
     assert set(plan["components"]) == {
         "editor",
+        "ui",
+        "ui-renderer",
         "application",
         "ipc",
         "jobs",
@@ -66,6 +68,8 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
         "renderer-content",
         "renderer-jobs",
         "streaming",
+        "ui",
+        "ui-renderer",
         "window",
     ]
 

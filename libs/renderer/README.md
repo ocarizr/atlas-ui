@@ -46,10 +46,11 @@ uses immutable passes; no resource loading is performed here. See the
 [renderer contracts](../../docs/renderer.md) for resources,
 passes, job recording, content orchestration and production-readiness gates.
 
-After building, run `atlas_game` or `atlas_editor` for a streamed textured quad, `--warp`
+After building, run `atlas_game` or `atlas_editor` for clipped panels and streamed textured rows, `--warp`
 for software presentation, `--graphics-smoke-test` for three hidden WARP frames,
 or `--smoke-test` for the existing headless bootstrap. Graphics smoke checks require
-a textured frame to reach presentation. There are no widgets yet.
+a textured UI frame to reach presentation. The shared UI demonstration draws
+clipped panels and textured rows through [the UI adapter](../ui_renderer/README.md).
 
 See [library diagnostics and build policy](../../docs/diagnostics_policy.md) for optional destinations, `ATLAS_PROFILING=auto|on|off`, trace export and CPU/async timing semantics.
 
@@ -59,7 +60,7 @@ The pass API provides `pass_renderer` and `frame_plan` in
 `<atlas/renderer/passes.hpp>`. See [pipelines and ordered passes](../../docs/renderer_passes.md)
 for builtins/custom in-memory shaders, fixed vertex ABI, color/depth targets,
 blending, viewport/scissor, transactional validation and presentation. Editor and
-game render their streamed textured quad through this shared path.
+game render shared UI packets through this path and the separate UI adapter.
 
 The recording API provides a joined `recording_executor` interface and bounded contiguous
 command batches. The optional `atlas::renderer_jobs` adapter reuses an injected
