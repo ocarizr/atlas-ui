@@ -18,6 +18,7 @@ selective invalidation and immutable command batches with conflict diagnostics.
 Named serial/work phases reuse the shared job pool, with bounded ranges and sequential fallback.
 Layout measures and arranges constrained boxes, overlays and stacks with immutable
 geometry, revision-checked publication and independent-root reuse.
+Bounded intra-root panel measurement is available as an opt-in execution policy.
 Typed canvas slots support normalized anchors, offsets and placement pivots;
 general visual origins remain separate from layout geometry.
 Stacks support remaining-space distribution, opt-in weighted sizing and stable

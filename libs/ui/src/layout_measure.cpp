@@ -67,35 +67,46 @@ std::pair<double, double> content_size(const measured_branch& result, std::size_
 }
 } // namespace
 
+/// @brief The same nonrecursive kernel serves serial ranges and joined ancestor reduction.
+void measure_node(measured_branch& result, std::size_t index, const std::stop_token& stop)
+{
+    if (stop.stop_requested())
+    {
+        throw jobs::job_cancelled{};
+    }
+
+    const auto& value = result.source->nodes[index];
+    auto [width, height] = content_size(result, index, stop);
+    width = std::max(width, static_cast<double>(value.style.intrinsic.width)) +
+            value.style.padding.left + value.style.padding.right;
+    height = std::max(height, static_cast<double>(value.style.intrinsic.height)) +
+             value.style.padding.top + value.style.padding.bottom;
+    const auto& limits = value.style.constraints;
+    width = std::clamp(value.width_fixed ? value.width : width,
+                       static_cast<double>(limits.minimum.width),
+                       static_cast<double>(limits.maximum.width));
+    height = std::clamp(value.height_fixed ? value.height : height,
+                        static_cast<double>(limits.minimum.height),
+                        static_cast<double>(limits.maximum.height));
+    result.desired[index] = {layout_float(width), layout_float(height)};
+}
+
 /// @brief Parent sizing reads only children that already completed in reverse preorder.
+void measure_nodes(measured_branch& result, std::span<layout_extent> output,
+                   const std::stop_token& stop)
+{
+    const auto first = static_cast<std::size_t>(output.data() - result.desired.data());
+    for (std::size_t position = first + output.size(); position != first; --position)
+    {
+        measure_node(result, position - 1, stop);
+    }
+}
+
+/// @brief Serial and worker interval loops share a compilation unit for identical inlining chances.
 measure_output measure_layout(measure_input source, const std::stop_token& stop)
 {
     auto result = std::make_shared<measured_branch>(std::move(source));
-    const auto& nodes = result->source->nodes;
-    for (std::size_t position = nodes.size(); position != 0; --position)
-    {
-        if (stop.stop_requested())
-        {
-            throw jobs::job_cancelled{};
-        }
-
-        const auto index = position - 1;
-        const auto& value = nodes[index];
-        auto [width, height] = content_size(*result, index, stop);
-        width = std::max(width, static_cast<double>(value.style.intrinsic.width)) +
-                value.style.padding.left + value.style.padding.right;
-        height = std::max(height, static_cast<double>(value.style.intrinsic.height)) +
-                 value.style.padding.top + value.style.padding.bottom;
-        const auto& limits = value.style.constraints;
-        width = std::clamp(value.width_fixed ? value.width : width,
-                           static_cast<double>(limits.minimum.width),
-                           static_cast<double>(limits.maximum.width));
-        height = std::clamp(value.height_fixed ? value.height : height,
-                            static_cast<double>(limits.minimum.height),
-                            static_cast<double>(limits.maximum.height));
-        result->desired[index] = {layout_float(width), layout_float(height)};
-    }
-
+    measure_nodes(*result, result->desired, stop);
     return result;
 }
 

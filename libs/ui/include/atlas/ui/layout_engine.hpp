@@ -15,16 +15,20 @@ struct layout_limits
     std::size_t max_nodes = 65536;         ///< Supported range is 1..65536.
     std::size_t min_parallel_nodes = 4096; ///< Small forests stay on the coordinator.
     std::uint32_t max_chunks = 16;         ///< Root chunk cap; one disables job admission.
+    std::size_t subtree_grain = 0; ///< Zero disables intra-root jobs; otherwise minimum split size.
 };
 
 /// @brief Observations of the latest calculation.
 struct layout_statistics
 {
-    std::size_t measured_nodes = 0; ///< Nodes measured after exact cache comparison.
-    std::size_t arranged_nodes = 0; ///< Nodes assigned rectangles.
-    std::size_t cached_roots = 0;   ///< Roots reused without numeric layout work.
-    std::size_t admitted_jobs = 0;  ///< Accepted jobs across both joined phases.
-    bool failed = false;            ///< No partial result was returned.
+    std::size_t measured_nodes = 0;   ///< Nodes measured after exact cache comparison.
+    std::size_t arranged_nodes = 0;   ///< Nodes assigned rectangles.
+    std::size_t cached_roots = 0;     ///< Roots reused without numeric layout work.
+    std::size_t admitted_jobs = 0;    ///< Accepted jobs across both joined phases.
+    bool failed = false;              ///< No partial result was returned.
+    std::size_t subtree_ranges = 0;   ///< Disjoint measurement ranges in a single changed root.
+    std::size_t subtree_nodes = 0;    ///< Nodes measured by those ranges before ancestor reduction.
+    std::size_t scheduling_bytes = 0; ///< Requested planner capacity; excludes scheduler/outputs.
 };
 
 /// @brief Owner-only coordinator borrowing the application's persistent pool.

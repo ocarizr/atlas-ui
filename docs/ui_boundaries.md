@@ -114,9 +114,10 @@ content; sources precede dependents before each child's descendants use its fina
 rectangle. Relationships do not require iterative geometry correction.
 
 The application supplies the existing jobs dispatcher and thread-safe PMR.
-Independent dirty roots may run in joined phases; small/single-root work stays
-serial. Relationship processing creates no worker pool or per-child jobs.
-Dependency-aware intra-root job scheduling remains separate work in issue #114.
+Independent dirty roots may run in joined phases; small work stays serial.
+[Optional subtree measurement](ui_layout_execution.md) can split one dirty root.
+Relations affect arrangement, which remains sequential within that root in stable
+dependency order. Relationship processing creates no worker pool or per-child jobs.
 
 For `N` nodes, `R <= 2N` edges and maximum canvas arity `K`, graph preparation uses
 `O(N + R)` PMR scratch and `O(N + R + N log K)` time. Canvas placement uses binary

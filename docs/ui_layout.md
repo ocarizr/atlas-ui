@@ -91,14 +91,17 @@ before returning; it does not interrupt an allocation or arbitrary resource call
 The application supplies its shared jobs dispatcher, optional shared PMR resource
 and diagnostics services. Layout creates no scheduler. Changed independent roots
 run through joined `ui.layout.measure` and `ui.layout.arrange` phases when their
-total node count reaches `min_parallel_nodes`. Small work and a single changed root
-stay on the coordinator; `max_chunks = 1` disables parallel admission.
+total node count reaches `min_parallel_nodes`. Small work stays on the coordinator;
+`max_chunks = 1` disables parallel admission. One dirty root can opt into bounded
+panel-subtree measurement using a positive `subtree_grain`; the default zero skips
+that planner. See [layout execution and measurement](ui_layout_execution.md).
 
 The engine caches exact geometry inputs per root. An unchanged revision reuses the
 complete result; changed input rebuilds preparation metadata and compares roots.
 Unchanged roots reuse numeric geometry. A change within one root currently
 remeasures/rearranges that entire root. There is no subtree-level incremental
-solver or parallel dependency schedule within a root. Limits default to 65,536
+solver. Optional intra-root measurement uses a joined frontier before ancestor
+reduction; arrangement within one root remains sequential. Limits default to 65,536
 nodes, a 4,096-node parallel threshold and 16 chunks. Thresholds are policy choices,
 not automatic timing calibration. `statistics()` reports actual work/admission.
 

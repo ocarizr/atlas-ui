@@ -137,5 +137,6 @@ work stays inside existing measure/arrange scopes. Profiling follows
 `ATLAS_PROFILING=auto|on|off`. There is no automatic telemetry export.
 
 Matching headers and archives must be rebuilt together because panel/snapshot
-layouts include these policies. Sibling relationships, grid, wrapping and
-dependency-aware subtree scheduling are not implemented by these contracts.
+layouts include these policies. Sibling relationships use the separate
+[boundary contract](ui_boundaries.md); optional worker measurement uses the shared
+[layout execution policy](ui_layout_execution.md). Grid and wrapping remain absent.

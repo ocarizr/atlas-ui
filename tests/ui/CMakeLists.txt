@@ -1,4 +1,8 @@
 add_executable(atlas_ui_tests command_merge_tests.cpp command_validation_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE subtree_execution_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE subtree_resource_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE subtree_cancellation_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE subtree_nested_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE boundary_geometry_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE boundary_validation_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE boundary_axis_tests.cpp)

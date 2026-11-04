@@ -1,5 +1,6 @@
 /** @file @brief Synthetic phase-grain observations; no production UI budget or speedup threshold.
  */
+#include "layout_probe.hpp"
 #include <algorithm>
 #include <array>
 #include <atlas/jobs/job_system.hpp>
@@ -69,6 +70,29 @@ double quantile(std::vector<double> samples, std::size_t percent)
     std::sort(samples.begin(), samples.end());
     return samples[(samples.size() - 1) * percent / 100];
 }
+
+/// @brief The arithmetic probe retains its numeric worker-count CLI independently of layout modes.
+std::size_t parse_workers(int argc, char** argv)
+{
+    std::size_t workers = 4;
+    if (argc > 2)
+    {
+        throw std::invalid_argument("expected at most one worker-count argument");
+    }
+
+    if (argc == 2)
+    {
+        const std::string_view value{argv[1]};
+        const auto parsed = std::from_chars(value.data(), value.data() + value.size(), workers);
+        if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size() || workers == 0 ||
+            workers > 64)
+        {
+            throw std::invalid_argument("worker count must be in 1..64");
+        }
+    }
+
+    return workers;
+}
 } // namespace
 
 /// @brief Write a reproducible XML report to stdout; optional argument selects 1..64 workers.
@@ -76,22 +100,17 @@ int main(int argc, char** argv)
 {
     try
     {
-        std::size_t workers = 4;
-        if (argc > 2)
-        {
-            throw std::invalid_argument("expected at most one worker-count argument");
-        }
-
         if (argc == 2)
         {
-            const std::string_view value{argv[1]};
-            const auto parsed = std::from_chars(value.data(), value.data() + value.size(), workers);
-            if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size() ||
-                workers == 0 || workers > 64)
+            const std::string_view mode{argv[1]};
+            if (mode == "--layout" || mode == "--layout-smoke" || mode == "--layout-profile")
             {
-                throw std::invalid_argument("worker count must be in 1..64");
+                return atlas::ui::benchmarks::run_layout_benchmark(mode == "--layout-smoke",
+                                                                   mode == "--layout-profile");
             }
         }
+
+        const auto workers = parse_workers(argc, argv);
 
         atlas::jobs::job_system pool{workers};
         atlas::ui::frame_limits limits;

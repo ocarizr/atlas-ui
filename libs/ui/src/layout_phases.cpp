@@ -53,7 +53,17 @@ layout_engine::impl::evaluate(std::span<const detail::measure_input> pending, la
     {
         {
             const diagnostics::operation_scope scope{destinations, {"ui.layout.measure", "ui.cpu"}};
-            detail::measure_roots({pending, measured, 0, options.cancellation});
+            if (pending.size() == 1 && pending[0]->nodes.size() >= limits.min_parallel_nodes &&
+                limits.max_chunks > 1 && limits.subtree_grain != 0 &&
+                pending[0]->nodes.size() / 2 >= limits.subtree_grain)
+            {
+                measured[0] = detail::measure_subtrees(pending[0], dispatcher, limits, options,
+                                                       stats, destinations);
+            }
+            else
+            {
+                detail::measure_roots({pending, measured, 0, options.cancellation});
+            }
         }
         for (std::size_t index = 0; index < measured.size(); ++index)
         {
