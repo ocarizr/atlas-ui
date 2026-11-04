@@ -103,12 +103,13 @@ offline compilation and bundle packaging are not implemented.
 
 ## Demonstration and diagnostics
 
-Game and editor share the streamed textured-quad scene. A tiny original BMP and
+Game and editor share a generic UI demonstration that consumes a resident streamed image. A tiny original BMP and
 HLSL source are mapped in `assets/manifest.xml`, staged beside each executable in
 `content/` and included in application packaging. CMake derives exact request sizes
 from those source files. The scene renders its background while content is pending;
 smoke checks require a textured frame to reach presentation before reporting success.
-There are still no widgets, layout, bundles or world-rendering semantics.
+UI layout and painting belong to separate libraries; the content consumer owns no
+widget, layout, bundle or world-rendering semantics.
 
 Injected diagnostics provide `content.image.request`, `content.image.decode`,
 `content.shader.request`, `content.shader.prepare`, `content.texture.upload`,

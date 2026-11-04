@@ -1,4 +1,4 @@
-"""Keep UI phases on injected jobs without pulling graphics, Lua or IPC dependencies."""
+"""Keep UI dependency direction and consumer validation explicit."""
 
 import pytest
 
@@ -37,8 +37,8 @@ def ui_configuration():
     ],
 )
 def test_command_changes_do_not_select_unrelated_consumers(ui_configuration, path):
-    """UI has no declared application consumer; its state changes select its own validation."""
-    assert select_components(ui_configuration, [path]) == {"ui"}
+    """Changes validate the adapter/apps without making graphics a core UI dependency."""
+    assert select_components(ui_configuration, [path]) == {"ui", "ui-renderer", "game", "editor"}
 
 
 def test_ui_imports_the_shared_jobs_and_diagnostics_prerequisites(ui_configuration):

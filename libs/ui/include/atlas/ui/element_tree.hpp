@@ -63,6 +63,8 @@ class element_tree
     void set_visual(element_handle target,
                     visual_style visual);             ///< Paint-only general transform origin.
     visual_style visual(element_handle target) const; ///< Return committed metadata by value.
+    void set_paint(element_handle target, const paint_style& style); ///< Validate paint-only state.
+    paint_style paint(element_handle target) const; ///< Return sparse metadata or its defaults.
     void set_viewport(layout_rect viewport); ///< Changed bounds invalidate all computed geometry.
     void publish_layout(const layout_snapshot& result); ///< Atomically reject old/foreign inputs.
     std::optional<layout_geometry>

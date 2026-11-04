@@ -23,9 +23,9 @@ This repository contains the technology and its host applications, not a game.
   containers, with revision-checked geometry publication and root reuse.
 - Generated Protobuf/gRPC session contracts and executable bootstrap entry points.
 
-The game and editor executables display the same streamed textured quad. They do
-not yet integrate the UI tree/layout engine or provide an editor interface, MVVM bindings, Lua
-execution or media playback. The cooking and packaging tool entry points are
+The game and editor executables display the same generic clipped UI panels and
+textured rows using the shared tree, layout, paint and renderer adapter. They do
+not provide an editor interface, MVVM bindings, Lua execution or media playback. The cooking and packaging tool entry points are
 placeholders; executable CPack packaging is separate from asset cooking/bundles.
 EnTT, XML, YAML and codec dependencies are integrated, but linking a dependency
 does not establish an implemented domain system.

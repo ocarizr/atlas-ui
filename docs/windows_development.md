@@ -42,7 +42,7 @@ ctest --preset windows-debug
 
 Builds live under `build/<preset>`. Local overrides use untracked `CMakeUserPresets.json`. Owned targets call `atlas_configure_target(name)` and tests use `atlas_configure_test(name)`; each library also declares public requirements and dependencies. Do not impose project warnings on third parties.
 
-Owned test targets have component CTest labels. CTest fails if a selected component has no tests. Game/editor display a generic streamed textured quad; no widget UI or editor service is implemented. If upgrading a build directory created before vcpkg integration, configure once with `cmake --fresh --preset windows-msvc`. The first dependency build downloads/builds Debug and Release packages; later profiles reuse the binary cache.
+Owned test targets have component CTest labels. CTest fails if a selected component has no tests. Game/editor display generic clipped UI panels and textured rows; no authoring editor service is implemented. If upgrading a build directory created before vcpkg integration, configure once with `cmake --fresh --preset windows-msvc`. The first dependency build downloads/builds Debug and Release packages; later profiles reuse the binary cache.
 
 ## Style and analysis
 

@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <atlas/ui/layout_types.hpp>
+#include <atlas/ui/paint_style.hpp>
 #include <atlas/ui/panel_layout.hpp>
 #include <atlas/ui/visual_style.hpp>
 
@@ -40,5 +41,6 @@ struct element_record
     layout_style layout{};          ///< Geometry inputs independent of visual visibility.
     panel_layout panel{};           ///< Typed parent policy; defaults to overlay.
     visual_style visual{};          ///< Transform origin does not affect layout measurement.
+    paint_style paint{};            ///< Optional background, clip and stacking metadata.
 };
 } // namespace atlas::ui

@@ -1,5 +1,9 @@
 # UI element state and commands
 
+The [paint core](../../docs/ui_paint.md) prepares ordered immutable rectangles,
+inherited clipping/opacity and optional bounded tessellation jobs. The separate
+`atlas::ui_renderer` adapter handles graphics submission and resident textures.
+
 `atlas::ui` is an independent SDK-free C++20 library. It provides serial command
 production, immutable batches and an owner-thread EnTT-backed element tree.
 Named phases reuse an injected jobs dispatcher with joined outputs and sequential

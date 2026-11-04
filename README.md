@@ -12,7 +12,7 @@ native windows and generic graphics resources/passes. Optional worker recording
 uses the application's existing pool. A bounded render host separates window
 messages from graphics coordination.
 
-The game and editor hosts display the same streamed textured quad. The independent
+The game and editor hosts display the same generic clipped panels and textured rows. The independent
 UI library owns an EnTT-backed element tree with transactional requested properties,
 selective invalidation and immutable command batches with conflict diagnostics.
 Named serial/work phases reuse the shared job pool, with bounded ranges and sequential fallback.
@@ -65,6 +65,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | Component | Debug/tests | Release/tests | ASan | MSVC analysis | clang-tidy | Coverage | SDK-free |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | [UI](libs/ui/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tree/frame contracts |
+| [UI renderer](libs/ui_renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Packet contracts |
 | [Window](libs/window/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Renderer](libs/renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Render host](libs/render_host/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Handoff contracts |
@@ -100,7 +101,7 @@ updates. Edit source comments rather than generated wiki pages.
 | Topic | Guides |
 | --- | --- |
 | Product | [Scope](docs/scope.md), [architecture](docs/architecture.md), [application hosts](docs/application_hosts.md) |
-| UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [API and examples](libs/ui/README.md) |
+| UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [painting and clipping](docs/ui_paint.md), [API and examples](libs/ui/README.md) |
 | Jobs | [Overview](docs/jobs.md), [dispatch](docs/job_dispatch.md), [graphs](docs/job_graphs.md), [scheduling](docs/job_scheduling.md), [callbacks](docs/job_callbacks.md), [measurement](docs/job_workloads.md), [safety](libs/jobs/README.md) |
 | Memory and storage | [PMR resources](libs/memory/README.md), [assets](docs/assets.md), [streaming](docs/streaming.md), [streaming API](libs/streaming/README.md) |
 | Rendering | [Contracts](docs/renderer.md), [resources](docs/renderer_resources.md), [passes](docs/renderer_passes.md), [recording](docs/renderer_recording.md), [content](docs/renderer_content.md), [render host/readiness](docs/render_host.md) |

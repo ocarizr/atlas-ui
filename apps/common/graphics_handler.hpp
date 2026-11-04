@@ -31,8 +31,8 @@ class graphics_handler final : public render_host::frame_handler
                {"renderer.quad", streaming::loose_file_asset{content_root / "quad.hlsl"}}},
               {}, memory, destinations),
           content_(streamer_, renderer_content::make_image_decoder(), memory, destinations),
-          recording_(workers.dispatcher()), scene_(graphics_, recording_, content_, destinations),
-          presented_(presented)
+          recording_(workers.dispatcher()),
+          scene_(graphics_, recording_, content_, memory, destinations), presented_(presented)
     {
         const auto info = graphics_.info();
         diagnostics::write(destinations_, diagnostics::log_level::info, "renderer",
@@ -55,7 +55,10 @@ class graphics_handler final : public render_host::frame_handler
         surface_.resize(extent);
         if (extent.width != 0 && extent.height != 0)
         {
-            const auto result = scene_.render(surface_, extent, frame.id);
+            const auto* packet =
+                dynamic_cast<const ui_renderer::frame_payload*>(frame.content.get());
+            const auto result =
+                scene_.render(surface_, extent, frame.id, packet ? &packet->paint : nullptr);
             presented_.result.store(result, std::memory_order_relaxed);
             if (result == renderer::frame_result::presented && scene_.content_presented())
             {
