@@ -295,4 +295,29 @@ TEST_F(command_diagnostics_test, boundary_scopes_and_failure_logging_remain_guar
     EXPECT_EQ(trace.str().find("ui.tree.set_boundaries") != std::string::npos,
               diagnostics::instrumentation_enabled);
 }
+
+/// @brief Subtree phases expose preparation, workers, join and parent reduction under the policy.
+TEST_F(command_diagnostics_test, subtree_layout_scopes_follow_optional_profiling_policy)
+{
+    jobs::job_system pool{2};
+    element_tree tree;
+    const auto root = tree.create();
+    for (int index = 0; index < 4; ++index)
+    {
+        const auto panel = tree.create(root);
+        tree.create(panel);
+        tree.create(panel);
+    }
+
+    layout_engine engine{pool.dispatcher(), {64, 1, 4, 1}, {}, {log, capture}};
+    engine.update(tree, {0, 0, 100, 100});
+    std::ostringstream trace;
+    capture->write_chrome_trace(trace);
+    for (const auto* name : {"ui.layout.prepare", "ui.layout.plan", "ui.layout.subtree",
+                             "ui.layout.join", "ui.layout.measure.parents", "ui.layout.arrange"})
+    {
+        EXPECT_EQ(trace.str().find(name) != std::string::npos,
+                  diagnostics::instrumentation_enabled);
+    }
+}
 } // namespace atlas::ui::tests

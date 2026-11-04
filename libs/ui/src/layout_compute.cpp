@@ -32,7 +32,11 @@ layout_engine::impl::compute(const element_snapshot& snapshot, const jobs::job_o
         return last;
     }
 
-    auto forest = detail::prepare_layout(snapshot, memory);
+    auto forest = [&]
+    {
+        const diagnostics::operation_scope scope{destinations, {"ui.layout.prepare", "ui.cpu"}};
+        return detail::prepare_layout(snapshot, memory);
+    }();
     std::pmr::vector<detail::arrange_output> next(forest.records.size(), {}, memory.get());
     std::pmr::vector<detail::measure_input> pending(0, memory.get());
     pending.reserve(forest.roots.size());

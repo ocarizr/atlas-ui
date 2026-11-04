@@ -89,8 +89,9 @@ Slot/panel changes invalidate layout and paint, advance the layout revision and
 reject old geometry publication. New operations use injected diagnostic failure
 logs and optional `ui.tree.set_panel`, `ui.tree.set_canvas_slot` and
 `ui.tree.set_visual` CPU scopes under the existing profiling policy. They create no
-scheduler, storage access or graphics resources. Current parallelism remains across
-independent roots; dependency-aware subtree scheduling is tracked in issue #114.
+scheduler, storage access or graphics resources. Independent roots retain joined
+parallel phases; [optional subtree measurement](ui_layout_execution.md) also applies
+to eligible panels at any depth. Intra-root arrangement remains sequential.
 
 ## General visual origin
 

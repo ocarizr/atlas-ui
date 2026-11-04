@@ -43,7 +43,10 @@ const auto child_bounds = geometry.find(child)->bounds;
 ```
 
 The engine borrows the existing dispatcher. Independent changed roots may execute
-in parallel; a small workload or a single changed root stays sequential. Layout
+in parallel; a small workload stays sequential. One dirty root can opt into bounded
+panel-subtree measurement with a positive `layout_limits::subtree_grain`; zero is
+the default. See [execution policy and benchmark](../../docs/ui_layout_execution.md).
+Layout
 styles and computed geometry are separate from command-driven requested properties.
 See [sizing, invalidation, cache and failure semantics](../../docs/ui_layout.md).
 

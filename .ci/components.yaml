@@ -115,6 +115,10 @@ components:
     - libs/ui/**
     - tests/ui/**
     - benchmarks/ui/**
+    # The layout probe reuses the jobs benchmark's allocation census, not its workload library.
+    - benchmarks/jobs/allocation_counter.cpp
+    - benchmarks/jobs/allocation_counter.hpp
+    - benchmarks/jobs/allocation_counter_check.cpp
     depends_on:
     - diagnostics
     - jobs

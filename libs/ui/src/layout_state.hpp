@@ -123,6 +123,16 @@ layout_forest prepare_layout(const element_snapshot& snapshot,
                              const std::shared_ptr<std::pmr::memory_resource>& memory);
 measure_output measure_layout(measure_input source,
                               const std::stop_token& stop); ///< Bottom-up natural sizing.
+/// @brief Measure one node after all its children, with the same serial reduction order.
+void measure_node(measured_branch& result, std::size_t index, const std::stop_token& stop);
+void measure_nodes(measured_branch& result, std::span<layout_extent> output,
+                   const std::stop_token& stop); ///< Complete reverse-preorder interval kernel.
+measure_output
+measure_subtrees(measure_input source, const jobs::job_dispatcher& dispatcher,
+                 const layout_limits& limits, const jobs::job_options& options,
+                 layout_statistics& stats,
+                 const diagnostics::services&
+                     destinations); ///< Bounded frontier join before ancestor reduction.
 arrange_output arrange_layout(const arrange_input& input,
                               const std::stop_token& stop); ///< Top-down placement.
 void measure_roots(
