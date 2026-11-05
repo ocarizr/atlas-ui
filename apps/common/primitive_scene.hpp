@@ -1,8 +1,6 @@
-/** @file @brief Render-thread consumer of immutable UI packets and streamer-fed resident images. */
+/** @file @brief Render-thread UI consumer with bounded streamed-image residency. */
 #pragma once
-#include <atlas/renderer_content/gpu_content.hpp>
-#include <atlas/renderer_content/loader.hpp>
-#include <atlas/ui_renderer/paint_renderer.hpp>
+#include <atlas/ui_images/image_renderer.hpp>
 
 namespace atlas::application
 {
@@ -10,47 +8,39 @@ class primitive_scene
 {
   public:
     primitive_scene(renderer::device& graphics, renderer::recording_executor& executor,
-                    renderer_content::content_loader& content,
                     std::shared_ptr<std::pmr::memory_resource> memory,
                     diagnostics::services destinations = {})
         : resources_(graphics), passes_(resources_), executor_(executor),
-          ui_(resources_, passes_, std::move(memory), destinations),
+          images_(resources_, passes_, {}, std::move(memory), destinations),
           destinations_(std::move(destinations))
     {
-        image_.emplace(content.read_image({"renderer.checker", 0, ATLAS_DEMO_IMAGE_SIZE}));
-    } ///< Construct graphics and initiate content on their creating coordinator.
+    } ///< Create only graphics state; main owns acquisition and immutable image metadata.
 
-    /// @brief A real textured UI frame has reached presentation.
-    /// @brief A real textured UI frame has reached presentation.
+    /// @brief A decoded asset has actually reached presentation.
     bool content_presented() const noexcept
     {
         return content_presented_;
     }
 
-    ///< Smoke completion requires a real textured UI frame reaching presentation.
-
+    ///< A real decoded asset, rather than its placeholder, reached presentation.
+    /// @brief Reclaim completed GPU resources without blocking.
     void collect()
     {
+        images_.collect();
         passes_.collect();
         resources_.collect();
-    } ///< Reclaim completed frame resources and timings.
+    }
 
+    ///< Reclaim only completed resources on the render coordinator.
     renderer::frame_result render(renderer::presentation_surface& surface,
                                   renderer::surface_extent extent, std::uint64_t frame,
-                                  const ui::paint_snapshot* packet)
+                                  const ui_images::frame_payload* packet)
     {
         const diagnostics::operation_scope scope{destinations_,
                                                  {"application.ui.render", "application"}};
         const auto slot = frame % in_flight_.size();
         resources_.wait(in_flight_[slot]);
         collect();
-        if (image_ && image_->ready())
-        {
-            texture_ = std::make_unique<renderer_content::texture_upload>(resources_, image_->get(),
-                                                                          destinations_);
-            image_.reset();
-        }
-
         if (output_.owner == 0 || extent_.width != extent.width || extent_.height != extent.height)
         {
             if (output_.owner != 0)
@@ -64,11 +54,11 @@ class primitive_scene
             extent_ = extent;
         }
 
-        const bool ready = packet && texture_ && texture_->ready();
-        if (ready)
+        bool asset_drawn = false;
+        if (packet && images_.ready())
         {
-            const std::array bindings{ui_renderer::texture_binding{1, texture_->binding().view}};
-            in_flight_[slot] = ui_.submit(*packet, output_, extent, bindings, &executor_);
+            in_flight_[slot] = images_.submit(*packet, output_, extent, &executor_);
+            asset_drawn = images_.statistics().drawn_images != 0;
         }
         else
         {
@@ -81,21 +71,19 @@ class primitive_scene
 
         const auto result = surface.present(resources_, output_);
         content_presented_ =
-            content_presented_ || (ready && result == renderer::frame_result::presented);
+            content_presented_ || (asset_drawn && result == renderer::frame_result::presented);
         return result;
-    } ///< Bound CPU lead and retain graphics resources through their submission fences.
+    } ///< Pending/failing assets remain drawable placeholders; no decode/IO waits occur here.
   private:
-    renderer::resource_store resources_;     ///< Native resource ownership and retirement.
-    renderer::pass_renderer passes_;         ///< Generic ordered pass implementation.
-    renderer::recording_executor& executor_; ///< Application-shared recording adapter.
-    ui_renderer::paint_renderer ui_;         ///< Platform-neutral UI packet adapter.
-    diagnostics::services destinations_;     ///< Optional runtime instrumentation.
-    std::optional<renderer_content::image_request>
-        image_; ///< Nonblocking streamed image preparation.
-    std::unique_ptr<renderer_content::texture_upload> texture_; ///< Resident image lifecycle.
-    renderer::texture_handle output_;                           ///< Resized presentation source.
-    renderer::surface_extent extent_;                           ///< Allocated target size.
-    std::array<renderer::completion_token, 2> in_flight_{};     ///< Maximum two submissions ahead.
-    bool content_presented_ = false;                            ///< Smoke-test completion gate.
-}; ///< Shared technology demonstration without editor or game semantics.
+    renderer::resource_store resources_;     ///< Native resource lifetime and aligned budgets.
+    renderer::pass_renderer passes_;         ///< Generic ordered renderer.
+    renderer::recording_executor& executor_; ///< Shared application job adapter.
+    ui_images::image_renderer
+        images_; ///< Logical residency, fallback and automatic fence tracking.
+    diagnostics::services destinations_; ///< Optional logging/profiling destinations.
+    renderer::texture_handle output_;    ///< Resized presentation source.
+    renderer::surface_extent extent_;    ///< Current output dimensions.
+    std::array<renderer::completion_token, 2> in_flight_{}; ///< Bounded CPU lead.
+    bool content_presented_ = false; ///< Smoke-test success requires actual decoded image content.
+}; ///< Shared technology demonstration without game-specific or authoring logic.
 } // namespace atlas::application

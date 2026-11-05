@@ -21,7 +21,7 @@ from scripts.ci import verify_vendor_inputs
         pytest.param(
             "editor",
             ["memory", "ipc", "content", "graphics"],
-            "@(application|diagnostics|ipc|jobs|jobs-diagnostics|memory|render-host|renderer|renderer-content|renderer-jobs|streaming|ui|ui-renderer|window)",
+            "@(application|diagnostics|ipc|jobs|jobs-diagnostics|memory|render-host|renderer|renderer-content|renderer-jobs|streaming|ui|ui-images|ui-renderer|window)",
             id="transitive-prerequisites",
         ),
     ],

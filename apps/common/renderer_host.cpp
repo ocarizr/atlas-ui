@@ -105,19 +105,28 @@ int run_renderer_host(application_kind kind, int argc, char** argv)
         options.worker_count = std::clamp(std::thread::hardware_concurrency(), 1U, 4U);
         options.scratch.upstream = memory.get();
         jobs::job_system workers{options};
-        ui_demo ui{workers.dispatcher(), memory, {log, {}}};
         const auto content_root = std::filesystem::absolute(argv[0]).parent_path() / "content";
+        streaming::asset_streamer streamer{
+            workers,
+            {{"renderer.checker", streaming::loose_file_asset{content_root / "checker.bmp"}}},
+            {},
+            memory,
+            {log, {}}};
+        ui_images::image_cache images{
+            streamer, renderer_content::make_image_decoder(), {}, memory, {log, {}}};
+        const auto image = images.request({"renderer.checker", 0, ATLAS_DEMO_IMAGE_SIZE});
+        ui_demo ui{workers.dispatcher(), memory, {log, {}}, images, image};
         presentation_feedback presented;
         render_host::render_loop loop{[&]
                                       {
                                           return std::make_unique<graphics_handler>(
-                                              workers, lease, content_root,
-                                              smoke || argument == "--warp", memory,
+                                              workers, lease, smoke || argument == "--warp", memory,
                                               diagnostics::services{log, {}}, presented);
                                       },
                                       {},
                                       {log, {}}};
         run_frames(target, loop, smoke, presented, {log, {}}, ui);
+        streamer.shutdown();
         return 0;
     }
     catch (const std::exception& error)

@@ -12,6 +12,11 @@ void element_tree::set_paint(element_handle target, const paint_style& style)
     const impl::guard guard{impl_->busy};
     const diagnostics::operation_scope scope{impl_->destinations, {"ui.tree.set_paint", "ui.cpu"}};
     const auto index = impl_->require(target);
+    if (style.image)
+    {
+        (void)fit_image({}, *style.image, style.uv);
+    }
+
     const auto valid = [](float value)
     {
         return std::isfinite(value) && value >= 0 && value <= 1;

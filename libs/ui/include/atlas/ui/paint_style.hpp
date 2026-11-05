@@ -4,7 +4,9 @@
  */
 #pragma once
 #include <array>
+#include <atlas/ui/image_fit.hpp>
 #include <atlas/ui/visual_style.hpp>
+#include <optional>
 
 namespace atlas::ui
 {
@@ -17,6 +19,7 @@ struct paint_style
     std::uint64_t texture = 0;  ///< Zero means solid; nonzero is a consumer-resolved resident key.
     layout_rect uv{0, 0, 1, 1}; ///< Finite normalized texture region, nonnegative extent.
     layout_point translation{}; ///< Finite paint-only offset inherited by descendants.
+    std::optional<image_sampling> image; ///< Aspect fitting uses metadata without reading pixels.
     bool operator==(const paint_style&) const = default; ///< Exact appearance comparison.
 }; ///< Sparse component; no graphics resource or platform SDK dependency.
 } // namespace atlas::ui

@@ -15,7 +15,8 @@ void image_limits::validate() const
 
 /// @brief Retain allocator lifetime ahead of pixel storage in member destruction order.
 image_data::image_data(std::shared_ptr<std::pmr::memory_resource> resource)
-    : memory(std::move(resource)), pixels(memory ? memory.get() : std::pmr::new_delete_resource())
+    : memory(std::move(resource)),
+      pixels(0, memory ? memory.get() : std::pmr::new_delete_resource())
 {
 }
 

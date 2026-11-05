@@ -106,7 +106,17 @@ void prepare_paint(const element_snapshot& input, const layout_snapshot& geometr
             {
                 auto style = node.paint;
                 style.color[3] *= current.alpha;
-                result.inputs.push_back({node.target, bounds, current.clip, style});
+                if (style.image)
+                {
+                    const auto fitted = fit_image(bounds, *style.image, style.uv);
+                    bounds = fitted.bounds;
+                    style.uv = fitted.uv;
+                }
+
+                if (bounds.width > 0 && bounds.height > 0)
+                {
+                    result.inputs.push_back({node.target, bounds, current.clip, style});
+                }
             }
 
             const auto begin = stack.size();

@@ -16,6 +16,8 @@ sizing and parent-owned layout slots:
   alpha; an invisible ancestor suppresses descendants.
 - `texture` is a consumer-resolved resident key; zero selects solid color.
   `uv` selects a normalized region. No file or graphics API is exposed.
+- `image` optionally fits a source region with stretch, contain or cover;
+  see [streamed images](ui_images.md) for sizing and residency ownership.
 - `translation` offsets this element and descendants without changing layout.
 - `clip` intersects the translated border with the inherited rectangular clip.
 - `layer` orders sibling groups: **smaller values are foreground**.
@@ -142,6 +144,9 @@ D3D12 WARP pixel/readback tests cover painter order, clipping, resident textures
 alpha composition, adjacent batching and fence retirement.
 
 ### Observed baseline
+
+These measurements describe revision `7a79bc8`, before optional image-fitting
+metadata was added. They are not a benchmark of streamed image acquisition.
 
 Two local Windows x64 Release runs used MSVC 19.44.35229.0, four workers on a
 20-hardware-thread host, profiling/checker disabled and no concurrent local
