@@ -23,6 +23,7 @@ class demo_interaction final : public ui::input_handler
                 break;
             case ui::event_kind::focus_lost:
                 focused_ = false;
+                pressed_ = false;
                 break;
             case ui::event_kind::pointer_down:
                 if (event.phase == ui::route_phase::target)
@@ -35,6 +36,22 @@ class demo_interaction final : public ui::input_handler
             case ui::event_kind::pointer_cancel:
             case ui::event_kind::capture_lost:
                 pressed_ = false;
+                break;
+            case ui::event_kind::action:
+                if (event.phase == ui::route_phase::target && event.action)
+                {
+                    if (event.action->action == 1)
+                    {
+                        pressed_ = event.action->phase == input::action_phase::started ||
+                                   event.action->phase == input::action_phase::performed;
+                    }
+
+                    if (event.action->action == 2 &&
+                        event.action->phase == input::action_phase::performed)
+                    {
+                        return {.blur = true};
+                    }
+                }
                 break;
             case ui::event_kind::late_tick:
             {

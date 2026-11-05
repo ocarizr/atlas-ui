@@ -28,6 +28,7 @@ def test_renderer_jobs_adapter_preserves_independent_renderer(configuration):
         "renderer-jobs",
         "renderer",
         "jobs",
+        "input",
         "window",
         "diagnostics",
     }
@@ -54,12 +55,14 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
         "renderer-content",
         "renderer-jobs",
         "streaming",
+        "input",
         "window",
     }
     assert "game" not in plan["components"]
     assert plan["prerequisites"]["editor"] == [
         "application",
         "diagnostics",
+        "input",
         "ipc",
         "jobs",
         "jobs-diagnostics",

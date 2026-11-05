@@ -50,8 +50,8 @@ def test_command_changes_do_not_select_unrelated_consumers(ui_configuration, pat
 def test_ui_imports_the_shared_jobs_and_diagnostics_prerequisites(ui_configuration):
     """UI reuses the shared pool and content vendors without graphical/IPC dependencies."""
     plan = plan_components(ui_configuration, {"ui"})
-    assert plan["components"] == ["diagnostics", "jobs", "ui"]
-    assert plan["prerequisites"]["ui"] == ["diagnostics", "jobs"]
+    assert plan["components"] == ["diagnostics", "input", "jobs", "ui"]
+    assert plan["prerequisites"]["ui"] == ["diagnostics", "input", "jobs"]
     assert plan["vendors"]["ui"] == ["content", "testing"]
     assert len(plan["matrices"]["ui"]["include"]) == len(ui_configuration["profiles"])
 

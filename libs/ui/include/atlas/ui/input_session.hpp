@@ -3,6 +3,7 @@
  * @brief Owner-thread input routing and ordered lifecycle over immutable presentation geometry.
  */
 #pragma once
+#include <atlas/input/input_system.hpp>
 #include <atlas/ui/element_tree.hpp>
 
 namespace atlas::ui
@@ -17,6 +18,7 @@ enum class input_kind : std::uint8_t
     pointer_leave,  ///< Pointer left the viewport; capture can continue.
     key_down,       ///< Semantic key press, routed to focus.
     key_up,         ///< Semantic key release, routed to focus.
+    action,         ///< Semantic action routed to focus.
     window_blur     ///< Release capture, hover and focus after activation/input loss.
 };
 
@@ -25,6 +27,7 @@ struct input_event
     input_kind kind = input_kind::pointer_move; ///< Validated before any batch callbacks.
     layout_point position{}; ///< Logical viewport coordinates; may lie outside the viewport.
     std::uint32_t key = 0;   ///< Host-defined semantic identifier, not a native SDK type.
+    std::optional<input::action_event> action{}; ///< Present only for semantic action packets.
 }; ///< Value-only, replayable primary-pointer/key packet; no platform or device ownership.
 
 /// @brief Direct lifecycle events and routed input share one serial handler interface.
@@ -49,6 +52,7 @@ enum class event_kind : std::uint8_t
     key_up,         ///< Release routed to current focus.
     focus_gained,   ///< Direct focus acquisition.
     focus_lost,     ///< Keyboard routing and focus transitions.
+    action,         ///< Semantic action received from the reusable input library.
     ensure_visible  ///< Bubble a focus-reveal request; scrolling policy belongs to the container.
 };
 
@@ -76,6 +80,8 @@ struct routed_event
     std::uint64_t frame = 0;    ///< Increasing owner-selected frame identity.
     float delta_seconds = 0;    ///< Finite nonnegative frame delta.
     bool target_alive = false;  ///< Cleanup can refer to an already removed identity.
+    std::optional<input::action_event>
+        action{}; ///< Copied semantic payload, independent of devices.
 }; ///< Borrowed only for callback duration; copying this value is safe.
 
 struct event_response

@@ -1,5 +1,5 @@
 /** @file @brief Win32 window implementation with deferred native destruction. */
-#include "input_messages.hpp"
+#include "win32_input.hpp"
 #include "window_backend.hpp"
 #include <Windows.h>
 #include <mutex>
@@ -38,9 +38,9 @@ class native_window final : public detail::window_backend
     /// @brief Dispatch pending native messages without blocking the owner thread.
     window_state poll() override;
 
-    input_batch take_input() override
+    input::event_batch take_input() override
     {
-        return input_.buffer.take();
+        return input_.buffer.drain();
     } ///< Drain values after native dispatch, never on the presentation thread.
 
     /// @brief Return the current physical client state on the owner thread.
@@ -55,7 +55,7 @@ class native_window final : public detail::window_backend
     /// @brief Hide the native window and mark it closed without immediate destruction.
     void close() override
     {
-        input_.buffer.push({input_kind::focus_lost});
+        input_.buffer.try_push({input::event_kind::focus_lost});
         if (GetCapture() == handle_)
         {
             ReleaseCapture();
@@ -84,7 +84,8 @@ class native_window final : public detail::window_backend
                                       LPARAM lparam) noexcept;
     HWND handle_ = nullptr; ///< Native handle, destroyed after the last surface releases it.
     window_state state_;    ///< Owner-thread snapshot.
-    detail::native_input_state input_; ///< Fixed native queue, independent of UI implementation.
+    input::detail::native_input_state
+        input_; ///< Fixed native queue, independent of UI implementation.
 };
 
 /// @brief Register the native window class and create a physical client with a validated UTF-8
@@ -185,7 +186,7 @@ LRESULT CALLBACK native_window::procedure(HWND handle, UINT message, WPARAM wpar
 
     if (self != nullptr)
     {
-        if (detail::collect_input(self->input_, {handle, message, wparam, lparam}))
+        if (input::detail::collect_input(self->input_, {handle, message, wparam, lparam}))
         {
             return 0;
         }

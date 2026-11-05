@@ -76,7 +76,7 @@ window_state window::poll_events()
 }
 
 /// @brief Native callbacks only enqueue values; application dispatch runs after polling returns.
-input_batch window::take_input()
+input::event_batch window::take_input()
 {
     impl_->check();
     return impl_->backend->take_input();

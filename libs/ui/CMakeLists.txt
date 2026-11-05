@@ -18,7 +18,7 @@ target_sources(atlas_ui PRIVATE src/layout_validation.cpp src/tree_layout.cpp sr
 target_compile_features(atlas_ui PUBLIC cxx_std_20)
 target_include_directories(atlas_ui PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-target_link_libraries(atlas_ui PUBLIC atlas::diagnostics atlas::jobs)
+target_link_libraries(atlas_ui PUBLIC atlas::input atlas::diagnostics atlas::jobs)
 # EnTT is header-only implementation detail; installed consumers need only the compiled UI archive.
 target_link_libraries(atlas_ui PRIVATE $<BUILD_INTERFACE:EnTT::EnTT>)
 atlas_configure_target(atlas_ui)

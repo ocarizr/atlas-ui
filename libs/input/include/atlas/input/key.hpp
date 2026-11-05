@@ -1,29 +1,14 @@
 /**
  * @file
- * @brief Bounded portable window input packets; coordinates are physical client pixels.
+ * @brief Portable semantic keyboard identifiers, independent of native SDK values.
  */
 #pragma once
-#include <array>
 #include <cstdint>
-#include <span>
 
-namespace atlas::window
+namespace atlas::input
 {
-/// @brief Primary desktop pointer and basic keyboard transport; interpretation belongs to UI.
-enum class input_kind : std::uint8_t
-{
-    pointer_move,   ///< Primary pointer position.
-    pointer_down,   ///< Primary-button press.
-    pointer_up,     ///< Primary-button release.
-    pointer_cancel, ///< Native capture loss.
-    pointer_leave,  ///< Pointer left the client.
-    key_down,       ///< Basic semantic key press, including repeats.
-    key_up,         ///< Basic semantic key release.
-    focus_lost      ///< Activation or overflow reset; discard logical ownership.
-};
-
 /// @brief ASCII digits/uppercase letters also use their ASCII value; no text/IME interpretation.
-enum class input_key : std::uint16_t
+enum class key : std::uint16_t
 {
     unknown = 0,  ///< Unsupported key.
     tab = 9,      ///< Tab semantic identifier.
@@ -76,24 +61,4 @@ enum class input_key : std::uint16_t
     erase         ///< Forward deletion intent.
 };
 
-struct input_event
-{
-    input_kind kind = input_kind::pointer_move; ///< Normalized event category.
-    std::int32_t x = 0;                         ///< Signed physical client x.
-    std::int32_t y = 0;                         ///< Signed physical client y.
-    input_key key = input_key::unknown; ///< Semantic key, independent of platform SDK values.
-}; ///< Value-only packet, copied at the window-owner boundary.
-
-struct input_batch
-{
-    std::array<input_event, 256>
-        events{};          ///< Fixed native admission buffer, no callback allocation.
-    std::size_t count = 0; ///< Admitted entries in message order.
-    bool overflow = false; ///< Overflow replaces the batch with one focus-lost reset.
-
-    std::span<const input_event> values() const noexcept
-    {
-        return {events.data(), count};
-    } ///< Borrow only while this batch remains alive and unchanged.
-}; ///< Not a text input, wheel, multi-pointer, gamepad or accessibility API.
-} // namespace atlas::window
+} // namespace atlas::input

@@ -98,7 +98,7 @@ event_response input_session::impl::send(element_handle current, event_kind kind
     const diagnostics::operation_scope scope{destinations, {"ui.input.callback", "ui.dispatch"}};
     return binding->handler->on_event({kind, phase, target, current, raw.position, local,
                                        target_bounds, current_bounds, clip, raw.key, stats.frame,
-                                       delta, tree.contains(target)},
+                                       delta, tree.contains(target), raw.action},
                                       tree.commands());
 }
 

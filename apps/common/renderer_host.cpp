@@ -43,8 +43,7 @@ void run_frames(window::window& target, render_host::render_loop& loop, bool smo
                                    "native input overflow; logical ownership reset");
             }
 
-            const auto events = normalize_input(native_input);
-            if (loop.try_submit({next_id, state, ui.snapshot(state, events.values())}))
+            if (loop.try_submit({next_id, state, ui.snapshot(state, native_input.values())}))
             {
                 ++next_id;
             }

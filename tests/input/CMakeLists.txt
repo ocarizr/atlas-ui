@@ -1,0 +1,7 @@
+add_executable(atlas_input_tests action_tests.cpp)
+target_sources(atlas_input_tests PRIVATE context_tests.cpp interaction_tests.cpp failure_tests.cpp)
+target_link_libraries(atlas_input_tests PRIVATE atlas::input GTest::gtest_main)
+atlas_configure_test(atlas_input_tests)
+gtest_discover_tests(atlas_input_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 30 PROPERTIES LABELS input TIMEOUT 30)
+target_sources(atlas_input_tests PRIVATE policy_tests.cpp)
+target_sources(atlas_input_tests PRIVATE resource_tests.cpp)

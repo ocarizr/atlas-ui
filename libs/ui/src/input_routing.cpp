@@ -235,6 +235,9 @@ void input_session::impl::process_one(input_event raw)
             route(raw, focus_target,
                   raw.kind == input_kind::key_down ? event_kind::key_down : event_kind::key_up);
             break;
+        case input_kind::action:
+            route(raw, focus_target, event_kind::action);
+            break;
         case input_kind::window_blur:
             route(raw, capture_target, event_kind::pointer_cancel);
             clear_capture();

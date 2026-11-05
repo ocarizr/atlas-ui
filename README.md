@@ -27,8 +27,9 @@ Directional sibling boundaries provide acyclic placement and remaining-space siz
 within intrinsic canvas domains.
 Ordered rectangle painting supports clipping, adjacent batching and streamed images.
 Owner-thread input adds clip-aware hit testing, capture/bubble routing, primary-pointer
-capture, focus and ordered lifecycle events. Native window packets feed shared
-game/editor hover and press feedback; expensive work remains in joined job phases.
+capture, focus and ordered lifecycle events. Independent input actions provide
+priority contexts, bindings, modifiers and hold/tap triggers. Native device packets
+and semantic actions feed shared game/editor interaction feedback; expensive work remains in joined job phases.
 Interactive widgets, MVVM, Lua execution, visual authoring,
 asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
 dependencies and bootstrap contracts are available; content-tool entry points are
@@ -71,6 +72,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | [UI](libs/ui/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tree/frame contracts |
 | [UI images](libs/ui_images/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Injected decode contracts |
 | [UI renderer](libs/ui_renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Packet contracts |
+| [Input](libs/input/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Window](libs/window/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Renderer](libs/renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Contracts only |
 | [Render host](libs/render_host/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Handoff contracts |
@@ -106,6 +108,7 @@ updates. Edit source comments rather than generated wiki pages.
 | Topic | Guides |
 | --- | --- |
 | Product | [Scope](docs/scope.md), [architecture](docs/architecture.md), [application hosts](docs/application_hosts.md) |
+| Input | [Actions, contexts and adapters](docs/input.md), [API](libs/input/README.md) |
 | UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [painting and clipping](docs/ui_paint.md), [streamed images](docs/ui_images.md), [input and lifecycle](docs/ui_input.md), [API and examples](libs/ui/README.md) |
 | Jobs | [Overview](docs/jobs.md), [dispatch](docs/job_dispatch.md), [graphs](docs/job_graphs.md), [scheduling](docs/job_scheduling.md), [callbacks](docs/job_callbacks.md), [measurement](docs/job_workloads.md), [safety](libs/jobs/README.md) |
 | Memory and storage | [PMR resources](libs/memory/README.md), [assets](docs/assets.md), [streaming](docs/streaming.md), [streaming API](libs/streaming/README.md) |

@@ -1,4 +1,5 @@
 /** @file @brief Hit testing, capture and command-producing owner callbacks. */
+#include "../../apps/common/demo_interaction.hpp"
 #include "input_test_support.hpp"
 
 namespace atlas::ui::tests
@@ -79,5 +80,54 @@ TEST_F(input_fixture, RemovalDuringCapturePreventsTargetCallbacksAndCleansState)
     EXPECT_EQ(count(event_kind::end), 1);
     EXPECT_EQ(input.captured(), element_handle{});
     finish();
+}
+
+/// @brief Semantic actions retain their value while following focused hierarchy routing.
+TEST_F(input_fixture, SemanticActionRoutesToFocusWithoutDeviceKnowledge)
+{
+    const auto target = rectangle();
+    input.bind(target, handler, {.focusable = true});
+    begin();
+    input.focus(target);
+    input_event packet;
+    packet.kind = input_kind::action;
+    packet.action = atlas::input::action_event{
+        42, atlas::input::value_type::axis2d, atlas::input::action_phase::performed, {0.5F, -1}, 1};
+    input.process(std::span{&packet, 1});
+    ASSERT_EQ(count(event_kind::action), 1);
+    const auto found = std::find_if(handler->events.begin(), handler->events.end(),
+                                    [](const auto& e)
+                                    {
+                                        return e.kind == event_kind::action;
+                                    });
+    ASSERT_NE(found, handler->events.end());
+    ASSERT_TRUE(found->action);
+    const auto received = found->action.value_or(atlas::input::action_event{});
+    EXPECT_EQ(received.action, 42);
+    EXPECT_EQ(received.value, (atlas::input::input_value{0.5F, -1}));
+    EXPECT_EQ(found->target, target);
+    finish();
+}
+
+/// @brief Losing focus must release semantic press feedback even if release routes elsewhere.
+TEST_F(input_fixture, SharedHostInteractionClearsSemanticPressOnFocusLoss)
+{
+    const auto target = rectangle();
+    auto behavior = std::make_shared<atlas::application::demo_interaction>();
+    input.bind(target, behavior, {.focusable = true});
+    begin();
+    input.focus(target);
+    input_event packet;
+    packet.kind = input_kind::action;
+    packet.action = atlas::input::action_event{
+        1, atlas::input::value_type::button, atlas::input::action_phase::started, {1, 0}, 1};
+    input.process(std::span{&packet, 1});
+    finish();
+    EXPECT_FLOAT_EQ(tree.requested(target).opacity, 0.6F);
+    begin(2);
+    input.focus({});
+    input.process({});
+    finish();
+    EXPECT_FLOAT_EQ(tree.requested(target).opacity, 0.85F);
 }
 } // namespace atlas::ui::tests

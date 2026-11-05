@@ -115,7 +115,13 @@ void input_session::process(std::span<const input_event> events)
     for (const auto& value : events)
     {
         if (value.kind > input_kind::window_blur || !std::isfinite(value.position.x) ||
-            !std::isfinite(value.position.y))
+            !std::isfinite(value.position.y) ||
+            (value.kind == input_kind::action) != value.action.has_value() ||
+            (value.action &&
+             (!value.action->action || !value.action->frame ||
+              value.action->type > input::value_type::axis2d ||
+              value.action->phase > input::action_phase::cancelled ||
+              !std::isfinite(value.action->value.x) || !std::isfinite(value.action->value.y))))
         {
             throw std::invalid_argument("invalid UI input packet");
         }

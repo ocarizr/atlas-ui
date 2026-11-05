@@ -1,6 +1,7 @@
 /** @file @brief Generic main-thread UI demonstration shared by editor and runtime. */
 #pragma once
 #include "demo_interaction.hpp"
+#include "input_adapter.hpp"
 #include <atlas/ui/element_tree.hpp>
 #include <atlas/ui_images/image_renderer.hpp>
 #include <chrono>
@@ -14,9 +15,22 @@ class ui_demo
             std::shared_ptr<std::pmr::memory_resource> memory, diagnostics::services destinations,
             ui_images::image_cache& images, std::uint64_t key)
         : images_(images), key_(key), tree_({}, memory, destinations),
-          input_(tree_, {}, memory, destinations), layout_(dispatcher, {}, memory, destinations),
+          actions_({}, memory, destinations),
+          input_(tree_, {.max_events = 4096}, memory, destinations), routed_(memory.get()),
+          layout_(dispatcher, {}, memory, destinations),
           paint_(dispatcher, {}, std::move(memory), std::move(destinations))
     {
+        actions_.define_action({1, "confirm"});
+        actions_.define_action({2, "cancel"});
+        const std::array bindings{
+            input::binding{
+                1, {input::device_kind::keyboard, static_cast<std::uint32_t>(input::key::enter)}},
+            input::binding{
+                1, {input::device_kind::keyboard, static_cast<std::uint32_t>(input::key::space)}},
+            input::binding{
+                2, {input::device_kind::keyboard, static_cast<std::uint32_t>(input::key::escape)}}};
+        actions_.define_context(
+            {1, "viewport", 0, true, input::activation_policy::require_neutral, bindings});
         const auto canvas = tree_.create();
         tree_.set_panel(canvas, ui::canvas_layout{});
         for (unsigned column = 0; column < 3; ++column)
@@ -71,8 +85,8 @@ class ui_demo
         }
     } ///< Author clipped panels and textured rows using shared runtime contracts.
 
-    std::shared_ptr<const render_host::frame_payload>
-    snapshot(const window::window_state& window, std::span<const ui::input_event> events)
+    std::shared_ptr<const render_host::frame_payload> snapshot(const window::window_state& window,
+                                                               std::span<const input::event> events)
     {
         const ui::layout_rect viewport{0, 0, static_cast<float>(window.width),
                                        static_cast<float>(window.height)};
@@ -107,7 +121,10 @@ class ui_demo
         const auto delta = std::chrono::duration<float>(now - previous_tick_).count();
         previous_tick_ = now;
         input_.begin_frame(++frame_, source_, geometry_, delta);
-        input_.process(events);
+        input_time_ += delta;
+        routed_.clear();
+        actions_.dispatch(frame_, input_time_, events, routed_);
+        input_.process(routed_.values());
         input_.tick();
         input_.late_tick();
         input_.end_frame();
@@ -142,7 +159,10 @@ class ui_demo
     ui_images::image_status last_status_ =
         ui_images::image_status::pending; ///< Last published state.
     ui::element_tree tree_;               ///< Main-thread authoring state.
+    input::input_system actions_;         ///< Independent semantic action mapping owner.
+    double input_time_ = 0;               ///< Caller clock for nonwaiting trigger recognition.
     ui::input_session input_;      ///< Serial routing; never dispatch from recording workers.
+    ui_input_batch routed_;        ///< PMR scratch reused across owner frames.
     ui::element_snapshot source_;  ///< Current immutable presentation inputs.
     ui::layout_snapshot geometry_; ///< Geometry reused across appearance-only input commands.
     /// @brief Monotonic time used for serial lifecycle deltas.

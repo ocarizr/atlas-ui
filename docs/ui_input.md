@@ -99,7 +99,8 @@ possibly throwing lost/leave notification.
 
 Focus is explicit through a focusable handler response or `focus(target)` during
 an open frame. Empty clears focus; an invalid request preserves the previous
-focus. Key packets route to focus. A focus transition produces direct lost/gained
+focus. Key packets and semantic `atlas::input::action_event` packets route to focus.
+Action payloads preserve intent, value, phase and dispatch identity. A focus transition produces direct lost/gained
 notifications and an ancestor `ensure_visible` request containing frozen target
 geometry. An ancestor can enqueue a reveal command and stop that request.
 Off-clip enabled targets may receive programmatic focus so a scroll container
@@ -153,7 +154,7 @@ worker/reentrant misuse and best-effort shutdown.
 The Windows adapter only normalizes/enqueues primary-pointer and basic key values
 inside WNDPROC. `window::take_input()` drains at the owner after message polling;
 presentation leases do not expose input. The 256-entry queue allocates no callback
-storage. Overflow discards incomplete transitions, publishes one `focus_lost`
+storage. Overflow discards incomplete transitions, publishes one `source_reset`
 reset and ignores further packets until drain. The host logs this condition.
 
 Coordinates are signed physical client pixels. Semantic keys include ASCII
@@ -164,3 +165,11 @@ Hosts map packets into the portable UI API. The demonstration uses one logical U
 unit per physical pixel consistently for viewport and input, retains main-thread
 handlers, coalesces highlight demands at late tick and shares the same backend
 between game/editor. Native tests replay messages into isolated hidden windows.
+
+## Reusable device input
+
+[Input actions](input.md) belong to `atlas::input`, independent of UI and window.
+The window drains generic `input::event_batch` values; the application interleaves
+normalized raw packets and semantic actions for UI routing. UI retains element
+focus/capture/lifecycle. The shared demo maps confirm/cancel in an input context,
+then routes those actions to focused handlers without device-specific behavior.

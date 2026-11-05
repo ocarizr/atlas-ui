@@ -3,7 +3,7 @@
  * @brief Platform-neutral native-window lifetime and physical client extents.
  */
 #pragma once
-#include <atlas/window/input.hpp>
+#include <atlas/input/events.hpp>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
@@ -66,7 +66,8 @@ class window
     /// @brief Preserve unique, thread-affine ownership; copying is forbidden.
     window& operator=(const window&) = delete;
     window_state poll_events(); ///< Dispatch pending messages on the owner thread.
-    input_batch take_input();   ///< Drain already-dispatched portable packets on the owner thread.
+    input::event_batch
+    take_input();               ///< Drain already-dispatched portable packets on the owner thread.
     window_state state() const; ///< Read the current native state on the owner thread.
     presentation_target
     share_presentation(); ///< Publish a lease for a dedicated graphics coordinator.

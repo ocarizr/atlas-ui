@@ -13,7 +13,7 @@ class window_backend
     virtual ~window_backend() = default;
     virtual window_state poll() = 0; ///< Dispatch messages.
 
-    virtual input_batch take_input()
+    virtual input::event_batch take_input()
     {
         throw std::logic_error("input is available only from the native window owner");
     } ///< Presentation leases cannot drain owner input.
