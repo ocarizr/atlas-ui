@@ -70,6 +70,7 @@ def test_memory_producer_is_independent_of_jobs_streaming_and_grpc():
     consumers = plan_components(configuration, {"memory-integration"})
     assert consumers["prerequisites"]["memory-integration"] == [
         "diagnostics",
+        "input",
         "jobs",
         "jobs-diagnostics",
         "memory",

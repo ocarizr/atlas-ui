@@ -109,10 +109,29 @@ components:
     - streaming
     build_targets: []
     test_labels: []
+  input:
+    paths:
+    - libs/input/**
+    - libs/platform/windows/input/**
+    - tests/input/**
+    depends_on:
+    - diagnostics
+    build_targets:
+    - atlas_input
+    - atlas_input_tests
+    test_labels:
+    - input
+    build_requires:
+    - diagnostics
+    vendors:
+    - testing
+    - content
   ui:
     # EnTT tree storage and XML geometry fixtures use the content vendor product.
     paths:
     - libs/ui/**
+    # Shared host interaction is exercised as a UI consumer regression.
+    - apps/common/demo_interaction.hpp
     - tests/ui/**
     - benchmarks/ui/**
     # UI probes reuse the jobs benchmark's allocation census, not its workload library.
@@ -120,6 +139,7 @@ components:
     - benchmarks/jobs/allocation_counter.hpp
     - benchmarks/jobs/allocation_counter_check.cpp
     depends_on:
+    - input
     - diagnostics
     - jobs
     build_targets:
@@ -130,6 +150,7 @@ components:
     test_labels:
     - ui
     build_requires:
+    - input
     - diagnostics
     - jobs
     vendors:
@@ -367,15 +388,18 @@ components:
     - libs/platform/windows/window/**
     - tests/window/**
     - tests/platform/windows/window/**
-    depends_on: []
+    depends_on:
+    - input
     build_targets:
     - atlas_window
     - atlas_window_tests
     test_labels:
     - window
-    build_requires: []
+    build_requires:
+    - input
     vendors:
     - testing
+    - content
   renderer:
     paths:
     - libs/renderer/**
@@ -529,6 +553,7 @@ global_paths:
 - vcpkg-configuration.json
 - dependencies/**
 documentation_paths:
+- libs/input/README.md
 - libs/diagnostics/README.md
 - libs/jobs_diagnostics/README.md
 - libs/jobs/README.md

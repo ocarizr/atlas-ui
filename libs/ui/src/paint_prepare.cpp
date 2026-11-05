@@ -51,7 +51,8 @@ namespace detail
 /// @brief Resolve inherited state iteratively after stable stacking links have been prepared.
 void prepare_paint(const element_snapshot& input, const layout_snapshot& geometry,
                    std::pmr::memory_resource* memory, const std::stop_token& stop,
-                   paint_preparation& result)
+                   paint_preparation& result, std::pmr::vector<presentation_region>* regions,
+                   bool emit_quads)
 {
     const auto slots = validate_paint_geometry(input, geometry);
     const auto nodes = input.elements();
@@ -73,8 +74,17 @@ void prepare_paint(const element_snapshot& input, const layout_snapshot& geometr
 
     std::pmr::vector<visit> stack(0, memory);
     stack.reserve(nodes.size());
-    result.inputs.reserve(nodes.size());
-    result.roots.reserve(nodes.size());
+    if (emit_quads)
+    {
+        result.inputs.reserve(nodes.size());
+        result.roots.reserve(nodes.size());
+    }
+
+    if (regions)
+    {
+        regions->reserve(nodes.size());
+    }
+
     for (auto root = first[none]; root != none; root = next[root])
     {
         const auto before = result.inputs.size();
@@ -101,7 +111,13 @@ void prepare_paint(const element_snapshot& input, const layout_snapshot& geometr
             }
 
             const auto covered = intersect_clip(current.clip, bounds);
-            if (node.paint.fill && current.visible && current.alpha > 0 &&
+            if (regions)
+            {
+                regions->push_back(
+                    {node.target, node.parent, bounds, current.clip, current.visible});
+            }
+
+            if (emit_quads && node.paint.fill && current.visible && current.alpha > 0 &&
                 node.paint.color[3] > 0 && covered.width > 0 && covered.height > 0)
             {
                 auto style = node.paint;

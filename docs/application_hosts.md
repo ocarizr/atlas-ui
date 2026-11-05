@@ -18,6 +18,14 @@ paint/image snapshots. Layout and gray placeholders remain available during
 loading. The render coordinator owns bounded GPU residency and records image
 last-use fences automatically. See [streamed images](ui_images.md).
 
+Window callbacks enqueue bounded portable primary-pointer and basic key packets.
+Main drains and normalizes them into an owner-thread UI input session, then
+processes input, tick, late-tick and end-frame before command publication. Shared
+thumbnail handlers coalesce hover/press/focus feedback into one opacity demand
+per late tick. Appearance-only changes retain layout geometry. Input frames advance
+independently of render-queue admission; unchanged paint/image packets remain
+reusable. See [input and lifecycle](ui_input.md) for reset/overflow and scope limits.
+
 Orderly exit stops production, requests/drains accepted work, joins the render
 coordinator, releases the native window and tears down shared services. Render
 failure reaches the host rather than allowing continued use of a broken device.

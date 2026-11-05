@@ -133,6 +133,20 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).diagnostics) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  input:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - diagnostics
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'input') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: input
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).input) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   jobs-diagnostics:
     needs:
     - plan
@@ -297,7 +311,9 @@ jobs:
   window:
     needs:
     - plan
+    - input
     - vendor-testing
+    - vendor-content
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'window') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -392,6 +408,7 @@ jobs:
   ui:
     needs:
     - plan
+    - input
     - vendor-testing
     - vendor-content
     - diagnostics
@@ -455,6 +472,7 @@ jobs:
     - memory
     - memory-integration
     - diagnostics
+    - input
     - jobs-diagnostics
     - jobs-benchmark
     - streaming

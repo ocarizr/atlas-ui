@@ -10,6 +10,12 @@ coordinator wait when minimized or occluded. `request_close()` hides the window
 and marks it closed; it does not invalidate a handle retained by a presentation
 surface. Closing one client does not post a process-wide quit message.
 
+`take_input()` returns `atlas::input::event_batch` and drains up to 256 normalized primary-pointer/basic key packets after
+polling. Signed coordinates are physical client pixels. Overflow publishes an
+explicit source reset instead of silently dropping a release. Native dispatch
+allocates no event storage and invokes no UI callbacks. See
+[UI input transport](../../docs/ui_input.md#native-transport) for keys and limitations.
+
 The application declares DPI awareness (game/editor use PerMonitorV2). The library
 does not silently change process-global DPI policy. Native code is selected through
 `ATLAS_TARGET_PLATFORM=windows` and `ATLAS_BUILD_WINDOWS_INTEGRATION=ON`. With SDK
@@ -23,3 +29,7 @@ and retains an immutable native handle without exposing SDK types. Keep the nati
 window alive and pumping until all leased surfaces and endpoint copies are released;
 destroying a window with active leases is a contract violation and terminates.
 See [renderer readiness](../../docs/render_host.md).
+
+Device normalization and the bounded queue belong to [input](../input/README.md).
+Window forwards private native messages; semantic actions/context policy remain
+in the application-owned input system.

@@ -30,8 +30,9 @@ its descendants stay behind a foreground sibling root, regardless of descendant
 layers. Tree depth and worker completion order do not determine paint depth.
 
 Packets store back-to-front quads. Reverse iteration gives front-to-back paint
-candidates for future hit testing, not a complete interactive-element index:
-nonpainting and invisible elements have no quad. Oversized descendants are not
+candidates, not a complete interactive-element index: nonpainting and invisible
+elements have no quad. [Input](ui_input.md) optionally collects unfitted border/clip
+regions through this same traversal, including nonpainting panels. Oversized descendants are not
 clipped to the parent's border unless that parent explicitly enables clipping.
 
 ## Rectangular masks
@@ -39,7 +40,7 @@ clipped to the parent's border unless that parent explicitly enables clipping.
 The logical viewport is the initial clip. Nested clips intersect through
 `intersect_clip`; empty coverage emits no rectangle. Oversized translated content
 retains its original geometry and UVs while its parent's mask stays fixed.
-The intersection contract can serve future pointer hit testing. This implements
+Input hit testing uses this intersection contract. This implements
 neither scrolling/focus reveal nor virtualization. Arbitrary shape/alpha masks,
 scale and rotation are outside this rectangle foundation.
 

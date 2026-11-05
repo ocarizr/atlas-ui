@@ -5,6 +5,11 @@ creating application coordinator. It borrows an injected dispatcher; it creates 
 scheduler, render thread or Lua VM. Call order defines phase order; names are
 diagnostic identities rather than a built-in game-loop or layout schedule.
 
+[Input and lifecycle](ui_input.md) supplies serial event stages that can run inside
+these dispatch phases. Its `begin_frame` opens the tree's command producer; avoid
+opening that producer a second time in the same frame. Callers choose where to
+seal/apply commands and run joined work between input, tick and late-tick.
+
 ```cpp
 atlas::ui::frame_executor frames{shared_jobs, {}, shared_memory, diagnostics};
 frames.begin_frame(42);

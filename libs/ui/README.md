@@ -1,5 +1,11 @@
 # UI element state and commands
 
+[Input and lifecycle](../../docs/ui_input.md) adds owner-thread hit testing,
+capture/target/bubble routing, focus/capture cleanup and ordered system events.
+[Reusable input](../input/README.md) owns device events and action mapping.
+UI retains element interaction and routes semantic actions to focus.
+Retained handlers produce commands; expensive calculation remains in joined phases.
+
 The [paint core](../../docs/ui_paint.md) prepares ordered immutable rectangles,
 inherited clipping/opacity and optional bounded tessellation jobs. The separate
 `atlas::ui_renderer` adapter handles graphics submission and resident textures.
