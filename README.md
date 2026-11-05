@@ -1,8 +1,12 @@
 # Atlas UI
 
-Reusable C++20 foundations for UI runtime and authoring tools. The architecture
+Reusable C++20 foundations for viewport UI runtime and authoring tools. The architecture
 separates portable contracts from native adapters; Windows Desktop x64 with
 Direct3D 12 is the only supported and validated platform.
+
+The product scope is a self-authored UI editor and a toolchain for standalone
+viewport UI applications. World-space UI, scenes and 3D presentation are outside
+the committed scope. See [scope](docs/scope.md) and [asset management](docs/assets.md).
 
 ## Current capabilities
 

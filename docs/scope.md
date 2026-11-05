@@ -1,9 +1,29 @@
 # Scope and supported capabilities
 
-Atlas UI is reusable C++20 infrastructure for UI runtime and authoring tools.
+Atlas UI is reusable C++20 technology for viewport UI runtime and authoring tools.
 Windows Desktop x64 is the only supported and validated target. Public library
 contracts are platform-neutral; the native graphics backend is Direct3D 12.
 This repository contains the technology and its host applications, not a game.
+
+## Product boundary
+
+The delivery goal is a complete viewport UI workflow: create an external project,
+author its interface in an editor built with Atlas UI, add data bindings and Lua
+behavior, preview it, then validate and package a standalone UI application.
+The editor and player share reusable UI/rendering libraries. Consumer-specific
+documents, assets, scripts and extensions belong to the consumer project.
+
+The committed scope includes 2D layout, painting, input, text, images, materials,
+animation, audio/video, XML authoring, asset management and cooking/packaging.
+Several of these capabilities remain unimplemented; issues own their acceptance
+criteria and dependencies.
+
+World-space UI, in-world TV/billboard presentation, world/scene/entity authoring,
+scene cameras, gameplay and layout-controlled 3D characters/scenes are outside
+this scope. An imported mesh UI element is an uncommitted design candidate;
+neither FBX import nor a 3D presentation pipeline is required for product delivery.
+Existing generic renderer/resource APIs remain reusable without expanding that
+delivery boundary.
 
 ## Available capabilities
 
@@ -38,6 +58,12 @@ is the sole application-managed storage read boundary; consumers receive bytes.
 Gameplay, physics and a world/entity editor are outside the implementation scope.
 No additional OS, graphics backend or production-scale performance guarantee is
 advertised by the current Windows validation.
+
+Asset management shares a persistent identity contract across authoring and
+packaged content. The editor's loose-source catalog and the runtime bundle
+manifest resolve the same asset ID; temporary image/GPU handles have separate
+lifetimes. The database, stable-ID mapping, bundle format and transforms are
+planned rather than implemented. See [assets and storage](assets.md).
 
 Outstanding delivery scope and acceptance criteria live in
 [repository milestones](https://github.com/ocarizr/atlas-ui/milestones).
