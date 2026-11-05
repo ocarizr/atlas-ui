@@ -7,6 +7,11 @@ services and own their lifetimes. Domain logic stays independent of native SDKs
 and application implementations. DDD defines vocabulary and invariants; ECS and
 data-oriented storage do not require an object-heavy domain model.
 
+Product delivery targets viewport UI, its self-authored editor and standalone UI
+applications. Shared services remain reusable within that boundary. See the
+[product scope](scope.md); world/scene rendering and authoring are not delivery
+requirements.
+
 | Library | Current responsibility |
 | --- | --- |
 | `jobs` | Persistent workers, dispatch/dependencies, joins, ranges, cancellation and callbacks |
