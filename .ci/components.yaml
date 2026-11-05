@@ -109,6 +109,59 @@ components:
     - streaming
     build_targets: []
     test_labels: []
+  ui-mvvm:
+    paths:
+    - libs/ui_mvvm/**
+    - tests/ui_mvvm/**
+    depends_on:
+    - mvvm
+    - ui
+    build_targets:
+    - atlas_ui_mvvm
+    - atlas_ui_mvvm_tests
+    test_labels:
+    - ui-mvvm
+    build_requires:
+    - mvvm
+    - ui
+    vendors:
+    - testing
+    - content
+  mvvm-content:
+    paths:
+    - libs/mvvm_content/**
+    - tests/mvvm_content/**
+    depends_on:
+    - mvvm
+    build_targets:
+    - atlas_mvvm_content
+    - atlas_mvvm_content_tests
+    - atlas_mvvm_fixture_generator
+    test_labels:
+    - mvvm-content
+    build_requires:
+    - mvvm
+    vendors:
+    - testing
+    - content
+  mvvm:
+    paths:
+    - libs/mvvm/**
+    - benchmarks/mvvm/**
+    - tests/mvvm/**
+    depends_on:
+    - diagnostics
+    build_targets:
+    - atlas_mvvm
+    - atlas_mvvm_tests
+    - atlas_mvvm_benchmark
+    test_labels:
+    - mvvm
+    build_requires:
+    - diagnostics
+    vendors:
+    - testing
+    - content
   input:
     paths:
     - libs/input/**
@@ -553,6 +606,9 @@ global_paths:
 - vcpkg-configuration.json
 - dependencies/**
 documentation_paths:
+- libs/mvvm/README.md
+- libs/mvvm_content/README.md
+- libs/ui_mvvm/README.md
 - libs/input/README.md
 - libs/diagnostics/README.md
 - libs/jobs_diagnostics/README.md

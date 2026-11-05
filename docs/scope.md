@@ -47,7 +47,9 @@ delivery boundary.
 
 The game and editor executables display the same generic clipped UI panels and
 textured rows using the shared tree, layout, paint and renderer adapter. They do
-not provide an editor interface, MVVM bindings, Lua execution or media playback. The cooking and packaging tool entry points are
+not provide an editor interface, Lua execution or media playback. Independent scalar
+ViewModels, XML round trips, native factories and UI property/action adapters are
+available; see [MVVM](mvvm.md). The cooking and packaging tool entry points are
 placeholders; executable CPack packaging is separate from asset cooking/bundles.
 EnTT, XML, YAML and codec dependencies are integrated, but linking a dependency
 does not establish an implemented domain system.

@@ -1,5 +1,9 @@
 include_guard(GLOBAL)
 
+if(mvvm-content IN_LIST atlas_build_components)
+    find_package(pugixml CONFIG REQUIRED)
+endif()
+
 if(ui IN_LIST atlas_build_components)
     find_package(EnTT CONFIG REQUIRED)
 endif()
@@ -44,7 +48,7 @@ if(BUILD_TESTING)
     if(ui IN_LIST atlas_requested_components)
         find_package(pugixml CONFIG REQUIRED)
     endif()
-    foreach(component input ui-images ui-renderer ui window render-host renderer renderer-readiness memory memory-integration diagnostics jobs renderer-jobs jobs-diagnostics streaming renderer-content ipc application dependencies windows)
+    foreach(component ui-mvvm mvvm-content mvvm input ui-images ui-renderer ui window render-host renderer renderer-readiness memory memory-integration diagnostics jobs renderer-jobs jobs-diagnostics streaming renderer-content ipc application dependencies windows)
         if(component IN_LIST atlas_requested_components)
             find_package(GTest CONFIG REQUIRED)
             break()

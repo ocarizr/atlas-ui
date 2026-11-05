@@ -1,0 +1,7 @@
+add_executable(atlas_mvvm_benchmark numeric_benchmark.cpp)
+target_link_libraries(atlas_mvvm_benchmark PRIVATE atlas::mvvm)
+atlas_configure_target(atlas_mvvm_benchmark)
+if(BUILD_TESTING)
+    add_test(NAME mvvm_numeric_probe COMMAND atlas_mvvm_benchmark --verify)
+    set_tests_properties(mvvm_numeric_probe PROPERTIES LABELS mvvm TIMEOUT 30)
+endif()
