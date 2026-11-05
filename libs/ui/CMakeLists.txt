@@ -1,4 +1,6 @@
 add_library(atlas_ui STATIC src/commands.cpp src/command_sealing.cpp src/command_batch.cpp)
+
+target_sources(atlas_ui PRIVATE src/input_session.cpp src/input_frames.cpp src/input_lifecycle.cpp src/input_routing.cpp src/input_shutdown.cpp)
 target_sources(atlas_ui PRIVATE src/element_tree.cpp src/tree_hierarchy.cpp src/tree_application.cpp)
 target_sources(atlas_ui PRIVATE src/tree_snapshot.cpp src/frame_executor.cpp src/frame_work.cpp)
 add_library(atlas::ui ALIAS atlas_ui)

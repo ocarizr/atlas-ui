@@ -22,6 +22,8 @@ This repository contains the technology and its host applications, not a game.
 - Constrained measure/arrange for size boxes, overlays and horizontal/vertical
   containers, with revision-checked geometry publication and root reuse.
 - Generated Protobuf/gRPC session contracts and executable bootstrap entry points.
+- Owner-thread input routing, clip-aware border hit testing, pointer capture,
+  focus/reveal requests and ordered start/enable/input/tick/late/end lifecycle.
 
 The game and editor executables display the same generic clipped UI panels and
 textured rows using the shared tree, layout, paint and renderer adapter. They do

@@ -11,7 +11,13 @@ class window_backend
   public:
     /// @brief Release retained resources on the owner thread after outstanding work completes.
     virtual ~window_backend() = default;
-    virtual window_state poll() = 0;        ///< Dispatch messages.
+    virtual window_state poll() = 0; ///< Dispatch messages.
+
+    virtual input_batch take_input()
+    {
+        throw std::logic_error("input is available only from the native window owner");
+    } ///< Presentation leases cannot drain owner input.
+
     virtual window_state state() const = 0; ///< Query physical client state.
     virtual void resize(std::uint32_t width, std::uint32_t height) = 0; ///< Resize client area.
     virtual void close() = 0;                                           ///< Hide and mark closed.

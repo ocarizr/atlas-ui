@@ -28,6 +28,7 @@ TEST(native_window_tests, close_is_local_and_foreign_thread_access_fails)
                            [&first]
                            {
                                EXPECT_THROW(first.request_close(), std::logic_error);
+                               EXPECT_THROW(first.take_input(), std::logic_error);
                            });
     task.get();
     EXPECT_FALSE(first.state().close_requested);

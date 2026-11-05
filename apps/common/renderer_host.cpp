@@ -1,6 +1,7 @@
 /** @file @brief Main-owned window messages and application-owned persistent render coordination. */
 #include "renderer_host.hpp"
 #include "graphics_handler.hpp"
+#include "input_adapter.hpp"
 #include "ui_demo.hpp"
 #include <algorithm>
 #include <atlas/memory/memory_resource.hpp>
@@ -34,7 +35,16 @@ void run_frames(window::window& target, render_host::render_loop& loop, bool smo
                 break;
             }
 
-            if (loop.try_submit({next_id, state, ui.snapshot(state)}))
+            const auto native_input = target.take_input();
+            if (native_input.overflow)
+            {
+                diagnostics::write(destinations, diagnostics::log_level::warning,
+                                   "application.input",
+                                   "native input overflow; logical ownership reset");
+            }
+
+            const auto events = normalize_input(native_input);
+            if (loop.try_submit({next_id, state, ui.snapshot(state, events.values())}))
             {
                 ++next_id;
             }
@@ -48,6 +58,9 @@ void run_frames(window::window& target, render_host::render_loop& loop, bool smo
                 throw std::runtime_error("threaded graphics smoke test timed out");
             }
         }
+
+        loop.stop_and_join(pump);
+        ui.shutdown();
     }
     catch (...)
     {
@@ -62,10 +75,18 @@ void run_frames(window::window& target, render_host::render_loop& loop, bool smo
                                "Render cleanup also failed; preserving the original exception");
         }
 
+        try
+        {
+            ui.shutdown();
+        }
+        catch (...)
+        {
+            diagnostics::write(destinations, diagnostics::log_level::error, "application.input",
+                               "UI cleanup also failed; preserving the original exception");
+        }
+
         std::rethrow_exception(original);
     }
-
-    loop.stop_and_join(pump);
 }
 } // namespace
 

@@ -1,4 +1,5 @@
 /** @file @brief Win32 window implementation with deferred native destruction. */
+#include "input_messages.hpp"
 #include "window_backend.hpp"
 #include <Windows.h>
 #include <mutex>
@@ -37,6 +38,11 @@ class native_window final : public detail::window_backend
     /// @brief Dispatch pending native messages without blocking the owner thread.
     window_state poll() override;
 
+    input_batch take_input() override
+    {
+        return input_.buffer.take();
+    } ///< Drain values after native dispatch, never on the presentation thread.
+
     /// @brief Return the current physical client state on the owner thread.
     window_state state() const override
     {
@@ -49,6 +55,12 @@ class native_window final : public detail::window_backend
     /// @brief Hide the native window and mark it closed without immediate destruction.
     void close() override
     {
+        input_.buffer.push({input_kind::focus_lost});
+        if (GetCapture() == handle_)
+        {
+            ReleaseCapture();
+        }
+
         state_.close_requested = true;
         ShowWindow(handle_, SW_HIDE);
     }
@@ -72,6 +84,7 @@ class native_window final : public detail::window_backend
                                       LPARAM lparam) noexcept;
     HWND handle_ = nullptr; ///< Native handle, destroyed after the last surface releases it.
     window_state state_;    ///< Owner-thread snapshot.
+    detail::native_input_state input_; ///< Fixed native queue, independent of UI implementation.
 };
 
 /// @brief Register the native window class and create a physical client with a validated UTF-8
@@ -172,6 +185,11 @@ LRESULT CALLBACK native_window::procedure(HWND handle, UINT message, WPARAM wpar
 
     if (self != nullptr)
     {
+        if (detail::collect_input(self->input_, {handle, message, wparam, lparam}))
+        {
+            return 0;
+        }
+
         if (message == WM_SIZE)
         {
             self->state_.width = LOWORD(lparam);

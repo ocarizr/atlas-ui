@@ -58,10 +58,21 @@ struct paint_preparation
     std::pmr::vector<std::size_t> roots;  ///< Exclusive candidate endpoints per nonempty root.
 }; ///< Dependency resolution remains on the coordinator.
 
+struct presentation_region
+{
+    element_handle target; ///< Stable identity, including nonpainting elements.
+    element_handle parent; ///< Captured routing ancestry.
+    layout_rect bounds;    ///< Translated border before image-background fitting.
+    layout_rect clip;      ///< Same inherited rectangular clip used for painting.
+    bool visible;          ///< Inherited explicit visibility; opacity does not disable interaction.
+}; ///< Optional coordinator metadata; ordinary painting does not allocate this output.
+
 /// @brief Resolve matching geometry, stacking, translation, visibility and clips.
 void prepare_paint(const element_snapshot& input, const layout_snapshot& geometry,
                    std::pmr::memory_resource* memory, const std::stop_token& stop,
-                   paint_preparation& result);
+                   paint_preparation& result,
+                   std::pmr::vector<presentation_region>* regions = nullptr,
+                   bool emit_quads = true);
 void tessellate(std::span<const paint_input> inputs, std::span<paint_quad> output,
                 const std::stop_token& stop); ///< Same numeric kernel for reference and workers.
 void execute_paint(const paint_preparation& prepared, paint_data& output,
