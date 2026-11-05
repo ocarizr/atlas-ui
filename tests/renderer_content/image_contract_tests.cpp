@@ -25,4 +25,25 @@ TEST(image_contract, rejects_empty_budgets)
     EXPECT_THROW((image_limits{0, 4}.validate()), std::invalid_argument);
     EXPECT_THROW((image_limits{1, 0}.validate()), std::invalid_argument);
 }
+
+/// @brief Debug container metadata and pixel allocation both propagate PMR failure safely.
+TEST(image_contract, pmr_failure_does_not_terminate)
+{
+    const auto memory = std::shared_ptr<std::pmr::memory_resource>(std::pmr::null_memory_resource(),
+                                                                   [](std::pmr::memory_resource*)
+                                                                   {
+                                                                   });
+    bool failed = false;
+    try
+    {
+        image_data image{memory};
+        image.pixels.resize(4);
+    }
+    catch (const std::bad_alloc&)
+    {
+        failed = true;
+    }
+
+    EXPECT_TRUE(failed);
+}
 } // namespace atlas::renderer_content::tests

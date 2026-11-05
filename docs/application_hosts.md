@@ -12,6 +12,12 @@ render coordinator creates and destroys graphics/content services on its own
 thread. Immutable frame data crosses a bounded handoff with explicit identities
 and backpressure. Main continues pumping while waiting for capacity or shutdown.
 
+Main also owns the streamer and UI image cache. Streamer ready jobs decode the
+shared demonstration image; frame boundaries poll completion and publish matching
+paint/image snapshots. Layout and gray placeholders remain available during
+loading. The render coordinator owns bounded GPU residency and records image
+last-use fences automatically. See [streamed images](ui_images.md).
+
 Orderly exit stops production, requests/drains accepted work, joins the render
 coordinator, releases the native window and tears down shared services. Render
 failure reaches the host rather than allowing continued use of a broken device.

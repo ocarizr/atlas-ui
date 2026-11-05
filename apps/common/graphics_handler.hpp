@@ -20,19 +20,11 @@ class graphics_handler final : public render_host::frame_handler
 {
   public:
     graphics_handler(jobs::job_system& workers, const window::presentation_target& target,
-                     const std::filesystem::path& content_root, bool software,
-                     const std::shared_ptr<std::pmr::memory_resource>& memory,
+                     bool software, const std::shared_ptr<std::pmr::memory_resource>& memory,
                      const diagnostics::services& destinations, presentation_feedback& presented)
         : destinations_(destinations), graphics_(options(software), memory, destinations),
-          surface_(graphics_, target),
-          streamer_(
-              workers,
-              {{"renderer.checker", streaming::loose_file_asset{content_root / "checker.bmp"}},
-               {"renderer.quad", streaming::loose_file_asset{content_root / "quad.hlsl"}}},
-              {}, memory, destinations),
-          content_(streamer_, renderer_content::make_image_decoder(), memory, destinations),
-          recording_(workers.dispatcher()),
-          scene_(graphics_, recording_, content_, memory, destinations), presented_(presented)
+          surface_(graphics_, target), recording_(workers.dispatcher()),
+          scene_(graphics_, recording_, memory, destinations), presented_(presented)
     {
         const auto info = graphics_.info();
         diagnostics::write(destinations_, diagnostics::log_level::info, "renderer",
@@ -55,10 +47,8 @@ class graphics_handler final : public render_host::frame_handler
         surface_.resize(extent);
         if (extent.width != 0 && extent.height != 0)
         {
-            const auto* packet =
-                dynamic_cast<const ui_renderer::frame_payload*>(frame.content.get());
-            const auto result =
-                scene_.render(surface_, extent, frame.id, packet ? &packet->paint : nullptr);
+            const auto* packet = dynamic_cast<const ui_images::frame_payload*>(frame.content.get());
+            const auto result = scene_.render(surface_, extent, frame.id, packet);
             presented_.result.store(result, std::memory_order_relaxed);
             if (result == renderer::frame_result::presented && scene_.content_presented())
             {
@@ -71,7 +61,6 @@ class graphics_handler final : public render_host::frame_handler
     {
         graphics_.wait_idle();
         scene_.collect();
-        streamer_.shutdown();
         if (graphics_.debug_error_count() != 0)
         {
             throw std::runtime_error("native graphics validation reported errors");
@@ -92,11 +81,9 @@ class graphics_handler final : public render_host::frame_handler
     diagnostics::services destinations_; ///< Shared optional diagnostics endpoints.
     renderer::device graphics_;          ///< Creating-thread-only GPU ownership.
     renderer::presentation_surface
-        surface_;                        ///< Cross-thread window endpoint, never its main facade.
-    streaming::asset_streamer streamer_; ///< IOCP owner is created/drained on this coordinator.
-    renderer_content::content_loader content_; ///< Ready-job decoding over the application pool.
-    renderer_jobs::executor recording_;        ///< Reuse the application-owned worker dispatcher.
-    primitive_scene scene_;            ///< Thread-affine GPU content and immutable draw packets.
-    presentation_feedback& presented_; ///< Only atomic visibility/completion hints cross to main.
+        surface_;                       ///< Cross-thread window endpoint, never its main facade.
+    renderer_jobs::executor recording_; ///< Reuse the application-owned worker dispatcher.
+    primitive_scene scene_;             ///< Thread-affine GPU content and immutable draw packets.
+    presentation_feedback& presented_;  ///< Only atomic visibility/completion hints cross to main.
 };
 } // namespace atlas::application

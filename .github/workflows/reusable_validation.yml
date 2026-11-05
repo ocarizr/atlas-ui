@@ -237,6 +237,7 @@ jobs:
       upstream: ${{ toJSON(needs) }}
   game:
     needs:
+    - ui-images
     - ui-renderer
     - plan
     - vendor-ipc
@@ -258,6 +259,7 @@ jobs:
       upstream: ${{ toJSON(needs) }}
   editor:
     needs:
+    - ui-images
     - ui-renderer
     - plan
     - vendor-ipc
@@ -419,6 +421,22 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['ui-renderer']) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  ui-images:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - vendor-graphics
+    - ui-renderer
+    - renderer-content
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'ui-images') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: ui-images
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['ui-images']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   required:
     name: Component validation
     if: always()
@@ -455,6 +473,7 @@ jobs:
     - renderer-readiness
     - ui
     - ui-renderer
+    - ui-images
     runs-on: windows-2022
     timeout-minutes: 5
     steps:

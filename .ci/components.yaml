@@ -157,6 +157,26 @@ components:
     - testing
     - content
     - graphics
+  ui-images:
+    paths:
+    - libs/ui_images/**
+    - tests/ui_images/**
+    - tests/platform/windows/ui_images/**
+    depends_on:
+    - ui-renderer
+    - renderer-content
+    build_targets:
+    - atlas_ui_images
+    - atlas_ui_images_tests
+    test_labels:
+    - ui-images
+    build_requires:
+    - ui-renderer
+    - renderer-content
+    vendors:
+    - testing
+    - content
+    - graphics
   ipc:
     paths:
     - protocols/**
@@ -180,6 +200,7 @@ components:
     - apps/common/**
     depends_on:
     - ui-renderer
+    - ui-images
     - application
     - renderer
     - renderer-jobs
@@ -192,6 +213,7 @@ components:
     - game
     build_requires:
     - ui-renderer
+    - ui-images
     - application
     - renderer
     - renderer-jobs
@@ -209,6 +231,7 @@ components:
     - apps/common/**
     depends_on:
     - ui-renderer
+    - ui-images
     - application
     - renderer
     - renderer-jobs
@@ -221,6 +244,7 @@ components:
     - editor
     build_requires:
     - ui-renderer
+    - ui-images
     - application
     - renderer
     - renderer-jobs
@@ -519,6 +543,7 @@ documentation_paths:
 - libs/render_host/README.md
 - libs/ui/README.md
 - libs/ui_renderer/README.md
+- libs/ui_images/README.md
 asset_paths:
 - assets/**
 profiles:
