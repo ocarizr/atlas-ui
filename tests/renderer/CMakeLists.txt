@@ -23,4 +23,6 @@ if(ATLAS_BUILD_WINDOWS_INTEGRATION)
         "$<TARGET_FILE:Microsoft::DXIL>" "$<TARGET_FILE_DIR:atlas_renderer_tests>")
 endif()
 atlas_configure_test(atlas_renderer_tests)
-gtest_discover_tests(atlas_renderer_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS renderer TIMEOUT 30)
+# Instrumented cold startup on hosted runners needs a separate discovery budget.
+gtest_discover_tests(atlas_renderer_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 30
+    PROPERTIES LABELS renderer TIMEOUT 30)

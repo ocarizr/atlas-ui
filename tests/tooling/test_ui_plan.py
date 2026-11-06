@@ -40,6 +40,7 @@ def test_command_changes_do_not_select_unrelated_consumers(ui_configuration, pat
     """Changes validate the adapter/apps without making graphics a core UI dependency."""
     assert select_components(ui_configuration, [path]) == {
         "ui",
+        "ui-mvvm",
         "ui-renderer",
         "ui-images",
         "game",

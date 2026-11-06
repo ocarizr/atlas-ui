@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ViewModel version="1" name="hud">
+  <Fields>
+    <Field name="minimum" type="integer" value="-9223372036854775808" />
+    <Field name="negative_zero" type="number" value="-0" />
+    <Field name="xp" type="integer" value="7" />
+    <Field name="health" type="number" value="0.75" />
+    <Field name="enabled" type="boolean" value="true" />
+    <Field name="title" type="text" value="HUD &amp; &quot;status&quot; &#10; café \123" />
+  </Fields>
+  <Actions><Action name="gain"><Param name="amount" type="integer" /></Action></Actions>
+  <Events><Event name="closed" /></Events>
+</ViewModel>

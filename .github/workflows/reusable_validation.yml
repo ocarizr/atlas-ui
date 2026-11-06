@@ -133,6 +133,49 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices).diagnostics) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  mvvm:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - diagnostics
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'mvvm') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: mvvm
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['mvvm']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  mvvm-content:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - mvvm
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'mvvm-content') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: mvvm-content
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['mvvm-content']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  ui-mvvm:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - mvvm
+    - ui
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'ui-mvvm') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: ui-mvvm
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['ui-mvvm']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   input:
     needs:
     - plan
@@ -473,6 +516,9 @@ jobs:
     - memory-integration
     - diagnostics
     - input
+    - mvvm
+    - mvvm-content
+    - ui-mvvm
     - jobs-diagnostics
     - jobs-benchmark
     - streaming

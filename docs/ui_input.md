@@ -173,3 +173,6 @@ The window drains generic `input::event_batch` values; the application interleav
 normalized raw packets and semantic actions for UI routing. UI retains element
 focus/capture/lifecycle. The shared demo maps confirm/cancel in an input context,
 then routes those actions to focused handlers without device-specific behavior.
+
+[ViewModel adapters](mvvm.md) can map these routed events to data-authored model
+actions and publish dirty property bindings at explicit owner sync points.

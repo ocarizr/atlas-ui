@@ -7,7 +7,9 @@ parses XML, validates asset identities/paths and resolves declared references.
 Shader and image inputs are staged for the native application demonstration.
 See [asset validation](ci_and_delivery.md#assets-and-delivery) for the inventory
 contract. XML is serialized application content; YAML is configuration. There is
-no UI/ViewModel XML schema, asset cooker or bundle format implementation.
+no UI XML schema, asset cooker or bundle format implementation.
+[ViewModel XML and native factories](mvvm.md) are implemented independently of
+asset acquisition and editor persistence.
 
 ## Asset-management boundary
 

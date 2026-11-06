@@ -14,6 +14,9 @@ requirements.
 
 | Library | Current responsibility |
 | --- | --- |
+| `mvvm` | Independent typed ViewModel schemas/state and bounded observable actions/events |
+| `mvvm_content` | Memory-only XML authoring and equivalent native factory generation |
+| `ui_mvvm` | Compiled property/event bindings between UI and independent models |
 | `jobs` | Persistent workers, dispatch/dependencies, joins, ranges, cancellation and callbacks |
 | `memory` | Shared PMR resource policy and mimalloc/system adapters |
 | `diagnostics` | Logging, metric snapshots and bounded trace collection/export |
@@ -63,9 +66,12 @@ state cannot be mutated concurrently merely because an ECS library is available.
 
 XML is the serialized-content policy, YAML is configuration, and Protobuf is IPC.
 Tool-owned JSON/YAML formats follow their tools. The asset inventory has an actual
-XML validator; UI/ViewModel schemas and cooked bundle layouts are not implemented.
+XML validator; ViewModel XML/factories are implemented in `mvvm_content`; UI document schemas and cooked bundle layouts are not implemented.
 Runtime consumers request logical asset IDs and byte ranges through streaming.
 
 Composition roots inject a retained PMR resource into allocating consumers.
 CPU PMR, GPU D3D12MA allocation and third-party/driver heaps are separate domains.
 See [memory](../libs/memory/README.md) and [assets](assets.md).
+
+See [ViewModel contracts](mvvm.md) for data-authored fields, observable state,
+independent native factories and explicit UI adapter boundaries.
