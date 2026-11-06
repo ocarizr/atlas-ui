@@ -3,8 +3,9 @@
 `atlas::ui::input_session` owns serial interaction for one live `element_tree`.
 It borrows the tree and shares its sole command producer. The application retains
 both on the same coordinator; no worker invokes input/Lua/session callbacks.
-Handlers are retained interfaces suitable for native behavior and a future Lua
-adapter. This implements routing and lifecycle, without a Lua VM or widget set.
+Handlers are retained interfaces for native behavior and the
+[Lua behavior adapter](scripting.md). UI routing/lifecycle remains independent of
+the interpreter; interactive widget policies are separate consumers.
 
 ## Frame boundaries
 

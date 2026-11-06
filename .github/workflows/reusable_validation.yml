@@ -161,6 +161,26 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['mvvm-content']) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  scripting:
+    needs: [plan, vendor-testing, vendor-content, mvvm]
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'scripting') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: scripting
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['scripting']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
+  ui-scripting:
+    needs: [plan, vendor-testing, vendor-content, scripting, ui]
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'ui-scripting') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: ui-scripting
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['ui-scripting']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   ui-mvvm:
     needs:
     - plan
@@ -519,6 +539,8 @@ jobs:
     - mvvm
     - mvvm-content
     - ui-mvvm
+    - scripting
+    - ui-scripting
     - jobs-diagnostics
     - jobs-benchmark
     - streaming

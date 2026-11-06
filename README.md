@@ -37,7 +37,9 @@ and semantic actions feed shared game/editor interaction feedback; expensive wor
 Independent data-defined ViewModels provide observable typed slots, actions/events, XML authoring
 and compiled factory generation. UI adapters publish property bindings and route events into
 model actions at explicit sync points.
-Interactive widgets, Lua execution, visual authoring,
+Owner-thread Lua behavior adds protected typed model commands, lifecycle/input adapters
+and bounded native job/result mailboxes. Scripts and workers share values without sharing a VM.
+Interactive widgets, visual authoring,
 asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
 dependencies and bootstrap contracts are available; content-tool entry points are
 placeholders. Gameplay belongs outside this reusable-technology repository.
@@ -80,6 +82,8 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | [UI images](libs/ui_images/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Injected decode contracts |
 | [UI renderer](libs/ui_renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Packet contracts |
 | [MVVM](libs/mvvm/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Scripting](libs/scripting/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [UI scripting](libs/ui_scripting/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [MVVM content](libs/mvvm_content/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [UI MVVM](libs/ui_mvvm/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Input](libs/input/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
@@ -119,6 +123,7 @@ updates. Edit source comments rather than generated wiki pages.
 | --- | --- |
 | Product | [Scope](docs/scope.md), [architecture](docs/architecture.md), [application hosts](docs/application_hosts.md) |
 | MVVM | [Schemas, XML, actions and UI bindings](docs/mvvm.md), [runtime API](libs/mvvm/README.md) |
+| Behavior | [Lua sessions, UI events and native jobs](docs/scripting.md), [runtime API](libs/scripting/README.md) |
 | Input | [Actions, contexts and adapters](docs/input.md), [API](libs/input/README.md) |
 | UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [painting and clipping](docs/ui_paint.md), [streamed images](docs/ui_images.md), [input and lifecycle](docs/ui_input.md), [API and examples](libs/ui/README.md) |
 | Jobs | [Overview](docs/jobs.md), [dispatch](docs/job_dispatch.md), [graphs](docs/job_graphs.md), [scheduling](docs/job_scheduling.md), [callbacks](docs/job_callbacks.md), [measurement](docs/job_workloads.md), [safety](libs/jobs/README.md) |

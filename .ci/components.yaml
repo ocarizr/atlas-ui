@@ -1,4 +1,22 @@
 components:
+  scripting:
+    paths:
+    - libs/scripting/**
+    - tests/scripting/**
+    depends_on: [mvvm]
+    build_targets: [atlas_scripting, atlas_scripting_tests]
+    test_labels: [scripting]
+    build_requires: [mvvm]
+    vendors: [testing, content]
+  ui-scripting:
+    paths:
+    - libs/ui_scripting/**
+    - tests/ui_scripting/**
+    depends_on: [scripting, ui]
+    build_targets: [atlas_ui_scripting, atlas_ui_scripting_tests]
+    test_labels: [ui-scripting]
+    build_requires: [scripting, ui]
+    vendors: [testing, content]
   memory:
     paths:
     - libs/memory/**
@@ -606,6 +624,8 @@ global_paths:
 - vcpkg-configuration.json
 - dependencies/**
 documentation_paths:
+- libs/scripting/README.md
+- libs/ui_scripting/README.md
 - libs/mvvm/README.md
 - libs/mvvm_content/README.md
 - libs/ui_mvvm/README.md

@@ -78,6 +78,7 @@ class view_model::impl
                      std::shared_ptr<observer> listener);
     ///< Reserve/reuse one observer entry outside flush.
     void deliver(const queued_command& command);       ///< Stable owner callback traversal.
+    void admit(const command& demand);                 ///< Checked atomic-batch producer routing.
     schema description;                                ///< Shared immutable offsets/defaults.
     std::shared_ptr<const detail::schema_data> layout; ///< Direct validated metadata.
     runtime_limits limits;                             ///< Frame and lifetime budgets.

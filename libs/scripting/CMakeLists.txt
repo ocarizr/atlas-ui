@@ -1,0 +1,7 @@
+add_library(atlas_scripting STATIC src/session.cpp src/dispatch.cpp src/lua_runtime.cpp src/lua_bindings.cpp src/completions.cpp src/observers.cpp)
+add_library(atlas::scripting ALIAS atlas_scripting)
+target_compile_features(atlas_scripting PUBLIC cxx_std_20)
+target_include_directories(atlas_scripting PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+target_link_libraries(atlas_scripting PUBLIC atlas::mvvm PRIVATE unofficial::lua::lua-cpp)
+atlas_configure_target(atlas_scripting)
+atlas_export_library(atlas_scripting scripting scripting)

@@ -13,8 +13,10 @@ A creating-thread `command_buffer` accepts absolute assignments to width, height
 opacity and visibility. Handles contain a session, slot and nonzero generation.
 Each tree owns its bound producer. Unbound or foreign batches cannot mutate it.
 Width/height accept explicit fixed zero or `std::monostate{}` to reset automatic
-sizing. The [layout engine](ui_layout.md) consumes committed requests; painting,
-input routing, MVVM and Lua execution are not implemented.
+sizing. The [layout engine](ui_layout.md) consumes committed requests.
+[Painting](ui_paint.md), [input routing](ui_input.md), [MVVM](mvvm.md) and
+[Lua behavior](scripting.md) use explicit production/publication boundaries around
+this state; command admission itself executes no behavior or rendering.
 
 ## State and hierarchy
 

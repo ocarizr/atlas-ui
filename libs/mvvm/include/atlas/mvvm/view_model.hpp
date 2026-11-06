@@ -24,6 +24,22 @@ struct notification
 };
 class view_model; ///< Unique serial mutation owner.
 
+/// @brief Atomic command batches keep relative updates distinct from absolute assignments.
+enum class update_kind : std::uint8_t
+{
+    assign,      ///< Absolute field value or ordered action/event invocation.
+    add_integer, ///< Checked integer delta.
+    add_number   ///< Checked finite numeric delta.
+};
+
+/// @brief Owned typed command for transactional producer admission, never immediate publication.
+struct command
+{
+    std::variant<field_handle, action_handle, event_handle> target; ///< Validated schema slot.
+    update_kind update = update_kind::assign; ///< Relative updates require a numeric field.
+    std::vector<value> arguments;             ///< One field value or exact signal protocol.
+};
+
 /// @brief Retained observer; heavy work belongs to later joined phases.
 class observer
 {
@@ -97,6 +113,7 @@ class view_model
                            std::shared_ptr<observer> listener); ///< Between flushes.
     void unsubscribe(subscription token); ///< Idempotent; safe from the current callback.
     void flush(); ///< Iterative owner dispatch; callback demands append to the same bounded queue.
+    void submit(std::span<const command> commands); ///< Admit all demands or preserve prior queue.
     void reset(); ///< Discard pending demands/failure; preserve already committed values.
     statistics inspect() const; ///< Current owner statistics.
   private:

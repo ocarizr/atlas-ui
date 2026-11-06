@@ -31,6 +31,7 @@ def test_content_group_does_not_include_unrelated_grpc_or_media():
         "pugixml",
         "yaml-cpp",
         "spdlog",
+        {"name": "lua", "features": ["cpp"]},
     ]
 
 

@@ -14,6 +14,8 @@ requirements.
 
 | Library | Current responsibility |
 | --- | --- |
+| `scripting` | Owner-thread Lua behavior, protected model demands and value-only native work transport |
+| `ui_scripting` | UI lifecycle/input event adapters and validated response flags |
 | `mvvm` | Independent typed ViewModel schemas/state and bounded observable actions/events |
 | `mvvm_content` | Memory-only XML authoring and equivalent native factory generation |
 | `ui_mvvm` | Compiled property/event bindings between UI and independent models |
