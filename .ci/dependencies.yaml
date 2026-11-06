@@ -1,7 +1,7 @@
 groups:
   testing: [gtest]
   memory: [mimalloc]
-  content: [entt, pugixml, yaml-cpp, spdlog]
+  content: [entt, pugixml, yaml-cpp, spdlog, lua]
   media: [dav1d, libwebm, opus]
   ipc: [grpc, protobuf]
   graphics: [directx-dxc, d3d12-memory-allocator]

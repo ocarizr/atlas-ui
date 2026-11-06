@@ -10,6 +10,7 @@
     "grpc",
     "gtest",
     "libwebm",
+    { "name": "lua", "features": ["cpp"] },
     "mimalloc",
     "opus",
     "protobuf",

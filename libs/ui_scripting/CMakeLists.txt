@@ -1,0 +1,7 @@
+add_library(atlas_ui_scripting STATIC src/event_handler.cpp)
+add_library(atlas::ui_scripting ALIAS atlas_ui_scripting)
+target_compile_features(atlas_ui_scripting PUBLIC cxx_std_20)
+target_include_directories(atlas_ui_scripting PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+target_link_libraries(atlas_ui_scripting PUBLIC atlas::scripting atlas::ui)
+atlas_configure_target(atlas_ui_scripting)
+atlas_export_library(atlas_ui_scripting ui_scripting ui_scripting)

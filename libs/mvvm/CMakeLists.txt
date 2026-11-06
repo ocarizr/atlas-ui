@@ -1,5 +1,5 @@
 add_library(atlas_mvvm STATIC src/schema.cpp src/schema_signals.cpp src/validation.cpp src/view_model.cpp
-    src/relative_updates.cpp src/commands.cpp src/subscriptions.cpp src/dispatch.cpp)
+    src/relative_updates.cpp src/commands.cpp src/batches.cpp src/subscriptions.cpp src/dispatch.cpp)
 add_library(atlas::mvvm ALIAS atlas_mvvm)
 target_compile_features(atlas_mvvm PUBLIC cxx_std_20)
 target_include_directories(atlas_mvvm PUBLIC

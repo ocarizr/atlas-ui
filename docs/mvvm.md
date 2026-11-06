@@ -82,9 +82,9 @@ portable binary-file ABI. Persistent asset identity remains the catalog's concer
 Observers implement `on_notify(notification, view_model&)`. Register against a
 field, action or event; action/event signatures validate arguments without implicit
 coercion. Immutable schema `validate` can check a protocol during editor/adapter
-wiring before a frame exists. Native behavior and a future Lua observer can use
-the same interface. Action definitions declare protocols; they do not contain an
-implemented Lua VM or a visual behavior graph.
+wiring before a frame exists. Native behavior and the [Lua observer](scripting.md)
+use the same interface. Action definitions declare protocols; behavior implementation
+belongs to their consumers, independently of editor authoring.
 
 All mutable access, callbacks, subscription cleanup and destruction occur on the
 instance owner. Schemas may be read concurrently after safe publication. Workers
@@ -153,8 +153,8 @@ already opens the tree's command frame; do not begin it a second time. Conversio
 failure is detected before any binding command is emitted. Command-buffer failure
 can leave partially queued unsealed writes; abort/discard that UI boundary according
 to its command contract. UI XML persistence of these descriptors belongs to
-[#75](https://github.com/ocarizr/atlas-ui/issues/75), Lua behavior to
-[#74](https://github.com/ocarizr/atlas-ui/issues/74), and visual authoring to
+[#75](https://github.com/ocarizr/atlas-ui/issues/75). [Lua behavior](scripting.md)
+uses this runtime; visual authoring belongs to
 [#77](https://github.com/ocarizr/atlas-ui/issues/77).
 
 ## Native factories and packaging boundary
