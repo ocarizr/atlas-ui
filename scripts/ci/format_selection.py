@@ -16,6 +16,7 @@ FORMAT_SUFFIXES = {
     ".ixx",
     ".proto",
     ".py",
+    ".lua",
 }
 
 

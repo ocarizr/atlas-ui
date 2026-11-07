@@ -2,6 +2,22 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Set up pinned Lua development tools",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "scripts.dev.setup_lua"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Check Lua types and API usage",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "scripts.dev.check_lua", "--component", "scripting"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
       "label": "Format owned sources",
       "type": "process",
       "command": "${command:python.interpreterPath}",

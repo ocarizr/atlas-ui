@@ -7,3 +7,7 @@ storage or scheduler dependency. Public headers expose only portable C++ types.
 See [behavior contracts and examples](../../docs/scripting.md). Source bytes come
 from the caller/streamer. Workers receive owned requests and weak completion
 transport; they never enter the session's Lua state.
+
+See [Lua development](../../docs/lua_development.md) for pinned authoring tools,
+source identities and optional owner-thread LuaPanda attachment. The native
+developer host and its loopback adapter are separate from the portable library.

@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <atlas/mvvm/view_model.hpp>
+#include <atlas/scripting/debugger.hpp>
 #include <stop_token>
 
 namespace atlas::scripting
@@ -64,7 +65,12 @@ class session
     ~session(); ///< Cancel transport and release observers/VM on the owner, outside callbacks.
     session(const session&) = delete;            ///< A Lua stack has one execution owner.
     session& operator=(const session&) = delete; ///< No mutable VM aliases.
-    void load(std::string_view source);    ///< Transactional text reload returning a handler table.
+    void load(std::string_view source,
+              std::string_view source_name = "behavior"); ///< Named text load.
+    static bool
+    debugger_available() noexcept; ///< Compiled development capability; false in shipping.
+    void attach_debugger(debugger_options options); ///< Attach after load, outside frame callbacks.
+    void detach_debugger(); ///< Disconnect without exposing debug APIs to application scripts.
     void begin_frame(std::uint64_t frame); ///< Require the matching healthy model frame.
     /// @brief Run an optional named handler and admit its demands only after successful return.
     std::vector<mvvm::value> call(std::string_view handler,

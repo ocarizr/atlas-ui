@@ -90,7 +90,7 @@ session::~session()
 }
 
 /// @brief Prepare a candidate interpreter before retiring the current healthy generation.
-void session::load(std::string_view source)
+void session::load(std::string_view source, std::string_view source_name)
 {
     impl_->check();
     if (source.empty() || source.size() > impl_->limits.max_source_bytes)
@@ -98,10 +98,16 @@ void session::load(std::string_view source)
         throw std::invalid_argument("invalid script source size");
     }
 
+    mvvm::validate_text(source_name, 1024);
+    if (source_name.empty() || source_name.find_first_of("\r\n") != std::string_view::npos)
+    {
+        throw std::invalid_argument("invalid script source identity");
+    }
+
     const detail::busy_guard guard{impl_->busy};
     const diagnostics::operation_scope scope{impl_->destinations, {"script.load", "script.cpu"}};
     auto candidate = std::make_unique<detail::lua_vm>(impl_->model, impl_->limits, impl_->memory);
-    candidate->load(source);
+    candidate->load(source, source_name);
     auto mail = std::make_shared<detail::mailbox>();
     mail->pending.reserve(impl_->limits.max_pending_work);
     mail->max_text = impl_->limits.max_text_bytes;

@@ -1,6 +1,38 @@
 add_executable(atlas_scripting_tests session_tests.cpp failure_tests.cpp observer_tests.cpp boundary_tests.cpp resource_tests.cpp diagnostics_tests.cpp)
+if(NOT ATLAS_ENABLE_LUA_DEBUGGER)
+    target_sources(atlas_scripting_tests PRIVATE capability_tests.cpp)
+endif()
 target_include_directories(atlas_scripting_tests PRIVATE "${PROJECT_SOURCE_DIR}/benchmarks/mvvm")
 target_link_libraries(atlas_scripting_tests PRIVATE atlas::scripting GTest::gtest_main)
 atlas_configure_test(atlas_scripting_tests)
 gtest_discover_tests(atlas_scripting_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 30
     PROPERTIES LABELS scripting TIMEOUT 30)
+
+if(NOT ATLAS_SHIPPING_BUILD)
+    if(ATLAS_ENABLE_LUA_DEBUGGER)
+        set(atlas_debug_library atlas_scripting)
+    else()
+        set(atlas_debug_library atlas_scripting_test_development)
+        add_library(${atlas_debug_library} STATIC)
+        get_target_property(atlas_core_sources atlas_scripting SOURCES)
+        foreach(source IN LISTS atlas_core_sources)
+            if(NOT source MATCHES "debugger_disabled.cpp$")
+                target_sources(${atlas_debug_library} PRIVATE "${PROJECT_SOURCE_DIR}/libs/scripting/${source}")
+            endif()
+        endforeach()
+        target_sources(${atlas_debug_library} PRIVATE
+            "${PROJECT_SOURCE_DIR}/libs/scripting/src/debugger.cpp"
+            "${PROJECT_SOURCE_DIR}/libs/scripting/src/debugger_hooks.cpp"
+            "${PROJECT_SOURCE_DIR}/libs/scripting/src/debugger_transport.cpp")
+        target_include_directories(${atlas_debug_library} PUBLIC "${PROJECT_SOURCE_DIR}/libs/scripting/include")
+        target_link_libraries(${atlas_debug_library} PUBLIC atlas::mvvm PRIVATE unofficial::lua::lua-cpp)
+        target_compile_definitions(${atlas_debug_library} PRIVATE ATLAS_LUA_DEBUGGER_ENABLED=1)
+        atlas_configure_target(${atlas_debug_library})
+    endif()
+    add_executable(atlas_scripting_debug_tests debugger_tests.cpp debugger_lifecycle_tests.cpp)
+    target_link_libraries(atlas_scripting_debug_tests PRIVATE ${atlas_debug_library} GTest::gtest_main)
+    target_compile_definitions(atlas_scripting_debug_tests PRIVATE ATLAS_LUAPANDA_FIXTURE="${PROJECT_SOURCE_DIR}/.tools/lua_dev/luapanda/LuaPanda.lua")
+    atlas_configure_test(atlas_scripting_debug_tests)
+    gtest_discover_tests(atlas_scripting_debug_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 30
+        PROPERTIES LABELS scripting TIMEOUT 30)
+endif()

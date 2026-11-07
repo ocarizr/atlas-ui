@@ -84,19 +84,26 @@ lua_vm::lua_vm(std::shared_ptr<mvvm::view_model> source, session_limits policy,
 /// @brief Release every Lua allocation before releasing the retained PMR resource.
 lua_vm::~lua_vm()
 {
+    detach();
     lua_close(state);
 }
 
 /// @brief Raise a protected quota error at fixed instruction-count intervals.
-void lua_vm::hook(lua_State* state, lua_Debug*)
+void lua_vm::hook(lua_State* state, lua_Debug* event)
 {
     auto& self = context(state);
-    if (self.remaining <= 100)
+    if (event->event == LUA_HOOKCOUNT && !self.privileged)
     {
-        luaL_error(state, "script instruction budget exhausted");
+        const auto interval = self.debugging() ? 1U : 100U;
+        if (self.remaining <= interval)
+        {
+            luaL_error(state, "script instruction budget exhausted");
+        }
+
+        self.remaining -= interval;
     }
 
-    self.remaining -= 100;
+    self.debug_event(event);
 }
 
 /// @brief Restore stack/hook state and preserve original native failures across Lua dispatch.
@@ -118,7 +125,7 @@ void lua_vm::protect()
 
     remaining = limits.max_instructions;
     host_error = {};
-    lua_sethook(state, hook, LUA_MASKCOUNT, 100);
+    lua_sethook(state, hook, hook_mask(), debugging() ? 1 : 100);
     lua_pushcfunction(state, enter);
     const auto status = lua_pcall(state, 0, 0, 0);
     lua_sethook(state, nullptr, 0, 0);
@@ -156,6 +163,11 @@ int lua_vm::enter(lua_State* state)
 int lua_vm::execute()
 {
     auto& self = *this;
+    if (self.operation_ == operation::attach)
+    {
+        return initialize_debugger();
+    }
+
     if (self.operation_ == operation::initialize)
     {
         luaL_openselectedlibs(
@@ -193,8 +205,8 @@ int lua_vm::execute()
 
     if (self.operation_ == operation::load)
     {
-        if (luaL_loadbufferx(state, self.text_.data(), self.text_.size(), "behavior", "t") !=
-            LUA_OK)
+        if (luaL_loadbufferx(state, self.text_.data(), self.text_.size(), self.source_name_.c_str(),
+                             "t") != LUA_OK)
         {
             return lua_error(state);
         }
@@ -249,9 +261,11 @@ int lua_vm::execute()
 }
 
 /// @brief Accept text-only source that returns the session handler table.
-void lua_vm::load(std::string_view text)
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters) -- Mirror Lua's source/chunk-name order.
+void lua_vm::load(std::string_view text, std::string_view source_name)
 {
     text_ = text;
+    source_name_ = source_name;
     operation_ = operation::load;
     loading = true;
     protect();

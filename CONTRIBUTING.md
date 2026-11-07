@@ -33,12 +33,15 @@ Split code by responsibility and tests by behavioral context, including successf
 
 Follow `.editorconfig`, `.clang-format`, and `.clang-tidy`. Build outside the source tree. Apply project warnings and instrumentation to owned targets, not third-party libraries.
 
-Use the pinned C++/Protobuf/Python formatters and document owned source contracts
+Use the pinned C++/Protobuf/Python/Lua formatters and document owned source contracts
 with Doxygen comments or Python docstrings, including internal helpers and test
 fixtures. Run `python -m scripts.ci.format_sources --fix` to apply style, then the
 same command without `--fix` to check it. Missing contracts require authored prose;
 the formatter does not synthesize documentation. See [source style and documentation](docs/source_style.md)
 for component/file selection, control-block spacing, IDE tasks and CI gates.
+
+Lua contributors follow the [Lua development guide](docs/lua_development.md) for
+pinned LuaLS/LuaPanda setup, embedded-runtime debugging and editor-only annotations.
 
 Run the relevant [Windows checks](docs/windows_development.md). Report actual results; no discovered tests must never be described as a passing suite. Coverage includes lines and branches but does not prove correctness or absence of races.
 

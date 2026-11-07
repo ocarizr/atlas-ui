@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Atlas Lua: UI session (8818)",
+      "type": "lua",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "rootFolder": "${workspaceFolder}",
+      "connectionPort": 8818,
+      "stopOnEntry": false,
+      "useCHook": false,
+      "autoPathMode": false,
+      "luaFileExtension": "lua",
+      "isNeedB64EncodeStr": false,
+      "pathCaseSensitivity": false,
+      "TempFilePath": "${workspaceFolder}/.tools/lua_dev",
+      "autoReconnect": false,
+      "updateTips": false,
+      "logLevel": 2
+    },
+    {
+      "name": "Atlas Lua: application session (8819)",
+      "type": "lua",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "rootFolder": "${workspaceFolder}",
+      "connectionPort": 8819,
+      "stopOnEntry": false,
+      "useCHook": false,
+      "autoPathMode": false,
+      "luaFileExtension": "lua",
+      "isNeedB64EncodeStr": false,
+      "pathCaseSensitivity": false,
+      "TempFilePath": "${workspaceFolder}/.tools/lua_dev",
+      "autoReconnect": false,
+      "updateTips": false,
+      "logLevel": 2
+    }
+  ]
+}

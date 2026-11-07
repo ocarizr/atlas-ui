@@ -1,0 +1,8 @@
+# Owned scripts use the common Lua 5.4/5.5 syntax subset; execution and analysis target 5.5.1.
+syntax = "Lua54"
+column_width = 100
+line_endings = "Unix"
+indent_type = "Spaces"
+indent_width = 4
+quote_style = "AutoPreferDouble"
+call_parentheses = "Always"

@@ -16,6 +16,7 @@ dependencies/vcpkg-ports/**/*.diff text eol=lf whitespace=-blank-at-eol,-blank-a
 CMakeLists.txt text eol=lf
 *.json text eol=lf
 *.py text eol=lf
+*.lua text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.xml text eol=lf
