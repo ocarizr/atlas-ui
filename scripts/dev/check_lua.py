@@ -43,12 +43,15 @@ def lua_formatter():
 
 def check_files(root, files):
     """Analyze selected sources in an isolated workspace with editor-only library annotations."""
+    root = root.resolve()
     executable = tool_path("luals", "bin/lua-language-server.exe")
     version = read_yaml(root / ".ci/lua_tools.yaml")["luals"]["version"]
     if version != subprocess.check_output([executable, "--version"], text=True).strip():
         raise ValueError("Unexpected Lua Language Server executable version")
     with tempfile.TemporaryDirectory(prefix="atlas-luals-") as temporary:
-        workspace = Path(temporary) / "workspace"
+        # LuaLS can otherwise register Windows 8.3 and expanded paths as separate libraries.
+        temporary = Path(temporary).resolve()
+        workspace = temporary / "workspace"
         workspace.mkdir()
         for name in files:
             destination = workspace / name

@@ -1,6 +1,7 @@
 """Recover transient artifact-discovery failures without hiding permanent API errors."""
 
 import io
+from http.client import IncompleteRead, RemoteDisconnected
 from urllib.error import HTTPError, URLError
 
 import pytest
@@ -20,6 +21,8 @@ def requests(monkeypatch):
         outcome = outcomes.pop(0)
         if isinstance(outcome, Exception):
             raise outcome
+        if hasattr(outcome, "read"):
+            return outcome
         return io.StringIO(outcome)
 
     monkeypatch.setattr(vendor_artifacts, "urlopen", open_response)
@@ -43,8 +46,13 @@ def test_transient_http_error_retries_same_authenticated_request(requests, statu
 
 @pytest.mark.parametrize(
     "error",
-    [URLError("connection reset"), TimeoutError("timed out")],
-    ids=["connection-reset", "timeout"],
+    [
+        URLError("connection reset"),
+        TimeoutError("timed out"),
+        RemoteDisconnected("remote closed"),
+        ConnectionResetError("read reset"),
+    ],
+    ids=["url-error", "timeout", "remote-disconnect", "read-reset"],
 )
 def test_transport_failure_recovers(requests, error):
     """Temporary transport failures follow the same bounded retry policy."""
@@ -53,6 +61,33 @@ def test_transport_failure_recovers(requests, error):
     assert vendor_artifacts.github_fetch("/test") == {"artifacts": []}
     assert len(calls) == 2
     assert delays == [1]
+
+
+@pytest.mark.parametrize("recover", [True, False], ids=["recovers", "exhausts"])
+def test_incomplete_response_is_retried_and_closed(requests, recover):
+    """A truncated response body retries the whole read and never becomes a cache miss."""
+    calls, delays, outcomes = requests
+    error = IncompleteRead(b'{"artifacts":', 10)
+
+    class interrupted_response(io.BytesIO):
+        """Model disconnection during JSON body consumption after a successful HTTP open."""
+
+        def read(self, *args, **kwargs):
+            """Discard the incomplete body rather than parsing a partial trusted catalog."""
+            raise error
+
+    responses = [interrupted_response() for _ in range(1 if recover else 4)]
+    outcomes.extend(responses)
+    if recover:
+        outcomes.append('{"artifacts": []}')
+        assert vendor_artifacts.github_fetch("/test") == {"artifacts": []}
+    else:
+        with pytest.raises(IncompleteRead) as caught:
+            vendor_artifacts.github_fetch("/test")
+        assert caught.value is error
+    assert all(response.closed for response in responses)
+    assert len(calls) == (2 if recover else 4)
+    assert delays == ([1] if recover else [1, 2, 4])
 
 
 def test_transient_failure_exhaustion_preserves_original_error(requests):

@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+from http.client import IncompleteRead
 from time import sleep
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -74,7 +75,7 @@ def github_fetch(path):
         try:
             with urlopen(request, timeout=60) as response:
                 return json.load(response)
-        except (URLError, TimeoutError) as error:
+        except (URLError, TimeoutError, IncompleteRead, ConnectionError) as error:
             if isinstance(error, HTTPError) and error.code not in {429, 500, 502, 503, 504}:
                 raise
             if attempt == 3:
