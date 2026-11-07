@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "runtime.version": "Lua 5.5",
+  "runtime.path": [],
+  "runtime.builtin": {
+    "io": "disable", "os": "disable", "debug": "disable",
+    "package": "disable", "coroutine": "disable"
+  },
+  "workspace.library": ["tools/lua_api"],
+  "workspace.checkThirdParty": false,
+  "workspace.ignoreDir": [".git", ".tools", ".local", "build", "dependencies", "generated"],
+  "diagnostics.libraryFiles": "Disable",
+  "diagnostics.unusedLocalExclude": ["_*"],
+  "telemetry.enable": false,
+  "format.enable": false
+}

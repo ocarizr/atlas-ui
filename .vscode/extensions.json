@@ -3,6 +3,8 @@
     "editorconfig.editorconfig",
     "ms-vscode.cpptools",
     "ms-python.python",
-    "charliermarsh.ruff"
+    "charliermarsh.ruff",
+    "sumneko.lua",
+    "stuartwang.luapanda"
   ]
 }

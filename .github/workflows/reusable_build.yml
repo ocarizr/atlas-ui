@@ -39,6 +39,10 @@ jobs:
         configuration: ${{ matrix.configuration }}
         keys: ${{ inputs.keys }}
         upstream: ${{ inputs.upstream }}
+    - name: Prepare embedded Lua debugger fixture
+      if: inputs.component == 'scripting'
+      shell: pwsh
+      run: python -m scripts.dev.setup_lua --tools luapanda
     - name: Build component and run its tests
       shell: pwsh
       env:

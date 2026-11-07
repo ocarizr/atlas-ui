@@ -2,6 +2,28 @@
 
 import json
 import subprocess
+from pathlib import Path
+
+
+def coverage_executables(inventory, build):
+    """Select owned native products, including children invoked through a protocol harness."""
+    root = build.resolve()
+    executables = set()
+    for test in inventory["tests"]:
+        owned = set()
+        for argument in test.get("command", []):
+            if not argument.lower().endswith(".exe"):
+                continue
+            path = Path(argument)
+            path = path.resolve() if path.is_absolute() else (root / path).resolve()
+            if path.is_relative_to(root):
+                owned.add(str(path))
+        if not owned:
+            raise ValueError("Coverage requires registered owned native test executables")
+        executables.update(owned)
+    if not executables:
+        raise ValueError("Coverage requires registered owned native test executables")
+    return sorted(executables)
 
 
 def collect_coverage(build, configuration, labels, profiles):
@@ -34,15 +56,7 @@ def collect_coverage(build, configuration, labels, profiles):
         capture_output=True,
         text=True,
     )
-    executables = sorted(
-        {
-            test["command"][0]
-            for test in json.loads(inventory.stdout)["tests"]
-            if test.get("command")
-        }
-    )
-    if not executables or any(not path.lower().endswith(".exe") for path in executables):
-        raise ValueError("Coverage requires registered native test executables")
+    executables = coverage_executables(json.loads(inventory.stdout), build)
     command = ["llvm-cov", "report", executables[0], f"-instr-profile={merged}"]
     command.extend(f"-object={path}" for path in executables[1:])
     result = subprocess.run(command, check=True, capture_output=True, text=True)

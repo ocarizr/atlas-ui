@@ -34,7 +34,8 @@ std::vector<mvvm::value> session::impl::call(std::string_view name,
     }
 
     const detail::busy_guard guard{busy};
-    const diagnostics::operation_scope scope{destinations, {"script.call", "script.cpu"}};
+    const diagnostics::operation_scope scope{
+        destinations, {vm->debugging() ? "script.call.debug" : "script.call", "script.cpu"}};
     try
     {
         if (stats.calls == limits.max_calls)

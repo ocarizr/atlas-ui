@@ -8,6 +8,11 @@ Python docstring conventions. Versions are pinned in `scripts/ci/requirements.tx
 clang-format 19.1.7, Ruff 0.17.3 and the syntax parsers used by source checks.
 Do not rely on a different formatter bundled with an IDE.
 
+Lua uses pinned StyLua and LuaLS from `.ci/lua_tools.yaml`, `.stylua.toml` and
+`.luarc.json`. Run `python -m scripts.dev.setup_lua` before formatting Lua sources.
+The [Lua development guide](lua_development.md) documents the supported syntax
+subset, type diagnostics, editor tasks and component-scoped CI checks.
+
 Formatting contexts reuse `.ci/components.yaml` ownership paths. Tooling has its
 own formatting-only context and does not become a CMake library. A component-only
 change checks that component's owned sources without expanding to its consumers.

@@ -46,6 +46,15 @@ def test_check_does_not_apply_fix_flags_to_either_language(monkeypatch):
     assert "--check" in commands[2]
 
 
+def test_lua_uses_its_pinned_formatter_instead_of_clang(monkeypatch):
+    """Lua sources never enter the C++ formatter or C++ comment parser."""
+    monkeypatch.setattr(format_sources, "formatter_executable", lambda override: "clang")
+    monkeypatch.setattr(format_sources, "lua_formatter", lambda: "stylua")
+    commands = format_sources.format_commands(["a.lua", "b.cpp"], False)
+    assert commands[-1] == ["stylua", "--check", "--", "a.lua"]
+    assert "a.lua" not in commands[0]
+
+
 def test_component_formatting_workflow_is_independent_and_required():
     """Each selected formatting context gets its own job and contributes to the merge gate."""
     validation = read_yaml(ROOT / ".github/workflows/reusable_validation.yml")

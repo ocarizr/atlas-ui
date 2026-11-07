@@ -69,7 +69,13 @@ class lua_vm
     ~lua_vm();                                 ///< lua_close while model/resource are still alive.
     lua_vm(const lua_vm&) = delete;            ///< Lua states cannot be copied.
     lua_vm& operator=(const lua_vm&) = delete; ///< One serial owner.
-    void load(std::string_view text); ///< Protected text-only load and returned handler table.
+    void load(std::string_view text, std::string_view source_name); ///< Named protected text load.
+    void attach(debugger_options&& options); ///< Protected private debugger environment.
+    void detach() noexcept;                  ///< Retire transport and Lua hook references.
+    bool debugging() const noexcept;         ///< Whether development timing labels are required.
+    int hook_mask() const noexcept; ///< Union of quota and optional debugger subscriptions.
+    static int debug_native(lua_State* state); ///< Development transport/hook bridge.
+    void debug_event(lua_Debug* event); ///< Multiplex LuaPanda notifications with owned quotas.
     /// @brief Protected invocation with per-call demand and result staging.
     std::vector<mvvm::value> call(std::string_view name, std::span<const mvvm::value> args);
     bool has(std::string_view name);     ///< Protected raw handler-table lookup.
@@ -91,25 +97,35 @@ class lua_vm
     std::uint32_t remaining = 0;    ///< Per-call instruction budget.
     std::size_t staged_text = 0;    ///< Aggregate command/request text in the current call.
     bool loading = false;           ///< Initialization cannot produce commands/work.
+    bool privileged = false; ///< Only trusted debugger initialization bypasses script quotas.
+    struct debug_state;      ///< Optional source, transport and Lua registry references.
+    std::shared_ptr<debug_state> debugger; ///< Absent in normal sessions.
   private:
     enum class operation : std::uint8_t
     {
         initialize, ///< Open the permitted libraries and host bindings.
         load,       ///< Run text-only initialization and retain the returned handler table.
         call,       ///< Execute a selected handler.
-        has         ///< Check handler presence without invoking it.
+        has,        ///< Check handler presence without invoking it.
+        attach      ///< Initialize optional development tooling under protection.
     }; ///< Protected trampoline selector.
     operation operation_ = operation::initialize; ///< One guarded operation at a time.
     std::string_view text_, name_;                ///< Borrowed until protected invocation returns.
-    std::span<const mvvm::value> arguments_;      ///< Caller-owned stable input through call.
-    std::vector<mvvm::value> results_; ///< Copied before leaving the protected C++ frame.
-    bool found_ = false;               ///< Protected lookup result.
-    int handlers_ = LUA_NOREF;         ///< Registry-owned returned table.
+    std::string source_name_; ///< Owned null-terminated source identity for Lua debug information.
+    std::span<const mvvm::value> arguments_; ///< Caller-owned stable input through call.
+    std::vector<mvvm::value> results_;       ///< Copied before leaving the protected C++ frame.
+    bool found_ = false;                     ///< Protected lookup result.
+    int handlers_ = LUA_NOREF;               ///< Registry-owned returned table.
     int invoke_native(int code); ///< May throw native or Lua exceptions inside a protected call.
     int resolve_name(int code);  ///< Resolve one authored name into a namespace-tagged slot.
     int request_work(std::vector<mvvm::value> arguments); ///< Stage a bounded native operation.
     int execute();  ///< Protected trampoline body with native exception preservation.
     void protect(); ///< Restore the Lua stack and rethrow original host errors or Lua diagnostics.
+    int initialize_debugger();     ///< Private debugger globals and protocol startup.
+    int debug_operation(int code); ///< Protected native debugger operation.
+    int set_debug_hook();          ///< Replace only the debugger's owned hook subscription.
+    int require_debug_module();    ///< Resolve the small private debugger module vocabulary.
+    void restore_debug_globals();  ///< Restore original application globals after setup.
 };
 } // namespace atlas::scripting::detail
 

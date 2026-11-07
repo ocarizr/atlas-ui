@@ -12,6 +12,7 @@ from scripts.ci.cpp_spacing import separate_control_blocks
 from scripts.ci.documentation import check_documentation
 from scripts.ci.format_selection import formatting_files
 from scripts.ci.impact import repository_files
+from scripts.dev.check_lua import lua_formatter
 
 
 def formatter_executable(override=None):
@@ -31,8 +32,9 @@ def formatter_executable(override=None):
 
 def format_commands(files, fix, clang_format=None):
     """Build separate language commands without shell interpolation or vendor traversal."""
-    cpp = [path for path in files if Path(path).suffix != ".py"]
+    cpp = [path for path in files if Path(path).suffix not in {".py", ".lua"}]
     python = [path for path in files if Path(path).suffix == ".py"]
+    lua = [path for path in files if Path(path).suffix == ".lua"]
     commands = []
     if cpp:
         flags = ["-i"] if fix else ["--dry-run", "--Werror"]
@@ -42,6 +44,8 @@ def format_commands(files, fix, clang_format=None):
         commands.append([sys.executable, "-m", "ruff", "check", *flags, "--", *python])
         flags = [] if fix else ["--check"]
         commands.append([sys.executable, "-m", "ruff", "format", *flags, "--", *python])
+    if lua:
+        commands.append([lua_formatter(), *([] if fix else ["--check"]), "--", *lua])
     return commands
 
 
@@ -71,7 +75,7 @@ def main():
     for command in format_commands(files, args.fix, args.clang_format):
         failed |= subprocess.run(command, check=False).returncode != 0
     for name in files:
-        if Path(name).suffix in {".py", ".proto"}:
+        if Path(name).suffix in {".py", ".proto", ".lua"}:
             continue
         path = Path(name)
         source = path.read_bytes()
@@ -83,6 +87,8 @@ def main():
                 print(f"{name}: separate completed control blocks with a blank line")
                 failed = True
     for path in files:
+        if Path(path).suffix == ".lua":
+            continue
         errors = check_documentation(path)
         for error in errors:
             print(error)

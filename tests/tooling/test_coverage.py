@@ -6,7 +6,23 @@ from types import SimpleNamespace
 
 import pytest
 
-from scripts.ci.coverage import collect_coverage
+from scripts.ci.coverage import collect_coverage, coverage_executables
+
+
+def test_native_harness_uses_owned_child_instead_of_python(tmp_path):
+    """A Python protocol driver contributes its instrumented native child to LLVM reports."""
+    build = tmp_path / "build"
+    host = build / "tools/Debug/host.exe"
+    interpreter = tmp_path / "python/python.exe"
+    inventory = {"tests": [{"command": [str(interpreter), "smoke.py", str(host)]}]}
+    assert coverage_executables(inventory, build) == [str(host.resolve())]
+
+
+def test_external_uninstrumented_command_cannot_be_reported_as_owned(tmp_path):
+    """A foreign interpreter is not an instrumented Atlas test product."""
+    inventory = {"tests": [{"command": [str(tmp_path / "python/python.exe"), "smoke.py"]}]}
+    with pytest.raises(ValueError, match="owned native"):
+        coverage_executables(inventory, tmp_path / "build")
 
 
 @pytest.mark.parametrize(

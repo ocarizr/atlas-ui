@@ -18,6 +18,11 @@ jobs:
       with:
         persist-credentials: false
     - uses: ./.github/actions/setup_ci
+    - name: Prepare and check selected Lua sources
+      shell: pwsh
+      env:
+        FORMAT_COMPONENT: ${{ matrix.component }}
+      run: python -m scripts.dev.check_lua --component "$env:FORMAT_COMPONENT" --setup
     - name: Check source formatting and reference comments
       env:
         FORMAT_COMPONENT: ${{ matrix.component }}
