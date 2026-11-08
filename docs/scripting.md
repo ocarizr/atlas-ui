@@ -158,7 +158,9 @@ frame and Lua instructions to 100,000 per protected operation. Native work allow
 64 pending entries and 4 MiB retained transport payload. Inputs and returned values
 have separate 64 KiB text totals. Policy caps are documented on `session_limits`.
 PMR reallocation temporarily owns old/new blocks together; its transient upstream
-peak can exceed the live Lua-byte quota. Candidate reload briefly retains two VMs.
+peak can exceed the live Lua-byte quota. Standalone reload briefly retains two
+interpreters; domain reload retains candidate/current environments inside the
+same interpreter and aggregate Lua quota.
 Host command/checkpoint vectors, schemas, result copies and caller-retained job
 payloads have separate allocation costs. These are not whole-process limits.
 
@@ -175,15 +177,15 @@ Reload builds a candidate VM first. Failed load preserves the old generation,
 observers and native work. Successful load cancels old tickets, detaches watches,
 resets Lua state/frame counters and installs a fresh mailbox. Register new watches
 and admit a matching model frame afterward; no implicit state migration occurs.
-`shutdown()` cancels work and destroys the VM without running script callbacks or
+`shutdown()` cancels work and destroys its logical context without running script callbacks or
 waiting for host jobs. The application still owns stopping/joining those jobs and
 must deliver desired UI shutdown lifecycle events before closing behavior.
 
-The current session binds one root ViewModel and one returned handler table.
-Sharing a session does not create additional interpreters. Per-element behavior
-instances, multiple named model contexts and persisted script/binding references
-are authoring/composition extensions; the UI adapter currently uses the common
-event vocabulary directly. The runtime does not require a VM per widget.
+A session binds one root ViewModel and one returned handler table. The
+[domain API](scripting_domains.md) composes per-element/menu instances and named
+model contexts in one shared interpreter, with a Lua director and scoped
+subscriptions. The UI adapter can target a domain instance. XML persistence of
+these authoring relationships is separate from the execution API.
 
 Diagnostics log successful reload/shutdown at debug severity and protected
 failures at warning severity. Profiling covers `script.load`, `script.call`,

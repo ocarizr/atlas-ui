@@ -55,7 +55,7 @@ struct statistics
     bool failed = false;            ///< Reload required; model committed state is retained.
 };
 
-/// @brief One Lua interpreter and model, reusable independently of UI, renderer and storage.
+/// @brief One logical Lua behavior/model; a domain can share its physical interpreter.
 class session
 {
   public:
@@ -82,11 +82,14 @@ class session
                         std::string_view handler);                           ///< Compile observer.
     std::uint64_t watch(mvvm::event_handle event, std::string_view handler); ///< Compile observer.
     void unwatch(std::uint64_t token); ///< Idempotent owner cleanup, including during callbacks.
+    void synchronize(); ///< Apply script-created listener edits outside model flushes.
     std::vector<work_request> take_requests(); ///< Transfer unissued native work at owner boundary.
     void deliver_results();     ///< Deliver ready submission-order prefix to optional on_result.
     void shutdown();            ///< Idempotent cancellation; no script execution or worker join.
     statistics inspect() const; ///< Owner-only observations.
   private:
+    friend class domain; ///< Domain composition shares the physical interpreter, not public Lua
+                         ///< state.
     class impl; ///< Private Lua C++ linkage, protected trampoline and serial command staging.
     std::shared_ptr<impl> impl_; ///< Observers borrow weakly to avoid ownership cycles.
 };

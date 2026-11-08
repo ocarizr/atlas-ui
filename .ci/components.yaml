@@ -3,12 +3,13 @@ components:
     paths:
     - libs/scripting/**
     - tests/scripting/**
+    - benchmarks/scripting/**
     - tools/lua_debug_host/**
     - tools/lua_api/**
     - libs/platform/windows/scripting/**
     - tests/platform/windows/scripting/**
     depends_on: [mvvm]
-    build_targets: [atlas_scripting, atlas_scripting_tests, atlas_scripting_debug_tests, atlas_lua_debug_host]
+    build_targets: [atlas_scripting, atlas_scripting_tests, atlas_scripting_debug_tests, atlas_lua_debug_host, atlas_scripting_benchmark]
     test_labels: [scripting]
     build_requires: [mvvm]
     vendors: [testing, content]

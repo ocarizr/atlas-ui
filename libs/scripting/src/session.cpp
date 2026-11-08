@@ -13,7 +13,8 @@ void session::impl::check() const
         throw std::logic_error("scripting requires its owner thread");
     }
 
-    if (busy || delivering || closed)
+    if (busy || delivering || closed ||
+        (interpreter && (interpreter->executing || interpreter->dispatching)))
     {
         throw std::logic_error("scripting is closed or reentrant");
     }
@@ -22,6 +23,7 @@ void session::impl::check() const
 /// @brief Release all model subscriptions before replacing their interpreter generation.
 void session::impl::detach()
 {
+    listener_changes.clear();
     for (const auto& watch : watches)
     {
         model->unsubscribe(watch.token);
@@ -45,16 +47,12 @@ session::session(std::shared_ptr<mvvm::view_model> model, session_limits limits,
                  diagnostics::services destinations)
     : impl_(std::make_shared<impl>())
 {
-    if (!model || limits.max_memory_bytes < 65536 ||
-        limits.max_memory_bytes > std::size_t{64} * 1024 * 1024 || !limits.max_source_bytes ||
-        limits.max_source_bytes > 1048576 || !limits.max_commands || limits.max_commands > 4096 ||
-        !limits.max_text_bytes || limits.max_text_bytes > 1048576 || !limits.max_pending_work ||
-        limits.max_pending_work > 1024 || !limits.max_calls || limits.max_calls > 65536 ||
-        limits.max_instructions < 100 || limits.max_instructions > 10000000 ||
-        !limits.max_pending_bytes || limits.max_pending_bytes > std::size_t{64} * 1024 * 1024)
+    if (!model)
     {
-        throw std::invalid_argument("invalid scripting session limits/model");
+        throw std::invalid_argument("scripting requires a ViewModel");
     }
+
+    detail::validate_limits(limits);
 
     (void)model->description();
     if (!memory)
@@ -68,7 +66,7 @@ session::session(std::shared_ptr<mvvm::view_model> model, session_limits limits,
     impl_->memory = std::move(memory);
     impl_->limits = limits;
     impl_->destinations = std::move(destinations);
-    impl_->watches.reserve(1024);
+    impl_->watches.reserve(8);
 }
 
 /// @brief Require owner-thread quiescence before cancelling work and releasing interpreter state.
@@ -106,10 +104,11 @@ void session::load(std::string_view source, std::string_view source_name)
 
     const detail::busy_guard guard{impl_->busy};
     const diagnostics::operation_scope scope{impl_->destinations, {"script.load", "script.cpu"}};
-    auto candidate = std::make_unique<detail::lua_vm>(impl_->model, impl_->limits, impl_->memory);
+    auto candidate = std::make_unique<detail::lua_vm>(impl_->model, impl_->limits, impl_->memory,
+                                                      impl_->interpreter, impl_->bindings);
     candidate->load(source, source_name);
     auto mail = std::make_shared<detail::mailbox>();
-    mail->pending.reserve(impl_->limits.max_pending_work);
+
     mail->max_text = impl_->limits.max_text_bytes;
     mail->limit = impl_->limits.max_pending_bytes;
     impl_->detach();

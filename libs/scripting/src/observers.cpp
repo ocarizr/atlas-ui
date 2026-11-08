@@ -9,11 +9,11 @@ namespace atlas::scripting
 /// @brief Compile a typed observer with a weak VM owner and retained handler name.
 std::uint64_t
 session::impl::watch(std::variant<mvvm::field_handle, mvvm::action_handle, mvvm::event_handle> slot,
-                     std::string_view handler)
+                     std::string_view handler, std::uint64_t reserved_token)
 {
     check();
     if (!vm || stats.failed || watches.size() == 1024 ||
-        sequence == std::numeric_limits<std::uint64_t>::max())
+        (!reserved_token && sequence == std::numeric_limits<std::uint64_t>::max()))
     {
         throw std::logic_error("invalid scripting observer admission");
     }
@@ -44,14 +44,16 @@ session::impl::watch(std::variant<mvvm::field_handle, mvvm::action_handle, mvvm:
     auto observer = std::make_shared<listener>();
     observer->owner = shared_from_this();
     observer->handler = handler;
+    watches.reserve(watches.size() + 1);
     const auto token = std::visit(
         [&](auto handle)
         {
             return model->subscribe(handle, observer);
         },
         slot);
-    watches.push_back({++sequence, token});
-    return sequence;
+    const auto identity = reserved_token ? reserved_token : ++sequence;
+    watches.push_back({identity, token});
+    return identity;
 }
 
 /// @brief Subscribe a resolved model slot to a named protected Lua handler.
