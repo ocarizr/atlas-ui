@@ -57,17 +57,17 @@ void* lua_vm::allocate(void* context, void* pointer, std::size_t old_size,
 
 /// @brief Create a seeded interpreter and initialize permitted libraries under protection.
 lua_vm::lua_vm(std::shared_ptr<mvvm::view_model> source, session_limits policy,
-               std::shared_ptr<std::pmr::memory_resource> resource)
+               std::shared_ptr<std::pmr::memory_resource> resource,
+               std::shared_ptr<lua_host> shared,
+               std::shared_ptr<const execution_bindings> capabilities)
     : model(std::move(source)), limits(policy),
-      memory{std::move(resource), 0, 0, policy.max_memory_bytes}
+      host(shared ? std::move(shared) : std::make_shared<lua_host>(policy, std::move(resource))),
+      bindings(std::move(capabilities)), memory(host->memory), commands(host->commands),
+      requests(host->requests), listeners(host->listeners)
 {
     commands.reserve(limits.max_commands);
     requests.reserve(limits.max_pending_work);
-    state = lua_newstate(allocate, &memory, 0);
-    if (!state)
-    {
-        throw std::bad_alloc{};
-    }
+    state = host->state;
 
     *static_cast<lua_vm**>(lua_getextraspace(state)) = this;
     try
@@ -76,7 +76,7 @@ lua_vm::lua_vm(std::shared_ptr<mvvm::view_model> source, session_limits policy,
     }
     catch (...)
     {
-        lua_close(state);
+        release_environment();
         throw;
     }
 }
@@ -85,7 +85,7 @@ lua_vm::lua_vm(std::shared_ptr<mvvm::view_model> source, session_limits policy,
 lua_vm::~lua_vm()
 {
     detach();
-    lua_close(state);
+    release_environment();
 }
 
 /// @brief Raise a protected quota error at fixed instruction-count intervals.
@@ -109,6 +109,21 @@ void lua_vm::hook(lua_State* state, lua_Debug* event)
 /// @brief Restore stack/hook state and preserve original native failures across Lua dispatch.
 void lua_vm::protect()
 {
+    if (host->executing || host->owner != std::this_thread::get_id())
+    {
+        throw std::logic_error("shared Lua interpreter is busy or foreign");
+    }
+
+    const busy_guard execution{host->executing};
+    *static_cast<lua_vm**>(lua_getextraspace(state)) = this;
+    if (environment_ != LUA_NOREF)
+    {
+        lua_rawgeti(state, LUA_REGISTRYINDEX, environment_);
+        lua_rawseti(state, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
+        lua_rawgeti(state, LUA_REGISTRYINDEX, loaded_);
+        lua_setfield(state, LUA_REGISTRYINDEX, LUA_LOADED_TABLE);
+    }
+
     const auto top = lua_gettop(state);
 
     /// @brief Restore stack balance even if constructing a native error message fails.
@@ -116,12 +131,21 @@ void lua_vm::protect()
     {
         lua_State* state; ///< Borrowed protected owner stack.
         int top;          ///< Restore even if copying an error message throws.
+        lua_host& host;   ///< Shared root environment restored after every entry.
 
         ~stack_guard()
         {
+            lua_sethook(state, nullptr, 0, 0);
             lua_settop(state, top);
+            if (host.globals != LUA_NOREF)
+            {
+                lua_rawgeti(state, LUA_REGISTRYINDEX, host.globals);
+                lua_rawseti(state, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
+                lua_rawgeti(state, LUA_REGISTRYINDEX, host.loaded);
+                lua_setfield(state, LUA_REGISTRYINDEX, LUA_LOADED_TABLE);
+            }
         } ///< No script closers are exposed.
-    } restore{state, top};
+    } restore{state, top, *host};
 
     remaining = limits.max_instructions;
     host_error = {};
@@ -170,37 +194,7 @@ int lua_vm::execute()
 
     if (self.operation_ == operation::initialize)
     {
-        luaL_openselectedlibs(
-            state, LUA_GLIBK | LUA_TABLIBK | LUA_STRLIBK | LUA_MATHLIBK | LUA_UTF8LIBK, 0);
-
-        for (const auto* name :
-             {"dofile", "loadfile", "load", "print", "warn", "collectgarbage", "pcall", "xpcall",
-              "setmetatable", "getmetatable", "pairs", "next"})
-        {
-            lua_pushnil(state);
-            lua_setglobal(state, name);
-        }
-
-        lua_getglobal(state, "math");
-        for (const auto* name : {"random", "randomseed"})
-        {
-            lua_pushnil(state);
-            lua_setfield(state, -2, name);
-        }
-
-        lua_pop(state, 1);
-        lua_newtable(state);
-        int code = 0;
-        for (const auto* name : {"field", "action", "event", "get", "set", "add_integer",
-                                 "add_number", "invoke", "emit", "request"})
-        {
-            lua_pushinteger(state, code++);
-            lua_pushcclosure(state, native, 1);
-            lua_setfield(state, -2, name);
-        }
-
-        lua_setglobal(state, "model");
-        return 0;
+        return initialize_environment();
     }
 
     if (self.operation_ == operation::load)
@@ -235,17 +229,21 @@ int lua_vm::execute()
         return luaL_error(state, "behavior handler must be a function");
     }
 
-    if (!lua_checkstack(state, static_cast<int>(self.arguments_.size()) + 2))
+    if (!lua_checkstack(state, static_cast<int>(self.arguments_.size()) + 4))
     {
         return luaL_error(state, "behavior argument stack exhausted");
     }
 
+    lua_pop(state, 1);
+    lua_rawgeti(state, LUA_REGISTRYINDEX, host->director);
+    lua_pushvalue(state, 1);
+    lua_pushlstring(state, self.name_.data(), self.name_.size());
     for (const auto& argument : self.arguments_)
     {
         self.push(argument);
     }
 
-    lua_call(state, static_cast<int>(self.arguments_.size()), LUA_MULTRET);
+    lua_call(state, static_cast<int>(self.arguments_.size()) + 2, LUA_MULTRET);
     if (lua_gettop(state) > 33)
     {
         return luaL_error(state, "behavior result limit exhausted");
@@ -290,7 +288,9 @@ std::vector<mvvm::value> lua_vm::call(std::string_view name, std::span<const mvv
     results_.clear();
     commands.clear();
     requests.clear();
+    listeners.clear();
     staged_text = 0;
+    service_calls_ = 0;
     protect();
     return std::move(results_);
 }

@@ -168,6 +168,11 @@ int lua_vm::request_work(std::vector<mvvm::value> arguments)
 /// @brief Stage typed host operations without publishing to model state during Lua execution.
 int lua_vm::invoke_native(int code)
 {
+    if (code >= 10)
+    {
+        return stage_listener(code == 11);
+    }
+
     const auto& schema = model->description();
     if (code < 3)
     {
@@ -200,7 +205,8 @@ int lua_vm::invoke_native(int code)
         throw std::logic_error("behavior initialization cannot produce demands");
     }
 
-    if (lua_gettop(state) > 33 || commands.size() + requests.size() >= limits.max_commands)
+    if (lua_gettop(state) > 33 ||
+        commands.size() + requests.size() + listeners.size() >= limits.max_commands)
     {
         throw std::overflow_error("script command/argument budget exhausted");
     }

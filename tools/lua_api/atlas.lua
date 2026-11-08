@@ -18,8 +18,19 @@
 ---@field invoke fun(slot: atlas_action, ...: atlas_value) Stage an action with its schema signature.
 ---@field emit fun(slot: atlas_event, ...: atlas_value) Stage an event with its schema signature.
 ---@field request fun(name: string, ...: atlas_value): integer Request host work; never run it in Lua.
+---@field subscribe fun(slot: atlas_field|atlas_action|atlas_event, handler: string): integer Stage a scoped listener until synchronization.
+---@field unsubscribe fun(token: integer) Stage retirement of a listener from this instance.
 ---@type atlas_model
 model = {}
+
+---@class atlas_native
+---@field call fun(name: string, ...: atlas_value): ...: atlas_value Call a typed inexpensive project service in a domain.
+---@type atlas_native
+native = {}
+
+-- Only domain instances have this catalog-only loader. Standalone sessions omit require/native.
+---@type fun(identity: string): any
+require = function(_) end
 
 -- Hosts choose handler names/signatures through session.call; no director API is implied.
 -- Registered observers receive: field(value), action/event(...schema parameters).

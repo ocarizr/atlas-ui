@@ -13,15 +13,14 @@ int lua_vm::hook_mask() const noexcept
 /// @brief Restore globals even after protected initialization fails.
 void lua_vm::restore_debug_globals()
 {
-    if (debugger->globals != LUA_NOREF)
+    if (host->globals != LUA_NOREF)
     {
-        lua_rawgeti(state, LUA_REGISTRYINDEX, debugger->globals);
+        lua_rawgeti(state, LUA_REGISTRYINDEX, host->globals);
         lua_rawseti(state, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
     }
 
-    if (debugger->loaded != LUA_NOREF)
     {
-        lua_rawgeti(state, LUA_REGISTRYINDEX, debugger->loaded);
+        lua_rawgeti(state, LUA_REGISTRYINDEX, host->loaded);
         lua_setfield(state, LUA_REGISTRYINDEX, LUA_LOADED_TABLE);
     }
 }

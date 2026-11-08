@@ -1,0 +1,6 @@
+/** @file @brief Embedded owned Lua director, generated from the formatted source. */
+#pragma once
+namespace atlas::scripting::detail
+{
+inline constexpr char director_source[] = R"atlas(@ATLAS_LUA_DIRECTOR@)atlas"; ///< Routing only.
+}

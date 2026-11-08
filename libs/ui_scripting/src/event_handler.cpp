@@ -19,6 +19,20 @@ event_handler::event_handler(std::shared_ptr<scripting::session> behavior,
 }
 
 /// @brief Release the retained behavior outside active UI dispatch.
+event_handler::event_handler(std::shared_ptr<scripting::domain> runtime,
+                             scripting::instance_handle instance,
+                             diagnostics::services destinations)
+    : domain_(std::move(runtime)), instance_(instance), destinations_(std::move(destinations))
+{
+    if (!domain_)
+    {
+        throw std::invalid_argument("UI behavior needs a domain");
+    }
+
+    (void)domain_->inspect(instance_);
+}
+
+/// @brief Release the retained behavior outside active UI dispatch.
 event_handler::~event_handler()
 {
     if (owner_ != std::this_thread::get_id())
@@ -60,7 +74,8 @@ ui::event_response event_handler::on_event(const ui::routed_event& event, ui::co
     const std::array<mvvm::value_type, 5> types{
         mvvm::value_type::boolean, mvvm::value_type::boolean, mvvm::value_type::boolean,
         mvvm::value_type::boolean, mvvm::value_type::boolean};
-    const auto values = behavior_->call(names[kind], args, types);
+    const auto values = domain_ ? domain_->call(instance_, names[kind], args, types)
+                                : behavior_->call(names[kind], args, types);
     const auto flag = [&](std::size_t index)
     {
         return index < values.size() && std::get<bool>(values[index]);

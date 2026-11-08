@@ -1,6 +1,7 @@
 /** @file @brief Private serial VM ownership and thread-safe value-only completion transport. */
 #pragma once
 #include <atlas/scripting/session.hpp>
+#include <functional>
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
@@ -9,6 +10,9 @@
 
 namespace atlas::scripting::detail
 {
+/// @brief Apply the same bounded execution policy to standalone and domain interpreters.
+void validate_limits(session_limits limits);
+
 /// @brief Guard all public operations and synchronous diagnostic callbacks against VM reentry.
 struct busy_guard
 {
@@ -32,6 +36,15 @@ struct pending_work
     std::string name;                                   ///< Native operation name.
     std::vector<mvvm::value> arguments, result;         ///< Independent owned transport values.
     bool issued = false, ready = false, success = true; ///< Single completion state.
+};
+
+/// @brief Transactional script listener edit, applied only at a coordinator safe boundary.
+struct listener_change
+{
+    std::uint64_t token = 0; ///< Monotonic per-context identity.
+    std::variant<mvvm::field_handle, mvvm::action_handle, mvvm::event_handle>
+        slot;            ///< Validated namespace.
+    std::string handler; ///< Empty only for an unsubscribe edit.
 };
 
 /// @brief Workers lock only bounded host transport and never enter a Lua stack.
@@ -59,13 +72,46 @@ struct lua_memory
     std::size_t used = 0, peak = 0, limit = 0; ///< Requested live bytes, not resident memory.
 };
 
+/// @brief One physical interpreter shared by independent owner-thread execution contexts.
+struct lua_host
+{
+    std::vector<mvvm::command> commands;    ///< Reused serial command scratch.
+    std::vector<pending_work> requests;     ///< Reused serial request scratch.
+    std::vector<listener_change> listeners; ///< Reused serial listener scratch.
+    lua_memory memory;          ///< Domain-wide Lua allocation budget and retained resource.
+    lua_State* state = nullptr; ///< Physical stack, never exposed publicly.
+    int globals = LUA_NOREF, loaded = LUA_NOREF,
+        director = LUA_NOREF;                    ///< Root registry references.
+    bool executing = false, dispatching = false; ///< Prevent cross-instance interpreter/reentry.
+    const std::thread::id owner = std::this_thread::get_id(); ///< Fixed interpreter owner.
+    lua_host(session_limits policy,
+             std::shared_ptr<std::pmr::memory_resource> resource); ///< Create without libraries.
+    ~lua_host(); ///< Close only after all logical contexts release their references.
+};
+
+/// @brief Borrowed immutable catalog bytes live through the retained lookup snapshot.
+struct module_source
+{
+    std::string_view text, name; ///< Source bytes and stable authoring identity.
+};
+
+/// @brief Optional project-provided capabilities; no storage or native SDK implementation here.
+struct execution_bindings
+{
+    std::function<module_source(std::string_view)> source; ///< Snapshot-scoped catalog lookup.
+    std::function<std::vector<mvvm::value>(std::string_view, std::span<const mvvm::value>)>
+        service; ///< Validated synchronous project service.
+};
+
 /// @brief One protected interpreter; C++ Lua linkage provides RAII-safe exception unwinding.
 class lua_vm
 {
   public:
     /// @brief Create a private VM with PMR allocation and restricted libraries.
     lua_vm(std::shared_ptr<mvvm::view_model> source, session_limits policy,
-           std::shared_ptr<std::pmr::memory_resource> resource);
+           std::shared_ptr<std::pmr::memory_resource> resource,
+           std::shared_ptr<lua_host> shared = {},
+           std::shared_ptr<const execution_bindings> bindings = {});
     ~lua_vm();                                 ///< lua_close while model/resource are still alive.
     lua_vm(const lua_vm&) = delete;            ///< Lua states cannot be copied.
     lua_vm& operator=(const lua_vm&) = delete; ///< One serial owner.
@@ -88,10 +134,16 @@ class lua_vm
     mvvm::value read(int index); ///< Reject nil/tables and preserve integer versus number type.
     std::shared_ptr<mvvm::view_model> model; ///< Retained independent source of truth.
     session_limits limits;                   ///< Immutable checked policies.
-    lua_memory memory;                       ///< Must outlive the raw Lua state.
-    lua_State* state = nullptr;              ///< Never escapes the library.
-    std::vector<mvvm::command> commands;     ///< Per-call transactional demands.
-    std::vector<pending_work> requests;      ///< Per-call staged native requests.
+    std::shared_ptr<lua_host> host; ///< Retain the single domain interpreter or standalone host.
+    std::shared_ptr<const execution_bindings>
+        bindings;                         ///< Immutable capabilities captured at load.
+    lua_memory& memory;                   ///< Shared physical interpreter accounting.
+    lua_State* state = nullptr;           ///< Never escapes the library.
+    std::vector<mvvm::command>& commands; ///< Shared transactional execution scratch.
+    std::vector<pending_work>&
+        requests; ///< Shared requests transferred before another instance executes.
+    std::vector<listener_change>& listeners; ///< Shared edits transferred into the instance queue.
+    std::uint64_t listener_sequence = 0; ///< Caller-supplied committed observer identity counter.
     std::exception_ptr host_error;  ///< Preserve a native exception through protected Lua dispatch.
     std::uint64_t next_request = 0; ///< Committed request identity before this call.
     std::uint32_t remaining = 0;    ///< Per-call instruction budget.
@@ -116,10 +168,24 @@ class lua_vm
     std::vector<mvvm::value> results_;       ///< Copied before leaving the protected C++ frame.
     bool found_ = false;                     ///< Protected lookup result.
     int handlers_ = LUA_NOREF;               ///< Registry-owned returned table.
+    int environment_ = LUA_NOREF, loaded_ = LUA_NOREF; ///< Per-instance globals and module state.
+    int modules_ = LUA_NOREF;                    ///< Private per-instance catalog module cache.
+    std::vector<std::string> imports_;           ///< Bounded dependency stack for cycle detection.
+    static int module_native(lua_State* state);  ///< Protected catalog loader bridge.
+    static int service_native(lua_State* state); ///< Protected project service bridge.
+    int call_service();             ///< Validate bounded scalar input/output around a service.
+    std::size_t service_calls_ = 0; ///< Per-handler native-service invocation budget.
+    int load_module();              ///< Resolve only caller-supplied catalog bytes, never files.
+    int initialize_environment();   ///< Create isolated standard libraries and model bindings.
+    void release_environment() noexcept; ///< Retire this instance's registry roots.
+    void
+    open_restricted_libraries(); ///< Private standard libraries without forbidden capabilities.
     int invoke_native(int code); ///< May throw native or Lua exceptions inside a protected call.
     int resolve_name(int code);  ///< Resolve one authored name into a namespace-tagged slot.
     int request_work(std::vector<mvvm::value> arguments); ///< Stage a bounded native operation.
-    int execute();  ///< Protected trampoline body with native exception preservation.
+    int stage_listener(
+        bool remove); ///< Validate and stage subscribe/unsubscribe without model mutation.
+    int execute();    ///< Protected trampoline body with native exception preservation.
     void protect(); ///< Restore the Lua stack and rethrow original host errors or Lua diagnostics.
     int initialize_debugger();     ///< Private debugger globals and protocol startup.
     int debug_operation(int code); ///< Protected native debugger operation.
@@ -140,6 +206,9 @@ class session::impl : public std::enable_shared_from_this<session::impl>
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Retained allocator.
     diagnostics::services destinations;                ///< Optional lifecycle and CPU diagnostics.
     std::unique_ptr<detail::lua_vm> vm;                ///< Current successful generation.
+    std::shared_ptr<detail::lua_host> interpreter; ///< Optional domain-owned shared interpreter.
+    std::shared_ptr<const detail::execution_bindings>
+        bindings;                          ///< Catalog/service snapshot for the next load.
     std::shared_ptr<detail::mailbox> mail; ///< Fresh identity on every successful reload.
 
     /// @brief One session token paired with the model's nonreused subscription identity.
@@ -149,21 +218,25 @@ class session::impl : public std::enable_shared_from_this<session::impl>
         mvvm::subscription token; ///< Model subscription to release before VM teardown.
     };
 
-    std::vector<watch_entry> watches; ///< At most 1024 retained registrations.
-    std::uint64_t sequence = 0;       ///< Never reuse watch identity across reloads.
-    statistics stats;                 ///< Current owner observations.
+    std::vector<watch_entry> watches;                      ///< At most 1024 retained registrations.
+    std::vector<detail::listener_change> listener_changes; ///< Deferred edits awaiting synchronize.
+    std::uint64_t sequence = 0; ///< Never reuse watch identity across reloads.
+    statistics stats;           ///< Current owner observations.
     bool busy = false, closed = false,
          delivering = false; ///< Reentry and terminal lifecycle guards.
     const std::thread::id owner = std::this_thread::get_id(); ///< Immutable thread affinity.
     void check() const; ///< Reject foreign/reentrant/closed calls before mutable access.
     void detach();      ///< Remove model subscriptions without executing scripts.
     void fail();        ///< Latch failure and request native-work cancellation.
+    void admit();       ///< Publish validated producer demands and deferred listener edits.
     /// @brief Guard dispatch and commit the successful producer batch.
     std::vector<mvvm::value> call(std::string_view name, std::span<const mvvm::value> args,
                                   bool internal = false,
                                   std::span<const mvvm::value_type> result_types = {});
     std::uint64_t
     watch(std::variant<mvvm::field_handle, mvvm::action_handle, mvvm::event_handle> slot,
-          std::string_view handler); ///< Resolve and retain a weak VM observer.
+          std::string_view handler,
+          std::uint64_t reserved_token = 0); ///< Resolve and retain a weak VM observer.
+    void synchronize_listeners();            ///< Commit a bounded batch outside every model flush.
 };
 } // namespace atlas::scripting

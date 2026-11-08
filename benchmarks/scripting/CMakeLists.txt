@@ -1,0 +1,7 @@
+add_executable(atlas_scripting_benchmark domain_benchmark.cpp)
+target_link_libraries(atlas_scripting_benchmark PRIVATE atlas::scripting)
+atlas_configure_target(atlas_scripting_benchmark)
+if(BUILD_TESTING)
+    add_test(NAME scripting_domain_benchmark_smoke COMMAND atlas_scripting_benchmark --smoke)
+    set_tests_properties(scripting_domain_benchmark_smoke PROPERTIES LABELS scripting TIMEOUT 30)
+endif()
