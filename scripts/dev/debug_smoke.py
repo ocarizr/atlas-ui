@@ -30,15 +30,19 @@ def until(stream, command, stack=False):
     raise ValueError(f"Missing LuaPanda message: {command}")
 
 
-def run(host, agent, script):
+def run(host, agent, script, domain=None):
     """Validate actual breakpoints, stack, locals, watches, stepping and clean disconnect."""
     source = Path(script).resolve().as_posix()
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         listener.listen(1)
         listener.settimeout(10)
+        command = [str(host), source, str(agent), str(listener.getsockname()[1])]
+        if domain:
+            command.append(domain)
+        expected = "71" if domain == "application" else "41"
         process = subprocess.Popen(
-            [str(host), source, str(agent), str(listener.getsockname()[1])],
+            command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -73,14 +77,15 @@ def run(host, agent, script):
                     ), stopped
                     exchange(connection, "getVariable", {"varRef": "10000", "stackId": "2"})
                     locals_message = until(stream, "getVariable")
-                    assert "answer" in json.dumps(locals_message) and "41" in json.dumps(
-                        locals_message
+                    assert any(
+                        entry["name"] == "answer" and entry["value"] == expected
+                        for entry in locals_message["info"]
                     ), locals_message
                     exchange(
                         connection, "getWatchedVariable", {"varName": "answer", "stackId": "2"}
                     )
                     watched = until(stream, "getWatchedVariable")
-                    assert "41" in json.dumps(watched), watched
+                    assert any(entry["value"] == expected for entry in watched["info"]), watched
                     for command in ("stopOnStepIn", "stopOnStepOut", "stopOnStep"):
                         exchange(connection, command)
                         assert until(stream, command, stack=True)["stack"]
@@ -89,7 +94,14 @@ def run(host, agent, script):
             output, errors = process.communicate(timeout=10)
             if process.returncode:
                 raise RuntimeError(f"Lua debug host failed: {output}\n{errors}")
-            assert "Completed owner-thread tick" in output, output
+            if domain:
+                assert output.splitlines() == [
+                    "Completed UI sibling tick",
+                    f"Completed {'application' if domain == 'ui' else 'UI'} peer tick",
+                    f"Completed {domain} domain tick",
+                ], output
+            else:
+                assert "Completed owner-thread tick" in output, output
         finally:
             if process.poll() is None:
                 process.kill()
@@ -105,8 +117,9 @@ def main():
     parser.add_argument("host", type=Path)
     parser.add_argument("agent", type=Path)
     parser.add_argument("script", type=Path)
+    parser.add_argument("--domain", choices=("ui", "application"))
     arguments = parser.parse_args()
-    run(arguments.host, arguments.agent, arguments.script)
+    run(arguments.host, arguments.agent, arguments.script, arguments.domain)
 
 
 if __name__ == "__main__":

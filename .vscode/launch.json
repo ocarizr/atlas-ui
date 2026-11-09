@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Atlas Lua: UI session (8818)",
+      "name": "Atlas Lua: UI domain (8818)",
       "type": "lua",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -20,7 +20,7 @@
       "logLevel": 2
     },
     {
-      "name": "Atlas Lua: application session (8819)",
+      "name": "Atlas Lua: application domain (8819)",
       "type": "lua",
       "request": "launch",
       "cwd": "${workspaceFolder}",

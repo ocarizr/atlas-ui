@@ -4,9 +4,9 @@ local function increment(value)
 end
 
 return {
-    tick = function()
-        local answer = 41
+    tick = function(seed)
+        local answer = seed or 41
         answer = increment(answer)
-        assert(answer == 42)
+        assert(answer == (seed or 41) + 1)
     end,
 }

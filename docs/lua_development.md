@@ -1,6 +1,6 @@
 # Lua development
 
-Atlas embeds **Lua 5.5.1 with C++ linkage**. The embedded session is the execution
+Atlas embeds **Lua 5.5.1 with C++ linkage**. The embedded interpreter is the execution
 environment for Atlas behavior; a system `lua.exe` does not provide its model API,
 ownership rules or protected failure behavior. A separate Lua interpreter is not
 required to contribute or debug the embedded runtime.
@@ -30,7 +30,12 @@ libraries absent from Atlas and loads editor-only [API annotations](../tools/lua
 The workspace selects the pinned server executable rather than whichever server
 ships with an installed extension. Completion, type diagnostics, definitions,
 references and symbol renaming use LuaLS. The annotations describe the current
-model API; model field names/signatures still require runtime schema validation.
+model, scoped listener, result handler, catalog import and native service APIs.
+Model fields and native service signatures still require runtime schema
+validation. A consumer can annotate its own catalog modules and typed wrappers
+for project services to give LuaLS the corresponding project-specific types.
+The director is owned by the host and routes named entries in a behavior's
+returned table. There is no global `director` for scripts to call.
 
 StyLua **2.6.0** formats owned Lua sources using the common Lua 5.4/5.5 syntax
 subset. It does not parse every Lua 5.5-only construct. In particular, do not use
@@ -66,24 +71,29 @@ ordinary Windows preset after dependency bootstrap:
 
 ```powershell
 cmake --preset windows-msvc -DATLAS_COMPONENTS=scripting
-cmake --build --preset windows-debug --target atlas_lua_debug_host atlas_scripting_tests atlas_scripting_debug_tests
+cmake --build --preset windows-debug --target atlas_lua_debug_host atlas_scripting_tests atlas_scripting_debug_tests atlas_scripting_benchmark
 ```
 
 Ensure the configuration-matched Lua and transitive dependency DLL directories
 are on `PATH`, as described in the Windows guide. In VS Code open
 `tests/scripting/data/debug_fixture.lua`, set a breakpoint on the call to
-`increment`, select “Atlas Lua: UI session (8818)” and press F5. The adapter starts
+`increment`, select “Atlas Lua: UI domain (8818)” and press F5. The adapter starts
 a local listener. In a separate initialized terminal run:
 
 ```powershell
-./build/windows-msvc/tools/lua_debug_host/Debug/atlas_lua_debug_host.exe tests/scripting/data/debug_fixture.lua .tools/lua_dev/luapanda/LuaPanda.lua 8818
+./build/windows-msvc/tools/lua_debug_host/Debug/atlas_lua_debug_host.exe tests/scripting/data/debug_fixture.lua .tools/lua_dev/luapanda/LuaPanda.lua 8818 ui
 ```
 
-Inspect `answer`, use the Variables/Watch/Call Stack views, and step in/out/over.
-Continue to complete the one-tick fixture. The application-session launch entry
-uses port **8819**; run a second host with that port to debug an independent VM.
-These entries select independent sessions. Shared UI/application domains and a
-director are not implemented by these launch configurations.
+Inspect `answer` (`41`), use the Variables/Watch/Call Stack views, and step
+in/out/over. Continue to finish. To inspect the application domain, select
+“Atlas Lua: application domain (8819)” and run the host with `8819 application`
+as the last two arguments. That breakpoint shows `answer = 71`.
+
+Each domain run creates both domains on the same coordinator. Two UI behaviors
+share one interpreter and the application behavior has its own. All three
+execute the same catalog module. The debugger hooks belong to the selected
+instance. The terminal reports both untargeted ticks before the selected tick
+completes. Omit the final selector for the standalone session fixture.
 
 The native host is a contributor fixture runner. Its bounded file reads are
 developer infrastructure. Real application scripts continue to arrive through
@@ -95,20 +105,26 @@ host version check without compiling Winsock.
 
 ## Sources, hooks and pause behavior
 
-Pass `load(bytes, "@/absolute/project/scripts/ui/menu.lua")` for debugger-visible
-scripts. Use a normalized, stable, unique authoring path with forward slashes;
-the `@` prefix identifies a file in Lua debug information. The API consumes bytes
+Use `source_asset::source_name` for domain sources and modules, or pass
+`load(bytes, "@/absolute/project/scripts/ui/menu.lua")` for a standalone session.
+Use a normalized, stable, unique authoring path with forward slashes. The `@`
+prefix identifies a file in Lua debug information. Catalog identity selects the
+asset and the source name maps its bytecode to the editor. The API consumes bytes
 already supplied by the caller and does not resolve/open that path. Configure
 LuaPanda's `cwd` to the external project root and use `autoPathMode=false`.
 For relocated workspaces use the adapter's `docPathReplace` mapping. Identical
 filenames in different directories must retain different full identities.
 
-Attach only after loading a healthy session and outside an active call:
+Attach to a healthy instance after creation and outside an active call:
 
 ```cpp
-behavior.attach_debugger({verified_agent_bytes, local_transport, 8818});
-// Admit the matching model/session frame, then call the desired handler.
-behavior.detach_debugger();
+ui.register_source({"menu", revision, "@/absolute/project/scripts/ui/menu.lua", script_bytes});
+auto menu = ui.create({"menu", "hud"}); // The composition root has already bound the hud model.
+ui.attach_debugger(menu, {verified_agent_bytes, local_transport, 8818});
+model->begin_frame(frame);
+ui.begin_frame(frame);
+ui.call(menu, "tick");
+ui.detach_debugger(menu);
 ```
 
 The supplied agent is trusted development code. Use the setup-produced, verified
@@ -140,7 +156,8 @@ replace the owned dispatcher.
 
 Detach closes transport and releases registry references without executing agent
 teardown code. Successful reload retires the old attachment; explicitly attach
-the new generation. Failed reload preserves the prior generation/attachment.
+using the new handle returned by `domain::reload`. Failed reload preserves the
+prior generation and attachment. Each attached instance needs its own transport.
 Disconnect does not transfer VM ownership or cancel an otherwise valid handler.
 
 ## Compatibility and verification
@@ -159,14 +176,16 @@ adapted editor listener use loopback only. No nonlocal transport, authentication
 or remote deployment mode is supplied. Do not expose or port-forward this local
 development protocol.
 
-CTest's `lua_debug_host_protocol` drives the real embedded host over TCP and
-checks breakpoints, call stacks, locals, watches, step in/out/over and disconnect.
-Core tests additionally check restricted globals, quotas, source names and
-generation cleanup. These checks do not require VS Code or a system interpreter:
+CTest drives the real embedded host over TCP for a standalone session and each
+domain selection. The domain tests check that only the selected instance stops
+on a catalog module breakpoint, then inspect its stack, locals and watches and
+exercise step in/out/over and disconnect. Core tests additionally check restricted
+globals, quotas, source names and attachment cleanup after reload/removal. These
+checks do not require VS Code or a system interpreter:
 
 ```powershell
-ctest --preset windows-debug -L '^scripting$' --output-on-failure
-python -m scripts.dev.debug_smoke build/windows-msvc/tools/lua_debug_host/Debug/atlas_lua_debug_host.exe .tools/lua_dev/luapanda/LuaPanda.lua tests/scripting/data/debug_fixture.lua
+ctest --preset windows-debug -L '^scripting$' --output-on-failure --no-tests=error
+python -m scripts.dev.debug_smoke build/windows-msvc/tools/lua_debug_host/Debug/atlas_lua_debug_host.exe .tools/lua_dev/luapanda/LuaPanda.lua tests/scripting/data/debug_fixture.lua --domain ui
 ```
 
 If breakpoints do not bind, verify the selected port, exact full source identity,
@@ -183,5 +202,5 @@ configuration to point to a particular project. Copy/adapt the small editor
 configuration into the consumer workspace: point `workspace.library` at the
 pinned Atlas `tools/lua_api` directory, the LuaLS executable at that checkout's
 ignored installation, and debugger `cwd` at the consumer root. The composition
-root supplies source bytes, identities, model, session, allocator and development
+root supplies source bytes, identities, models, domains, allocator and development
 transport. The project setup tool does not yet generate those configurations.
