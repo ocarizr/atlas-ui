@@ -15,6 +15,7 @@ gtest_discover_tests(atlas_scripting_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TIM
     PROPERTIES LABELS scripting TIMEOUT 30)
 
 if(NOT ATLAS_SHIPPING_BUILD)
+    add_subdirectory(lua)
     if(ATLAS_ENABLE_LUA_DEBUGGER)
         set(atlas_debug_library atlas_scripting)
     else()

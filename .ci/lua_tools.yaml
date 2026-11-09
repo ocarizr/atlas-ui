@@ -1,4 +1,10 @@
 # Tooling stays outside source assets and is never included in runtime packages.
+luaunit:
+  version: '3.5'
+  revision: 9678c933e71cb26adcdfa6cf1baceb926398eb48
+  license: BSD-2-Clause
+  url: https://codeload.github.com/bluebird75/luaunit/zip/9678c933e71cb26adcdfa6cf1baceb926398eb48
+  sha256: 9e02c2b5e570cad069cb142fb7d3a1788bc89c8274741d56330f098bc514678f
 luapanda:
   version: e3ac3d3314f24cf939c36cac5b7dc1f2ed6ee129
   url: https://raw.githubusercontent.com/Tencent/LuaPanda/e3ac3d3314f24cf939c36cac5b7dc1f2ed6ee129/Debugger/LuaPanda.lua

@@ -39,10 +39,10 @@ jobs:
         configuration: ${{ matrix.configuration }}
         keys: ${{ inputs.keys }}
         upstream: ${{ inputs.upstream }}
-    - name: Prepare embedded Lua debugger fixture
+    - name: Prepare embedded Lua test and debugger tooling
       if: inputs.component == 'scripting'
       shell: pwsh
-      run: python -m scripts.dev.setup_lua --tools luapanda
+      run: python -m scripts.dev.setup_lua --tools luapanda luaunit
     - name: Build component and run its tests
       shell: pwsh
       env:
@@ -53,6 +53,14 @@ jobs:
         ATLAS_BUILD_VERSION: ${{ inputs.version }}
       run: python -m scripts.ci.build_component --component $env:COMPONENT --configure $env:CONFIGURE_PRESET --configuration
         $env:BUILD_CONFIGURATION --export-products
+    - name: Retain Lua behavior test results
+      if: always() && inputs.component == 'scripting'
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      with:
+        name: lua-behavior-${{ matrix.configure }}-${{ matrix.configuration }}-${{ github.sha }}
+        path: build/${{ matrix.configure }}/reports/lua-behavior-${{ matrix.configuration }}.xml
+        if-no-files-found: warn
+        retention-days: 7
     - name: Share compiled component
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:

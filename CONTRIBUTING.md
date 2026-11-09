@@ -41,7 +41,8 @@ the formatter does not synthesize documentation. See [source style and documenta
 for component/file selection, control-block spacing, IDE tasks and CI gates.
 
 Lua contributors follow the [Lua development guide](docs/lua_development.md) for
-pinned LuaLS/LuaPanda setup, embedded-runtime debugging and editor-only annotations.
+pinned LuaLS/LuaPanda setup, embedded-runtime debugging, editor-only annotations
+and authored LuaUnit suites.
 
 Run the relevant [Windows checks](docs/windows_development.md). Report actual results; no discovered tests must never be described as a passing suite. Coverage includes lines and branches but does not prove correctness or absence of races.
 
