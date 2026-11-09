@@ -89,3 +89,28 @@ def test_verified_existing_installation_is_not_replaced(tmp_path, monkeypatch):
     monkeypatch.setattr("scripts.dev.setup_lua.shutil.move", replace)
     install(tmp_path, "luapanda", specification)
     assert (cache / "luapanda/atlas_version.txt").read_text() == "fixture"
+
+
+def test_luaunit_install_keeps_source_and_license(tmp_path):
+    """Install the pinned LuaUnit files without adding upstream tests to the workspace."""
+    revision = "pinned"
+    prefix = f"luaunit-{revision}"
+    data = archive(
+        {
+            f"{prefix}/luaunit.lua": "return {}",
+            f"{prefix}/LICENSE.txt": "license text",
+            f"{prefix}/test/upstream.lua": "error('not an Atlas test')",
+        }
+    )
+    cache = tmp_path / ".tools/lua_dev"
+    cache.mkdir(parents=True)
+    (cache / "luaunit.download").write_bytes(data)
+    install(
+        tmp_path,
+        "luaunit",
+        {"version": "3.5", "sha256": hashlib.sha256(data).hexdigest(), "revision": revision},
+    )
+    installed = cache / "luaunit"
+    assert (installed / "luaunit.lua").read_text() == "return {}"
+    assert (installed / "LICENSE.txt").read_text() == "license text"
+    assert not (installed / "test").exists()

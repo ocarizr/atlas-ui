@@ -9,7 +9,7 @@ components:
     - libs/platform/windows/scripting/**
     - tests/platform/windows/scripting/**
     depends_on: [mvvm]
-    build_targets: [atlas_scripting, atlas_scripting_tests, atlas_scripting_debug_tests, atlas_lua_debug_host, atlas_scripting_benchmark]
+    build_targets: [atlas_scripting, atlas_scripting_tests, atlas_scripting_debug_tests, atlas_lua_debug_host, atlas_lua_behavior_tests, atlas_scripting_benchmark]
     test_labels: [scripting]
     build_requires: [mvvm]
     vendors: [testing, content]

@@ -71,7 +71,7 @@ ordinary Windows preset after dependency bootstrap:
 
 ```powershell
 cmake --preset windows-msvc -DATLAS_COMPONENTS=scripting
-cmake --build --preset windows-debug --target atlas_lua_debug_host atlas_scripting_tests atlas_scripting_debug_tests atlas_scripting_benchmark
+cmake --build --preset windows-debug --target atlas_lua_debug_host atlas_scripting_tests atlas_scripting_debug_tests atlas_scripting_benchmark atlas_lua_behavior_tests
 ```
 
 Ensure the configuration-matched Lua and transitive dependency DLL directories
@@ -193,6 +193,62 @@ If breakpoints do not bind, verify the selected port, exact full source identity
 fresh verified agent after tool upgrades; do not debug with an arbitrary copy
 from the marketplace extension. VM allocation limits also cover debugger data;
 very large watches can fail the protected call and require reload.
+
+## Authored Lua tests
+
+The test host runs [LuaUnit 3.5](https://github.com/bluebird75/luaunit/tree/LUAUNIT_V3_5)
+on the same Lua 5.5.1 C++ dependency as Atlas. The tool manifest pins its commit,
+BSD-2-Clause license and archive checksum. Setup installs the framework and
+license under `.tools/lua_dev/luaunit`. Tarantool's `luatest` requires Tarantool
+and LuaJIT facilities, so it is incompatible with this runtime.
+
+With dependencies prepared, run the authored suites without VS Code:
+
+```powershell
+python -m scripts.dev.setup_lua --tools luaunit
+cmake --preset windows-msvc -DATLAS_COMPONENTS=scripting
+cmake --build --preset windows-debug --target atlas_lua_behavior_tests
+ctest --preset windows-debug -R '^lua_behavior_suites$' --output-on-failure --no-tests=error
+```
+
+The `scripting` CI component installs the pinned framework, builds the host and
+runs the CTest registration. LuaUnit writes individual case results to
+`build/<preset>/reports/lua-behavior-<configuration>.xml`. CI retains that JUnit
+report, including case failures when the runner can produce it. Missing tooling,
+no executed cases and failed assertions cause a nonzero exit. Shipping builds
+omit the host.
+
+Suites under `tests/scripting/lua` return named LuaUnit groups. The runner passes
+the framework, fixture API and fixture source reader as arguments. Group methods
+start with `test`; use distinct names for parameter cases. Pure functions can be
+tested directly. Place behavior source in `data/` and publish its bytes under a
+catalog identity to exercise it through the embedded runtime.
+
+`atlas.with_fixture(function() ... end)` creates two independent domains and
+typed fixture models with integer `count` and `mirror` fields, an integer
+`signal` action and a string `changed` event. Every callback exit, including a
+LuaUnit failure, destroys its domains and releases the fixture. The driver uses
+the following explicit phases:
+
+| Operation | Test purpose |
+| --- | --- |
+| `publish(side, id, revision, bytes)` and `create(side, id)` | Publish a catalog source and return a fixture-local instance handle. Use `ui` or `application` for `side`. |
+| `begin_frame(number)` | Advance both fixture models and domains with a deterministic frame identity. |
+| `call(handle, name, ...)` and `dispatch(side, name, ...)` | Enter one instance or visit a domain in registration order. |
+| `synchronize(side)`, `flush(side)` and `read(side, field)` | Apply listener edits, commit model demands and inspect committed state. |
+| `take_requests(side)`, `complete(index, success, ...)` and `deliver_results(side)` | Retain the latest request batch, complete by one-based index and deliver the ready prefix. Test completion order without sleeps or worker threads. |
+| `reload(handle)` | Return a new fixture-local handle on success and retain the old handle for stale-generation assertions. |
+| `post(handle, sequence, frame, name, ...)` and `deliver_messages(side)` | Submit and deliver owned scalar ingress at the specified boundary. |
+
+The runner's LuaUnit assertions and file reads execute on a separate trusted
+stack. The behavior runs via `atlas::scripting::domain` with the normal capability
+and instruction limits. Test failures preserve catalog source names and Lua
+line diagnostics. LLVM coverage measures the C++ host and exercised native code.
+There is no Lua line coverage collector in this profile. A future Lua 5.5
+collector must subscribe through the owned hook dispatcher so it cannot replace
+instruction quotas or debugger hooks. Keep native ownership, allocator and
+concurrency tests in GoogleTest, and keep project-specific tests in the consumer
+workspace.
 
 ## Consumer workspaces
 

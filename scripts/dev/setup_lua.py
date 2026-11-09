@@ -84,6 +84,11 @@ def install(root, name, specification):
         if name == "luapanda":
             source = adapt_luapanda(data.decode("utf-8"))
             (staging / "LuaPanda.lua").write_text(source, encoding="utf-8", newline="\n")
+        elif name == "luaunit":
+            prefix = f"luaunit-{specification['revision']}"
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                for filename in ("luaunit.lua", "LICENSE.txt"):
+                    (staging / filename).write_bytes(archive.read(f"{prefix}/{filename}"))
         elif name.endswith("_extension"):
             content = adapt_debug_adapter(data) if name == "luapanda_extension" else data
             (staging / "extension.vsix").write_bytes(content)
@@ -108,14 +113,14 @@ def install(root, name, specification):
 def main():
     """Install only explicitly selected tools, or the complete contributor set."""
     parser = argparse.ArgumentParser(description=__doc__)
+    root = Path(__file__).resolve().parents[2]
+    specifications = read_yaml(root / ".ci/lua_tools.yaml")
     parser.add_argument(
         "--tools",
         nargs="+",
-        choices=["luapanda", "luals", "stylua", "luapanda_extension", "luals_extension"],
+        choices=specifications,
     )
     arguments = parser.parse_args()
-    root = Path(__file__).resolve().parents[2]
-    specifications = read_yaml(root / ".ci/lua_tools.yaml")
     for name in arguments.tools or specifications:
         install(root, name, specifications[name])
 
