@@ -1,6 +1,7 @@
 /** @file @brief Owner lifecycle, transactional VM reload and explicit model frame boundaries. */
 #include "session_state.hpp"
 #include <algorithm>
+#include <limits>
 #include <stdexcept>
 
 namespace atlas::scripting
@@ -44,7 +45,7 @@ void session::impl::fail()
 /// @brief Validate limits and retain the composition-root model, allocator and diagnostics.
 session::session(std::shared_ptr<mvvm::view_model> model, session_limits limits,
                  std::shared_ptr<std::pmr::memory_resource> memory,
-                 diagnostics::services destinations)
+                 diagnostics::services destinations, script_diagnostics_options script_diagnostics)
     : impl_(std::make_shared<impl>())
 {
     if (!model)
@@ -66,6 +67,7 @@ session::session(std::shared_ptr<mvvm::view_model> model, session_limits limits,
     impl_->memory = std::move(memory);
     impl_->limits = limits;
     impl_->destinations = std::move(destinations);
+    impl_->script_diagnostics = std::move(script_diagnostics);
     impl_->watches.reserve(8);
 }
 
@@ -104,8 +106,29 @@ void session::load(std::string_view source, std::string_view source_name)
 
     const detail::busy_guard guard{impl_->busy};
     const diagnostics::operation_scope scope{impl_->destinations, {"script.load", "script.cpu"}};
-    auto candidate = std::make_unique<detail::lua_vm>(impl_->model, impl_->limits, impl_->memory,
-                                                      impl_->interpreter, impl_->bindings);
+    auto identity = impl_->script_owner;
+    std::unique_ptr<detail::authored_diagnostics> authored;
+    if (impl_->script_diagnostics.enabled)
+    {
+        if (!identity.instance)
+        {
+            identity.instance = detail::next_owner_identity();
+        }
+
+        if (identity.generation == std::numeric_limits<std::uint64_t>::max())
+        {
+            throw std::overflow_error("script diagnostic generations exhausted");
+        }
+
+        ++identity.generation;
+        authored = std::make_unique<detail::authored_diagnostics>(detail::authored_diagnostics{
+            impl_->destinations.log.get(), impl_->destinations.profile.get(),
+            impl_->script_diagnostics.metrics.get(), identity});
+    }
+
+    auto candidate =
+        std::make_unique<detail::lua_vm>(impl_->model, impl_->limits, impl_->memory,
+                                         impl_->interpreter, impl_->bindings, std::move(authored));
     candidate->load(source, source_name);
     auto mail = std::make_shared<detail::mailbox>();
 
@@ -118,6 +141,7 @@ void session::load(std::string_view source, std::string_view source_name)
     }
 
     impl_->vm = std::move(candidate);
+    impl_->script_owner = identity;
     impl_->mail = std::move(mail);
     impl_->stats = {};
     diagnostics::write(impl_->destinations, diagnostics::log_level::debug, "scripting",
@@ -143,7 +167,7 @@ void session::begin_frame(std::uint64_t frame)
 std::vector<mvvm::value> session::call(std::string_view handler, std::span<const mvvm::value> args,
                                        std::span<const mvvm::value_type> result_types)
 {
-    return impl_->call(handler, args, false, result_types);
+    return impl_->call(handler, args, 0, result_types);
 }
 
 /// @brief Cancel transport and release observers without waiting for caller-owned jobs.

@@ -1,5 +1,6 @@
 /** @file @brief Private serial VM ownership and thread-safe value-only completion transport. */
 #pragma once
+#include "lua_diagnostics_state.hpp"
 #include <atlas/scripting/session.hpp>
 #include <functional>
 #include <lauxlib.h>
@@ -111,7 +112,8 @@ class lua_vm
     lua_vm(std::shared_ptr<mvvm::view_model> source, session_limits policy,
            std::shared_ptr<std::pmr::memory_resource> resource,
            std::shared_ptr<lua_host> shared = {},
-           std::shared_ptr<const execution_bindings> bindings = {});
+           std::shared_ptr<const execution_bindings> bindings = {},
+           std::unique_ptr<authored_diagnostics> authored = {});
     ~lua_vm();                                 ///< lua_close while model/resource are still alive.
     lua_vm(const lua_vm&) = delete;            ///< Lua states cannot be copied.
     lua_vm& operator=(const lua_vm&) = delete; ///< One serial owner.
@@ -151,7 +153,8 @@ class lua_vm
     bool loading = false;           ///< Initialization cannot produce commands/work.
     bool privileged = false; ///< Only trusted debugger initialization bypasses script quotas.
     struct debug_state;      ///< Optional source, transport and Lua registry references.
-    std::shared_ptr<debug_state> debugger; ///< Absent in normal sessions.
+    std::shared_ptr<debug_state> debugger;          ///< Absent in normal sessions.
+    std::unique_ptr<authored_diagnostics> authored; ///< Allocated only for opted-in scripts.
   private:
     enum class operation : std::uint8_t
     {
@@ -177,7 +180,10 @@ class lua_vm
     std::size_t service_calls_ = 0; ///< Per-handler native-service invocation budget.
     int load_module();              ///< Resolve only caller-supplied catalog bytes, never files.
     int initialize_environment();   ///< Create isolated standard libraries and model bindings.
-    void release_environment() noexcept; ///< Retire this instance's registry roots.
+    void install_diagnostics();     ///< Install optional owner-only Lua observation functions.
+    static int diagnostic_native(lua_State* state); ///< Preserve errors through the Lua trampoline.
+    int observe_diagnostic(int code);               ///< Validate and emit one authored observation.
+    void release_environment() noexcept;            ///< Retire this instance's registry roots.
     void
     open_restricted_libraries(); ///< Private standard libraries without forbidden capabilities.
     int invoke_native(int code); ///< May throw native or Lua exceptions inside a protected call.
@@ -205,7 +211,9 @@ class session::impl : public std::enable_shared_from_this<session::impl>
     session_limits limits;                             ///< Validated generation policy.
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Retained allocator.
     diagnostics::services destinations;                ///< Optional lifecycle and CPU diagnostics.
-    std::unique_ptr<detail::lua_vm> vm;                ///< Current successful generation.
+    script_diagnostics_options script_diagnostics;     ///< Opt-in script observations and registry.
+    detail::script_identity script_owner; ///< Most recent successful diagnostic generation.
+    std::unique_ptr<detail::lua_vm> vm;   ///< Current successful generation.
     std::shared_ptr<detail::lua_host> interpreter; ///< Optional domain-owned shared interpreter.
     std::shared_ptr<const detail::execution_bindings>
         bindings;                          ///< Catalog/service snapshot for the next load.
@@ -231,7 +239,7 @@ class session::impl : public std::enable_shared_from_this<session::impl>
     void admit();       ///< Publish validated producer demands and deferred listener edits.
     /// @brief Guard dispatch and commit the successful producer batch.
     std::vector<mvvm::value> call(std::string_view name, std::span<const mvvm::value> args,
-                                  bool internal = false,
+                                  std::uint64_t native_request = 0,
                                   std::span<const mvvm::value_type> result_types = {});
     std::uint64_t
     watch(std::variant<mvvm::field_handle, mvvm::action_handle, mvvm::event_handle> slot,

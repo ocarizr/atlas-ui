@@ -21,13 +21,14 @@ instance_handle domain::create(behavior_spec spec)
 
     const detail::busy_guard guard{impl_->busy};
     auto behavior = std::make_shared<session>(context->second, impl_->limits, impl_->memory,
-                                              impl_->destinations);
+                                              impl_->destinations, impl_->script_diagnostics);
     if (!impl_->interpreter)
     {
         impl_->interpreter = std::make_shared<detail::lua_host>(impl_->limits, impl_->memory);
     }
 
     behavior->impl_->interpreter = impl_->interpreter;
+    behavior->impl_->script_owner = {impl_->identity, impl_->sequence + 1, 0};
     behavior->impl_->bindings = impl_->snapshot();
     behavior->load(source->second->text, source->second->source_name);
     if (impl_->frame)
@@ -52,9 +53,11 @@ instance_handle domain::reload(instance_handle instance)
 
     const detail::busy_guard guard{impl_->busy};
     const auto source = impl_->sources->at(entry.spec.source);
-    auto candidate = std::make_shared<session>(entry.behavior->impl_->model, impl_->limits,
-                                               impl_->memory, impl_->destinations);
+    auto candidate =
+        std::make_shared<session>(entry.behavior->impl_->model, impl_->limits, impl_->memory,
+                                  impl_->destinations, impl_->script_diagnostics);
     candidate->impl_->interpreter = impl_->interpreter;
+    candidate->impl_->script_owner = {instance.domain, instance.sequence, instance.generation};
     candidate->impl_->bindings = impl_->snapshot();
     candidate->impl_->sequence = entry.behavior->impl_->sequence;
     candidate->load(source->text, source->source_name);
