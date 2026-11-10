@@ -15,13 +15,13 @@ from scripts.ci import verify_vendor_inputs
         pytest.param(
             "streaming",
             ["testing", "media", "content"],
-            "@(diagnostics|jobs)",
+            "@(asset-catalog|diagnostics|jobs)",
             id="streaming-prerequisites",
         ),
         pytest.param(
             "editor",
             ["memory", "ipc", "content", "graphics"],
-            "@(application|diagnostics|input|ipc|jobs|jobs-diagnostics|memory|render-host|renderer|renderer-content|renderer-jobs|streaming|ui|ui-images|ui-renderer|window)",
+            "@(application|asset-catalog|diagnostics|input|ipc|jobs|jobs-diagnostics|memory|render-host|renderer|renderer-content|renderer-jobs|streaming|ui|ui-images|ui-renderer|window)",
             id="transitive-prerequisites",
         ),
     ],

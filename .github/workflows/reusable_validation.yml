@@ -238,6 +238,20 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['jobs-benchmark']) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  asset-catalog:
+    needs:
+    - plan
+    - vendor-testing
+    - vendor-content
+    - diagnostics
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'asset-catalog') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: asset-catalog
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['asset-catalog']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   streaming:
     needs:
     - plan
@@ -245,6 +259,7 @@ jobs:
     - vendor-media
     - jobs
     - diagnostics
+    - asset-catalog
     - vendor-content
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'streaming') }}
     uses: ./.github/workflows/reusable_build.yml
@@ -543,6 +558,7 @@ jobs:
     - ui-scripting
     - jobs-diagnostics
     - jobs-benchmark
+    - asset-catalog
     - streaming
     - ipc
     - application
