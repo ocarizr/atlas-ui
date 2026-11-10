@@ -45,6 +45,7 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
         "ui-images",
         "ui-renderer",
         "application",
+        "asset-catalog",
         "ipc",
         "jobs",
         "diagnostics",
@@ -61,6 +62,7 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
     assert "game" not in plan["components"]
     assert plan["prerequisites"]["editor"] == [
         "application",
+        "asset-catalog",
         "diagnostics",
         "input",
         "ipc",

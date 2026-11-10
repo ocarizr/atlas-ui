@@ -1,4 +1,13 @@
 components:
+  asset-catalog:
+    paths:
+    - libs/asset_catalog/**
+    - tests/asset_catalog/**
+    depends_on: [diagnostics]
+    build_targets: [atlas_asset_catalog, atlas_asset_catalog_tests]
+    test_labels: [asset-catalog]
+    build_requires: [diagnostics]
+    vendors: [testing, content]
   scripting:
     paths:
     - libs/scripting/**
@@ -394,6 +403,7 @@ components:
     - jobs
     - dependencies
     - diagnostics
+    - asset-catalog
     build_targets:
     - atlas_streaming
     - atlas_streaming_tests
@@ -402,6 +412,7 @@ components:
     build_requires:
     - jobs
     - diagnostics
+    - asset-catalog
     vendors:
     - testing
     - media
@@ -634,6 +645,7 @@ global_paths:
 - vcpkg-configuration.json
 - dependencies/**
 documentation_paths:
+- libs/asset_catalog/README.md
 - libs/scripting/README.md
 - libs/ui_scripting/README.md
 - libs/mvvm/README.md

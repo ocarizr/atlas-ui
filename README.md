@@ -99,6 +99,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | [Diagnostics](libs/diagnostics/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Jobs diagnostics](libs/jobs_diagnostics/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Streaming](libs/streaming/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [Asset catalog](libs/asset_catalog/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Protocol / IPC](libs/ipc/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Application host](libs/application/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Game](apps/game/main.cpp) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |

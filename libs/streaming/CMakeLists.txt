@@ -1,5 +1,6 @@
 add_library(atlas_streaming STATIC src/asset_streamer.cpp src/range_validation.cpp
-    src/buffer_memory.cpp src/streamer_state.cpp src/memory_reads.cpp src/file_pump.cpp)
+    src/buffer_memory.cpp src/streamer_state.cpp src/memory_reads.cpp src/file_pump.cpp
+    src/catalog_streamer.cpp src/loose_mount.cpp)
 add_library(atlas::streaming ALIAS atlas_streaming)
 target_include_directories(atlas_streaming PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
@@ -14,7 +15,7 @@ else()
     target_sources(atlas_streaming PRIVATE src/asset_reader.cpp src/platform/standard/file_reader.cpp
         src/platform/standard/file_io.cpp)
 endif()
-target_link_libraries(atlas_streaming PUBLIC atlas::jobs atlas::diagnostics)
+target_link_libraries(atlas_streaming PUBLIC atlas::jobs atlas::diagnostics atlas::asset_catalog)
 atlas_configure_target(atlas_streaming)
 
 atlas_export_library(atlas_streaming streaming streaming)
