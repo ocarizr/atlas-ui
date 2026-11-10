@@ -7,7 +7,7 @@
 namespace atlas::scripting
 {
 /// @brief Never wrap domain identities even when domains are created on independent owners.
-static std::uint64_t next_domain_identity()
+std::uint64_t detail::next_owner_identity()
 {
     static std::atomic<std::uint64_t> next{1};
     auto value = next.load();
@@ -15,7 +15,7 @@ static std::uint64_t next_domain_identity()
     {
         if (value == std::numeric_limits<std::uint64_t>::max())
         {
-            throw std::overflow_error("domain identities exhausted");
+            throw std::overflow_error("script owner identities exhausted");
         }
     } while (!next.compare_exchange_weak(value, value + 1));
 
@@ -24,7 +24,7 @@ static std::uint64_t next_domain_identity()
 
 /// @brief Retain composition-root infrastructure; session construction validates execution limits.
 domain::domain(session_limits limits, std::shared_ptr<std::pmr::memory_resource> memory,
-               diagnostics::services destinations)
+               diagnostics::services destinations, script_diagnostics_options script_diagnostics)
     : impl_(std::make_unique<impl>())
 {
     detail::validate_limits(limits);
@@ -36,7 +36,8 @@ domain::domain(session_limits limits, std::shared_ptr<std::pmr::memory_resource>
                                                          {
                                                          }};
     impl_->destinations = std::move(destinations);
-    impl_->identity = next_domain_identity();
+    impl_->script_diagnostics = std::move(script_diagnostics);
+    impl_->identity = detail::next_owner_identity();
 }
 
 /// @brief Destruction outside the coordinator/dispatch contract is a host programming error.

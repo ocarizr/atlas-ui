@@ -37,6 +37,12 @@ profiler::profiler(profiling_options options) : impl_{std::make_unique<impl>(opt
 /// @brief Release profiler resources and complete its scoped cleanup.
 profiler::~profiler() = default;
 
+/// @brief Read immutable enablement before starting optional work at the producer.
+bool profiler::enabled() const noexcept
+{
+    return impl_->options.enabled;
+}
+
 /// @brief Validate one borrowed profiling request and contain allocation/capture failures.
 bool profiler::impl::record(std::string_view name, std::string_view category,
                             clock::time_point start, clock::time_point end, event_context context,
@@ -51,7 +57,7 @@ bool profiler::impl::record(std::string_view name, std::string_view category,
 
     if (name.empty() || start < epoch || end < start || !std::isfinite(value) ||
         !detail::valid_utf8(name) || !detail::valid_utf8(category) ||
-        !detail::valid_utf8(context.result))
+        !detail::valid_utf8(context.result) || !detail::valid_utf8(context.origin))
     {
         ++counts.errors;
         return false;
@@ -60,7 +66,8 @@ bool profiler::impl::record(std::string_view name, std::string_view category,
     const auto remaining = options.max_string_bytes - counts.string_bytes;
     if (events.size() == options.max_events || name.size() > remaining ||
         category.size() > remaining - name.size() ||
-        context.result.size() > remaining - name.size() - category.size())
+        context.result.size() > remaining - name.size() - category.size() ||
+        context.origin.size() > remaining - name.size() - category.size() - context.result.size())
     {
         ++counts.dropped;
         return false;
@@ -97,6 +104,7 @@ bool profiler::impl::append(const detail::capture_request& request)
     event.name = name;
     event.category = category;
     event.result = context.result;
+    event.origin = context.origin;
     event.phase = static_cast<char>(phase);
     event.timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(start - epoch).count();
     event.duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -110,7 +118,8 @@ bool profiler::impl::append(const detail::capture_request& request)
     event.join = context.join;
     event.total = context.total;
     events.push_back(std::move(event));
-    counts.string_bytes += name.size() + category.size() + context.result.size();
+    counts.string_bytes +=
+        name.size() + category.size() + context.result.size() + context.origin.size();
     ++counts.recorded;
     return true;
 }

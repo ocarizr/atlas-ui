@@ -154,6 +154,12 @@ void write_event(std::ostream& output, const captured_event& event, std::uint32_
         output << "\"id\":" << event.id << ",\"parent_id\":" << event.parent_id
                << ",\"priority\":" << event.priority << ",\"result\":";
         write_json_string(output, event.result);
+        if (!event.origin.empty())
+        {
+            output << ",\"origin\":";
+            write_json_string(output, event.origin);
+        }
+
         output << ",\"dependency_wait_ns\":" << event.dependency_wait.count()
                << ",\"queue_wait_ns\":" << event.queue_wait.count()
                << ",\"join_ns\":" << event.join.count() << ",\"total_ns\":" << event.total.count();

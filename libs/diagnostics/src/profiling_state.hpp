@@ -46,7 +46,7 @@ struct capture_request
 struct captured_event
 {
     /// @brief Owned event name, category and result text, respectively.
-    std::string name, category, result;
+    std::string name, category, result, origin;
     /// @brief Chrome event phase or current synthetic-workload stage.
     char phase{'X'};
     /// @brief Relative timestamp and duration in nanoseconds from the capture's steady-clock

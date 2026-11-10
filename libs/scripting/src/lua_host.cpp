@@ -99,6 +99,11 @@ int lua_vm::initialize_environment()
         lua_setglobal(state, "native");
     }
 
+    if (authored)
+    {
+        install_diagnostics();
+    }
+
     return 0;
 }
 } // namespace atlas::scripting::detail

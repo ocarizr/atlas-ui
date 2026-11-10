@@ -85,7 +85,8 @@ class domain
   public:
     explicit domain(
         session_limits limits = {}, std::shared_ptr<std::pmr::memory_resource> memory = {},
-        diagnostics::services destinations = {}); ///< Retain bounded shared infrastructure.
+        diagnostics::services destinations = {},
+        script_diagnostics_options script_diagnostics = {}); ///< Retain bounded infrastructure.
     ~domain();                      ///< Shut down on the coordinator, outside event dispatch.
     domain(const domain&) = delete; ///< One interpreter owner.
     domain& operator=(const domain&) = delete; ///< No shared mutable domain aliases.

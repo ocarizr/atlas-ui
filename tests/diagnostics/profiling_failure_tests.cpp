@@ -120,4 +120,24 @@ TEST(profiling_failure_tests, scope_owns_temporary_labels_until_completion)
     capture.write_chrome_trace(stream);
     EXPECT_NE(stream.str().find(std::string(128, 'x')), std::string::npos);
 }
+
+/// @brief Optional provenance is owned, escaped, and accounted against the capture string budget.
+TEST(profiling_failure_tests, bounds_and_owns_event_origin)
+{
+    profiling_options options;
+    options.max_string_bytes = 8;
+    profiler capture{options};
+    ASSERT_TRUE(capture.enabled());
+    event_context context;
+    std::string provenance{"ui\""};
+    context.origin = provenance;
+    ASSERT_TRUE(capture.instant("x", "test", context));
+    EXPECT_EQ(capture.statistics().string_bytes, 8U);
+    provenance[0] = 'X';
+    EXPECT_FALSE(capture.instant("y", "", context));
+    EXPECT_EQ(capture.statistics().dropped, 1U);
+    std::ostringstream stream;
+    capture.write_chrome_trace(stream);
+    EXPECT_NE(stream.str().find("\"origin\":\"ui\\\"\""), std::string::npos);
+}
 } // namespace atlas::diagnostics::tests

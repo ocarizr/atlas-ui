@@ -13,6 +13,7 @@ class domain::impl
     session_limits limits; ///< Per-call/instance bounds and aggregate Lua memory cap.
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Retained composition-root allocator.
     diagnostics::services destinations;            ///< Optional logging and profiling destinations.
+    script_diagnostics_options script_diagnostics; ///< Shared capability policy for all instances.
     std::shared_ptr<detail::lua_host> interpreter; ///< Lazily created once per domain.
     std::map<std::string, std::shared_ptr<mvvm::view_model>, std::less<>>
         contexts; ///< Named model access points.

@@ -8,10 +8,11 @@ namespace atlas::scripting
 {
 /// @brief Protect one call and atomically admit its model and native-work demands.
 std::vector<mvvm::value> session::impl::call(std::string_view name,
-                                             std::span<const mvvm::value> args, bool internal,
+                                             std::span<const mvvm::value> args,
+                                             std::uint64_t native_request,
                                              std::span<const mvvm::value_type> result_types)
 {
-    if (!internal)
+    if (!native_request)
     {
         check();
     }
@@ -56,6 +57,13 @@ std::vector<mvvm::value> session::impl::call(std::string_view name,
         }
 
         ++stats.calls;
+        if (vm->authored)
+        {
+            vm->authored->frame = stats.frame;
+            vm->authored->request = native_request;
+            vm->authored->observations = 0;
+        }
+
         vm->listener_sequence = sequence;
         auto results = vm->call(name, args);
         if (!result_types.empty())

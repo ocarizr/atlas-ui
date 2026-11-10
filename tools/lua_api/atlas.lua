@@ -34,6 +34,18 @@ native = {}
 ---@type fun(identity: string): any
 require = function(_) end
 
+---@alias atlas_log_level 'trace'|'debug'|'info'|'warning'|'error'|'critical'
+
+---@class atlas_diagnostic
+---@field log fun(level: atlas_log_level, category: string, message: string): boolean
+---@field scope fun(name: string, callback: function, ...: any): ...: any
+---@field increment fun(name: string, amount: number, dimensions?: table<string, string>): boolean
+---@field gauge fun(name: string, value: number, dimensions?: table<string, string>): boolean
+
+-- The composition root must explicitly opt this behavior into authored diagnostics.
+---@type atlas_diagnostic
+diagnostic = {}
+
 -- The native host owns the director and selects handler names/signatures through domain.call/dispatch.
 -- Each instance's returned table defines its handlers; the director is not a script global.
 -- Registered observers receive: field(value), action/event(...schema parameters).

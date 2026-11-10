@@ -2,6 +2,7 @@
  * metrics. */
 #include <atlas/scripting/domain.hpp>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <iostream>
 #include <stdexcept>
@@ -135,6 +136,58 @@ sample run_case(std::size_t count, bool shared, std::size_t iterations)
 
     return result;
 }
+
+/// @brief Compare the same script callback without a wrapper, with capture off, and with capture
+/// on.
+enum class trace_mode : std::uint8_t
+{
+    direct,   ///< Baseline Lua callback.
+    disabled, ///< Authored scope with a disabled capture.
+    captured  ///< Authored scope with a capture requested by the host.
+};
+
+/// @brief Print per-call cost and actual recorded events for each capture policy.
+void measure_trace(const char* label, trace_mode mode)
+{
+    constexpr std::size_t iterations = 2000;
+    auto memory = std::make_shared<lua_resource>();
+    auto model = std::make_shared<atlas::mvvm::view_model>(atlas::mvvm::compile({"benchmark"}));
+    atlas::diagnostics::profiling_options policy;
+    policy.enabled = mode == trace_mode::captured;
+    auto profile = std::make_shared<atlas::diagnostics::profiler>(policy);
+    atlas::scripting::session_limits limits;
+    limits.max_calls = 4096;
+    atlas::scripting::session runtime{model, limits, memory, {{}, profile}, {true}};
+    const std::string_view source =
+        mode == trace_mode::direct
+            ? "local count=0; local function increment() count=count+1 end; "
+              "return {tick=function() increment() end,read=function()return count end}"
+            : "local count=0; local function increment() count=count+1 end; "
+              "return {tick=function() diagnostic.scope('increment',increment) "
+              "end,read=function()return count end}";
+    runtime.load(source, "@benchmark/diagnostics.lua");
+    model->begin_frame(1);
+    runtime.begin_frame(1);
+    profile->clear();
+    const auto result = measure(
+        [&]
+        {
+            runtime.call("tick");
+        },
+        *memory, 1, iterations);
+    const auto recorded = profile->statistics().recorded;
+    const auto expected =
+        policy.enabled && atlas::diagnostics::instrumentation_enabled ? 2 * (64 + iterations) : 0;
+    if (recorded != expected || std::get<std::int64_t>(runtime.call("read").at(0)) !=
+                                    static_cast<std::int64_t>(64 + iterations))
+    {
+        throw std::runtime_error(
+            "diagnostic benchmark did not execute or record the expected calls");
+    }
+
+    std::cout << label << ',' << atlas::diagnostics::instrumentation_enabled << ','
+              << result.nanoseconds << ',' << recorded << '\n';
+}
 } // namespace
 
 /// @brief Deterministic workload; elapsed times are observations, never pass/fail thresholds.
@@ -142,6 +195,15 @@ int main(int argc, char** argv)
 {
     try
     {
+        if (argc == 2 && std::string_view{argv[1]} == "--diagnostics")
+        {
+            std::cout << "mode,probes_compiled,ns_per_call,captured_events\n";
+            measure_trace("direct", trace_mode::direct);
+            measure_trace("disabled", trace_mode::disabled);
+            measure_trace("captured", trace_mode::captured);
+            return 0;
+        }
+
         const std::size_t iterations =
             argc == 2 && std::string_view{argv[1]} == "--smoke" ? 16 : 2000;
         std::cout << "instances,mode,ns_per_behavior,lua_live_bytes,hot_lua_allocations\n";

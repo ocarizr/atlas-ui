@@ -5,6 +5,7 @@
 #pragma once
 #include <atlas/mvvm/view_model.hpp>
 #include <atlas/scripting/debugger.hpp>
+#include <atlas/scripting/diagnostics.hpp>
 #include <stop_token>
 
 namespace atlas::scripting
@@ -59,9 +60,11 @@ struct statistics
 class session
 {
   public:
-    explicit session(std::shared_ptr<mvvm::view_model> model, session_limits limits = {},
-                     std::shared_ptr<std::pmr::memory_resource> memory = {},
-                     diagnostics::services destinations = {}); ///< Retain shared infrastructure.
+    explicit session(
+        std::shared_ptr<mvvm::view_model> model, session_limits limits = {},
+        std::shared_ptr<std::pmr::memory_resource> memory = {},
+        diagnostics::services destinations = {},
+        script_diagnostics_options script_diagnostics = {}); ///< Retain infrastructure.
     ~session(); ///< Cancel transport and release observers/VM on the owner, outside callbacks.
     session(const session&) = delete;            ///< A Lua stack has one execution owner.
     session& operator=(const session&) = delete; ///< No mutable VM aliases.

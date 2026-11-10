@@ -61,6 +61,8 @@ struct event_context
     std::chrono::nanoseconds join{};
     /// @brief Total elapsed task lifetime.
     std::chrono::nanoseconds total{};
+    /// @brief Optional borrowed producer provenance copied into the capture's string budget.
+    std::string_view origin{};
 };
 
 /// @brief Reject invalid configuration, handles or descriptors before mutating execution state.
@@ -88,6 +90,8 @@ class profiler
     profiler(const profiler&) = delete;
     /// @brief Disable copy construction/assignment to preserve unique lifecycle ownership.
     profiler& operator=(const profiler&) = delete;
+    /// @brief Read immutable capture enablement without taking the event mutex.
+    [[nodiscard]] bool enabled() const noexcept;
     /// @brief Record a validated steady-clock execution interval on the original execution thread.
     ///
     /// @param name Case-sensitive diagnostic or metric name; metric names must be nonempty bounded

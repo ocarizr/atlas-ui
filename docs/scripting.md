@@ -152,6 +152,76 @@ operating-system scheduling or portable Lua hash-table iteration.
 
 ## Limits, reload and diagnostics
 
+### Authored observations
+
+The composition root can expose the `diagnostic` table by passing
+`script_diagnostics_options` with `enabled = true` to a `session` or `domain`.
+The existing `diagnostics::services` supplies the optional logger and profiler.
+Supply a `diagnostics::metrics` registry in the script options to accept numeric
+observations. The host owns all destinations and delivery policy. The API creates
+no storage, exporter, sampler or network connection.
+
+```cpp
+atlas::scripting::domain ui{
+    limits, memory, {logger, profiler}, {.enabled = true, .metrics = ui_metrics}};
+```
+
+An opted-in handler can emit a structured log, wrap a callback in a trace region,
+and update a counter or gauge:
+
+```lua
+return {
+    enable = function()
+        diagnostic.log("info", "menu", "Menu opened")
+        diagnostic.increment("menu_opens", 1, { screen = "inventory" })
+        diagnostic.gauge("item_count", 12, { screen = "inventory" })
+    end,
+    tick = function(delta)
+        return diagnostic.scope("calculate", function(value)
+            return value * 2
+        end, delta)
+    end,
+}
+```
+
+Only admitted handlers can record observations, including model callbacks and
+`on_result`. The logger and metric registry receive names prefixed with `lua.`.
+Logs include the behavior entry source identity, domain, instance, generation
+and logical frame. Authored trace events use the `lua.scope` category and copy
+that provenance into `args.origin`. Result handlers include the native request
+ticket. Standalone sessions use domain zero and a process-local instance ID.
+Metrics retain the caller's explicit dimensions. Independent registries isolate
+domains, and sharing a registry deliberately aggregates identical series.
+
+Names, categories and dimension keys allow up to 64 ASCII letters, digits,
+underscores, periods and hyphens. Logs allow up to 2,048 message bytes and
+metrics accept up to eight dimensions with values of up to 128 bytes. Messages
+and dimension values must be valid XML-compatible UTF-8. Counters accept finite
+nonnegative increments, and gauges accept finite values. The native registry
+fixes the kind on the first accepted observation and enforces its configured
+series and retention budgets. Authored calls with a destination share a limit of
+64 observations per handler. Invalid inputs and a spent handler budget fail
+through the protected boundary. A log or metric function returns `false` when
+its destination is absent or declines admission. Dimension contents are inspected
+only when a registry is injected. Accepted observations are immediate and remain
+observable if the handler's model and native work demands later roll back.
+
+`scope` forwards callback arguments, results and errors. Each captured region
+closes on return or protected unwinding. Reload and shutdown leave no open
+regions. `ATLAS_PROFILING=auto` enables probes in Debug, `on` enables them in every
+configuration, and `off` compiles them out. Without an enabled capture or during
+debugger attachment, the callback still runs without an authored timestamp or
+label allocation. Debugger wall time remains visible in the existing
+`script.call.debug` span. Scopes use no extra Lua hook. The host may opt in to
+logs and metrics in shipping builds, while profiler behavior follows the build
+policy and the debugger remains unavailable. Worker jobs never call the Lua API.
+
+Run `atlas_scripting_benchmark --diagnostics` in Release with
+`ATLAS_PROFILING=on` to compare the same warmed handler with capture enabled and
+disabled. Timings are observations and include the existing native call span.
+
+### Runtime limits and recovery
+
 Defaults bound live Lua allocations to 4 MiB, source to 256 KiB, staged demands to
 64 per call, aggregate command/request text to 64 KiB per call, calls to 256 per
 frame and Lua instructions to 100,000 per protected operation. Native work allows

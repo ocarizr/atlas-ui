@@ -1,6 +1,7 @@
 /** @file @brief Debugger attachment ownership across shared interpreter generations. */
 #include "debugger_fixture.hpp"
 #include <atlas/scripting/domain.hpp>
+#include <sstream>
 
 namespace atlas::scripting::tests
 {
@@ -38,5 +39,29 @@ TEST(lua_debugger_domain, ReloadRetiresOnlyTheSelectedGeneration)
     EXPECT_FALSE(replacement_peer->closed);
     ui.shutdown();
     EXPECT_TRUE(replacement_peer->closed);
+}
+
+/// @brief A debugger-attached behavior runs authored regions without emitting CPU intervals.
+TEST(lua_debugger_domain, AuthoredScopesExcludeDebuggerPauses)
+{
+    auto model = std::make_shared<mvvm::view_model>(mvvm::compile({"state"}));
+    auto profile = std::make_shared<diagnostics::profiler>();
+    session script{model, {}, {}, {{}, profile}, {true}};
+    script.load(R"(return {tick=function()
+        return diagnostic.scope('authored_region', function() return 42 end)
+    end})");
+    script.attach_debugger({"return {start=function() end}", std::make_shared<debug_peer>()});
+    model->begin_frame(1);
+    script.begin_frame(1);
+    EXPECT_EQ(script.call("tick"), (std::vector<mvvm::value>{std::int64_t{42}}));
+    std::ostringstream paused;
+    profile->write_chrome_trace(paused);
+    EXPECT_EQ(paused.str().find("authored_region"), std::string::npos);
+    script.detach_debugger();
+    script.call("tick");
+    std::ostringstream normal;
+    profile->write_chrome_trace(normal);
+    EXPECT_EQ(normal.str().find("authored_region") != std::string::npos,
+              diagnostics::instrumentation_enabled);
 }
 } // namespace atlas::scripting::tests

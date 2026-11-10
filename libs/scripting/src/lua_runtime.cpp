@@ -59,11 +59,12 @@ void* lua_vm::allocate(void* context, void* pointer, std::size_t old_size,
 lua_vm::lua_vm(std::shared_ptr<mvvm::view_model> source, session_limits policy,
                std::shared_ptr<std::pmr::memory_resource> resource,
                std::shared_ptr<lua_host> shared,
-               std::shared_ptr<const execution_bindings> capabilities)
+               std::shared_ptr<const execution_bindings> capabilities,
+               std::unique_ptr<authored_diagnostics> diagnostics)
     : model(std::move(source)), limits(policy),
       host(shared ? std::move(shared) : std::make_shared<lua_host>(policy, std::move(resource))),
       bindings(std::move(capabilities)), memory(host->memory), commands(host->commands),
-      requests(host->requests), listeners(host->listeners)
+      requests(host->requests), listeners(host->listeners), authored(std::move(diagnostics))
 {
     commands.reserve(limits.max_commands);
     requests.reserve(limits.max_pending_work);

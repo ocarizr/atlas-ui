@@ -117,6 +117,7 @@ void session::deliver_results()
     for (std::size_t i = 0; i < count; ++i)
     {
         std::vector<mvvm::value> arguments;
+        std::uint64_t request_id = 0;
         {
             const std::lock_guard lock{mail->mutex};
             if (mail->pending.empty() || !mail->pending.front().ready)
@@ -125,12 +126,13 @@ void session::deliver_results()
             }
 
             const auto& front = mail->pending.front();
+            request_id = front.id;
             arguments.reserve(front.result.size() + 2);
             arguments.emplace_back(static_cast<std::int64_t>(front.id));
             arguments.emplace_back(front.success);
             arguments.insert(arguments.end(), front.result.begin(), front.result.end());
         }
-        (void)impl_->call("on_result", arguments, true);
+        (void)impl_->call("on_result", arguments, request_id);
         const std::lock_guard lock{mail->mutex};
         mail->bytes -= detail::payload_bytes(mail->pending.front().result);
         mail->pending.erase(mail->pending.begin());
