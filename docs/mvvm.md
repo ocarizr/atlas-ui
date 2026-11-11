@@ -4,7 +4,9 @@
 diagnostics and has no UI, input, renderer, scheduler, editor or storage dependency.
 `atlas::mvvm_content` adds XML authoring and C++ factory generation. `atlas::ui_mvvm`
 adapts an independent model to UI properties and routed events. Consumers can use
-the runtime and installed headers without either adapter.
+the runtime and installed headers without either adapter. The
+[UI authoring document](ui_authoring.md) selects model assets and stores the
+named UI bindings used to wire each instance.
 
 ## Authoring and compilation
 

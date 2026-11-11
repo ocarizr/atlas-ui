@@ -84,6 +84,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | [MVVM](libs/mvvm/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Scripting](libs/scripting/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [UI scripting](libs/ui_scripting/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| [UI authoring](libs/ui_content/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [MVVM content](libs/mvvm_content/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [UI MVVM](libs/ui_mvvm/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Input](libs/input/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |

@@ -18,6 +18,7 @@ def test_scripting_core_requires_no_ui_renderer_or_jobs():
     assert select_components(configuration, ["libs/scripting/src/session.cpp"]) == {
         "scripting",
         "ui-scripting",
+        "ui-content",
     }
 
 

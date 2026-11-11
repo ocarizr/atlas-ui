@@ -42,6 +42,7 @@ def test_command_changes_do_not_select_unrelated_consumers(ui_configuration, pat
         "ui",
         "ui-mvvm",
         "ui-scripting",
+        "ui-content",
         "ui-renderer",
         "ui-images",
         "game",
@@ -56,6 +57,28 @@ def test_ui_imports_the_shared_jobs_and_diagnostics_prerequisites(ui_configurati
     assert plan["prerequisites"]["ui"] == ["diagnostics", "input", "jobs"]
     assert plan["vendors"]["ui"] == ["content", "testing"]
     assert len(plan["matrices"]["ui"]["include"]) == len(ui_configuration["profiles"])
+
+
+def test_authoring_restores_only_its_composition_inputs(ui_configuration):
+    """Keep XML composition independent of apps, renderer, and IPC."""
+    assert select_components(ui_configuration, ["libs/ui_content/src/instance.cpp"]) == {
+        "ui-content"
+    }
+    plan = plan_components(ui_configuration, {"ui-content"})
+    assert plan["prerequisites"]["ui-content"] == [
+        "asset-catalog",
+        "diagnostics",
+        "input",
+        "jobs",
+        "mvvm",
+        "mvvm-content",
+        "scripting",
+        "streaming",
+        "ui",
+        "ui-mvvm",
+        "ui-scripting",
+    ]
+    assert plan["vendors"]["ui-content"] == ["content", "testing"]
 
 
 @pytest.mark.parametrize(

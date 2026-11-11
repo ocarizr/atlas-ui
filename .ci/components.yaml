@@ -31,6 +31,15 @@ components:
     test_labels: [ui-scripting]
     build_requires: [scripting, ui]
     vendors: [testing, content]
+  ui-content:
+    paths:
+    - libs/ui_content/**
+    - tests/ui_content/**
+    depends_on: [streaming, mvvm-content, ui-mvvm, ui-scripting]
+    build_targets: [atlas_ui_content, atlas_ui_content_tests]
+    test_labels: [ui-content]
+    build_requires: [streaming, mvvm-content, ui-mvvm, ui-scripting]
+    vendors: [testing, content]
   memory:
     paths:
     - libs/memory/**
