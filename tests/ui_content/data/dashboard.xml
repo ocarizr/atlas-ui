@@ -1,0 +1,18 @@
+<ui version="1">
+  <model name="hud" asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000002"/>
+  <model name="secondary" asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000002"/>
+  <element id="root" panel="canvas"/>
+  <element id="button" parent="root" panel="leaf" width="50" height="24">
+    <paint fill="true" texture="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000004"/>
+    <canvas-slot x-offset-min="8"/>
+    <bind model="hud" field="enabled" property="visible" mode="two-way"/>
+    <action model="hud" name="gain" event="tick" route="direct">
+      <arg type="integer" value="17"/>
+    </action>
+    <behavior model="hud" asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000003"/>
+  </element>
+  <element id="sibling" parent="root" panel="leaf" width="32">
+    <horizontal-boundary source="button" gap="4"/>
+    <behavior model="secondary" asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000003"/>
+  </element>
+</ui>
