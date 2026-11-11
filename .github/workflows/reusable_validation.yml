@@ -526,6 +526,16 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['ui-renderer']) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  ui-text:
+    needs: [plan, vendor-testing, vendor-content, vendor-graphics, ui-renderer]
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'ui-text') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: ui-text
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['ui-text']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   ui-images:
     needs:
     - plan
@@ -587,6 +597,7 @@ jobs:
     - ui
     - ui-renderer
     - ui-images
+    - ui-text
     runs-on: windows-2022
     timeout-minutes: 5
     steps:

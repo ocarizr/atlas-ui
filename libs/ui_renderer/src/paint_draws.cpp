@@ -48,14 +48,15 @@ bool compatible(const renderer::draw_packet& a, const renderer::draw_packet& b)
 } // namespace
 
 /// @brief Validate keys and compute all CPU vertices before any GPU resource allocation.
-void prepare_draws(const ui::paint_snapshot& snapshot, renderer::texture_handle target,
+void prepare_draws(paint_list list, renderer::texture_handle target,
                    renderer::surface_extent extent, std::span<const texture_binding> textures,
                    renderer::pipeline_handle solid, renderer::pipeline_handle textured,
                    std::pmr::memory_resource* memory, draw_preparation& output)
 {
-    const auto viewport = snapshot.viewport();
+    const auto viewport = list.viewport;
+    (void)ui::intersect_clip(viewport, viewport);
     if (extent.width == 0 || extent.height == 0 || viewport.width <= 0 || viewport.height <= 0 ||
-        snapshot.quads().size() > 65536 || textures.size() > 65536)
+        list.quads.size() > 65536 || textures.size() > 65536)
     {
         throw std::invalid_argument("invalid UI render extent or packet budget");
     }
@@ -76,13 +77,19 @@ void prepare_draws(const ui::paint_snapshot& snapshot, renderer::texture_handle 
     }
 
     auto& vertices = output.vertices;
-    vertices.reserve(snapshot.quads().size() * 6);
+    vertices.reserve(list.quads.size() * 6);
     auto& pass = output.pass;
     pass.color.target = target;
     pass.color.clear_color = {0.04f, 0.05f, 0.08f, 1};
-    pass.draws.reserve(snapshot.quads().size());
-    for (const auto& quad : snapshot.quads())
+    pass.draws.reserve(list.quads.size());
+    for (const auto& quad : list.quads)
     {
+        const auto clip = ui::intersect_clip(quad.clip, viewport);
+        if (clip.width == 0 || clip.height == 0)
+        {
+            continue;
+        }
+
         renderer::draw_packet draw;
         draw.pipeline = quad.texture == 0 ? solid : textured;
         if (quad.texture != 0)
@@ -102,7 +109,7 @@ void prepare_draws(const ui::paint_snapshot& snapshot, renderer::texture_handle 
 
         draw.first_vertex = static_cast<std::uint32_t>(vertices.size());
         draw.vertex_count = 6;
-        draw.scissor = scissor(quad.clip, viewport, extent);
+        draw.scissor = scissor(clip, viewport, extent);
         for (const auto& value : quad.vertices)
         {
             vertices.push_back({{project((static_cast<double>(value.position.x) - viewport.x) /

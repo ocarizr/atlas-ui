@@ -80,6 +80,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | [UI](libs/ui/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tree/frame contracts |
 | [UI images](libs/ui_images/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Injected decode contracts |
+| [UI text](libs/ui_text/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Atlas and paint contracts |
 | [UI renderer](libs/ui_renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Packet contracts |
 | [MVVM](libs/mvvm/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | [Scripting](libs/scripting/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
