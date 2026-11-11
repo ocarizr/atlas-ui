@@ -16,7 +16,7 @@ struct draw_preparation
     renderer::pass_description pass; ///< Ordered compatible adjacent batches.
 }; ///< Local resources are released after submit or validation failure.
 
-void prepare_draws(const ui::paint_snapshot& snapshot, renderer::texture_handle target,
+void prepare_draws(paint_list list, renderer::texture_handle target,
                    renderer::surface_extent extent, std::span<const texture_binding> textures,
                    renderer::pipeline_handle solid, renderer::pipeline_handle textured,
                    std::pmr::memory_resource* memory,

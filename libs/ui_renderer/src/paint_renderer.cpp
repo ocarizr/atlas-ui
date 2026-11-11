@@ -89,6 +89,17 @@ renderer::completion_token paint_renderer::submit(const ui::paint_snapshot& snap
                                                   std::span<const texture_binding> textures,
                                                   renderer::recording_executor* recorder)
 {
+    return submit_quads({snapshot.viewport(), snapshot.quads()}, target, extent, textures,
+                        recorder);
+}
+
+/// @brief Submit caller-ordered quads without borrowing a mutable UI tree.
+renderer::completion_token paint_renderer::submit_quads(paint_list list,
+                                                        renderer::texture_handle target,
+                                                        renderer::surface_extent extent,
+                                                        std::span<const texture_binding> textures,
+                                                        renderer::recording_executor* recorder)
+{
     impl_->check();
     impl_->busy = true;
 
@@ -105,7 +116,7 @@ renderer::completion_token paint_renderer::submit(const ui::paint_snapshot& snap
 
     const diagnostics::operation_scope scope{impl_->destinations, {"ui.renderer.submit", "ui.cpu"}};
     detail::draw_preparation prepared{impl_->memory.get()};
-    detail::prepare_draws(snapshot, target, extent, textures, impl_->solid, impl_->textured,
+    detail::prepare_draws(list, target, extent, textures, impl_->solid, impl_->textured,
                           impl_->memory.get(), prepared);
     auto& vertices = prepared.vertices;
     auto& pass = prepared.pass;

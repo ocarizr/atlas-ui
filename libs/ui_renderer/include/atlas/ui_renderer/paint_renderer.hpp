@@ -25,6 +25,13 @@ struct texture_binding
     renderer::descriptor_handle view; ///< Resident store-local SRV; never loaded here.
 }; ///< Consumer owns texture/view lifetime until submission; renderer then fence-retains it.
 
+/// @brief Borrow an ordered list combining regular UI geometry and externally prepared quads.
+struct paint_list
+{
+    ui::layout_rect viewport;              ///< Logical projection and clip extent.
+    std::span<const ui::paint_quad> quads; ///< Back-to-front painter order.
+};
+
 class paint_renderer
 {
   public:
@@ -40,7 +47,11 @@ class paint_renderer
                                       renderer::surface_extent extent,
                                       std::span<const texture_binding> textures = {},
                                       renderer::recording_executor* recorder = nullptr);
-    ///< Validate all texture keys before upload, batch adjacent compatible draws, then submit.
+    /// @brief Submit custom geometry through the same ordered quad and fence path.
+    renderer::completion_token submit_quads(paint_list list, renderer::texture_handle target,
+                                            renderer::surface_extent extent,
+                                            std::span<const texture_binding> textures = {},
+                                            renderer::recording_executor* recorder = nullptr);
     std::size_t last_draws() const; ///< Successful submitted batches, not source quad count.
   private:
     class impl;                  ///< Borrowed services plus thread-affine pipeline identities.

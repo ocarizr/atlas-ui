@@ -272,6 +272,17 @@ components:
     - testing
     - content
     - graphics
+  ui-text:
+    paths:
+    - libs/ui_text/**
+    - libs/platform/windows/ui_text/**
+    - tests/ui_text/**
+    - tests/platform/windows/ui_text/**
+    depends_on: [ui-renderer]
+    build_targets: [atlas_ui_text, atlas_ui_text_tests]
+    test_labels: [ui-text]
+    build_requires: [ui-renderer]
+    vendors: [testing, content, graphics]
   ui-images:
     paths:
     - libs/ui_images/**

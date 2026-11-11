@@ -45,6 +45,7 @@ def test_command_changes_do_not_select_unrelated_consumers(ui_configuration, pat
         "ui-content",
         "ui-renderer",
         "ui-images",
+        "ui-text",
         "game",
         "editor",
     }
