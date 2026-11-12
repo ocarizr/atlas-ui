@@ -20,8 +20,8 @@ from scripts.ci import verify_vendor_inputs
         ),
         pytest.param(
             "editor",
-            ["memory", "ipc", "content", "graphics"],
-            "@(application|asset-catalog|diagnostics|input|ipc|jobs|jobs-diagnostics|memory|render-host|renderer|renderer-content|renderer-jobs|streaming|ui|ui-images|ui-renderer|window)",
+            ["testing", "memory", "ipc", "content", "graphics"],
+            "@(application|asset-catalog|diagnostics|input|ipc|jobs|jobs-diagnostics|memory|mvvm|mvvm-content|render-host|renderer|renderer-jobs|scripting|streaming|ui|ui-content|ui-mvvm|ui-renderer|ui-scripting|ui-text|window)",
             id="transitive-prerequisites",
         ),
     ],

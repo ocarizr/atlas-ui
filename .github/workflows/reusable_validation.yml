@@ -361,18 +361,16 @@ jobs:
       upstream: ${{ toJSON(needs) }}
   editor:
     needs:
-    - ui-images
-    - ui-renderer
     - plan
+    - vendor-testing
     - vendor-ipc
     - vendor-content
     - vendor-memory
     - application
     - vendor-graphics
-    - renderer
     - renderer-jobs
-    - renderer-content
-    - render-host
+    - ui-content
+    - ui-text
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'editor') }}
     uses: ./.github/workflows/reusable_build.yml
     with:

@@ -16,7 +16,9 @@ native windows and generic graphics resources/passes. Optional worker recording
 uses the application's existing pool. A bounded render host separates window
 messages from graphics coordination.
 
-The game and editor hosts display the same generic clipped panels and textured rows. The independent
+The game host displays generic clipped panels and textured rows. The
+[Atlas Editor](docs/editor.md) provides hierarchy selection, an inspector,
+undo/redo, XML persistence and an isolated in-process preview. The independent
 UI library owns an EnTT-backed element tree with transactional requested properties,
 selective invalidation and immutable command batches with conflict diagnostics.
 Named serial/work phases reuse the shared job pool, with bounded ranges and sequential fallback.
@@ -33,14 +35,13 @@ Ordered rectangle painting supports clipping, adjacent batching and streamed ima
 Owner-thread input adds clip-aware hit testing, capture/bubble routing, primary-pointer
 capture, focus and ordered lifecycle events. Independent input actions provide
 priority contexts, bindings, modifiers and hold/tap triggers. Native device packets
-and semantic actions feed shared game/editor interaction feedback; expensive work remains in joined job phases.
+and semantic actions feed owner-thread interaction; expensive work remains in joined job phases.
 Independent data-defined ViewModels provide observable typed slots, actions/events, XML authoring
 and compiled factory generation. UI adapters publish property bindings and route events into
 model actions at explicit sync points.
 Owner-thread Lua behavior adds protected typed model commands, lifecycle/input adapters
 and bounded native job/result mailboxes. Scripts and workers share values without sharing a VM.
-Interactive widgets, visual authoring,
-asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
+Asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
 dependencies and bootstrap contracts are available; content-tool entry points are
 placeholders. Gameplay belongs outside this reusable-technology repository.
 

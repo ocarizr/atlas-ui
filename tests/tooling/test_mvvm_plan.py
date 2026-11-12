@@ -33,8 +33,10 @@ def test_mvvm_changes_validate_adapters_without_retesting_upstream_libraries():
         "scripting",
         "ui-scripting",
         "ui-content",
+        "editor",
     }
     assert select_components(configuration, ["libs/mvvm_content/src/xml_read.cpp"]) == {
         "mvvm-content",
         "ui-content",
+        "editor",
     }

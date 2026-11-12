@@ -4,7 +4,7 @@ function(atlas_add_application target source output label argument)
     endif()
     add_executable(${target} "${PROJECT_SOURCE_DIR}/${source}")
     target_link_libraries(${target} PRIVATE atlas::application)
-    if(label STREQUAL "game" OR label STREQUAL "editor")
+    if(label STREQUAL "game")
         target_sources(${target} PRIVATE "${PROJECT_SOURCE_DIR}/apps/common/renderer_host.cpp")
         target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/apps/common")
         target_link_libraries(${target} PRIVATE atlas::ui_images atlas::ui_renderer atlas::renderer_jobs atlas::renderer_content atlas::render_host atlas::memory atlas::diagnostics)
@@ -22,6 +22,21 @@ function(atlas_add_application target source output label argument)
         add_dependencies(${target} ${target}_content)
         install(FILES "${PROJECT_SOURCE_DIR}/assets/renderer/checker.bmp" "${PROJECT_SOURCE_DIR}/assets/renderer/quad.hlsl"
             DESTINATION bin/content)
+    elseif(label STREQUAL "editor")
+        target_sources(${target} PRIVATE apps/editor/document_session.cpp apps/editor/editor_host.cpp
+            apps/editor/editor_view.cpp apps/editor/editor_graphics.cpp apps/editor/panel_scene.cpp
+            apps/editor/panels.cpp)
+        target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/apps/common"
+            "${PROJECT_SOURCE_DIR}/apps/editor")
+        target_link_libraries(${target} PRIVATE atlas::ui_content atlas::ui_text atlas::renderer_jobs atlas::memory)
+        if(ATLAS_BUILD_WINDOWS_INTEGRATION)
+            target_sources(${target} PRIVATE libs/platform/windows/editor/document_file.cpp)
+            target_compile_definitions(${target} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
+        else()
+            target_sources(${target} PRIVATE apps/editor/unavailable_file.cpp)
+        endif()
+    endif()
+    if(label STREQUAL "game" OR label STREQUAL "editor")
         if(ATLAS_BUILD_WINDOWS_INTEGRATION)
             if(MSVC)
                 target_sources(${target} PRIVATE
@@ -49,3 +64,20 @@ atlas_add_application(atlas_game apps/game/main.cpp atlas_game game --smoke-test
 atlas_add_application(atlas_editor apps/editor/main.cpp atlas_editor editor --smoke-test)
 atlas_add_application(atlas_cook tools/cook/main.cpp atlas_cook tools --help)
 atlas_add_application(atlas_package tools/package/main.cpp atlas_package tools --help)
+if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
+    add_executable(atlas_editor_tests "${PROJECT_SOURCE_DIR}/tests/editor/session_tests.cpp"
+        "${PROJECT_SOURCE_DIR}/apps/editor/document_session.cpp")
+    target_include_directories(atlas_editor_tests PRIVATE "${PROJECT_SOURCE_DIR}/apps/editor"
+        "${PROJECT_SOURCE_DIR}/apps/common")
+    target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_content GTest::gtest_main)
+    if(ATLAS_BUILD_WINDOWS_INTEGRATION)
+        target_sources(atlas_editor_tests PRIVATE tests/platform/windows/editor/authoring_tests.cpp
+            libs/platform/windows/editor/document_file.cpp apps/editor/editor_view.cpp
+            apps/editor/panels.cpp apps/editor/panel_scene.cpp)
+        target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_text)
+        target_compile_definitions(atlas_editor_tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
+    endif()
+    atlas_configure_test(atlas_editor_tests)
+    gtest_discover_tests(atlas_editor_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 30
+        PROPERTIES LABELS editor TIMEOUT 30)
+endif()

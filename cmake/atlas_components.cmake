@@ -27,7 +27,7 @@ set(atlas_requires_renderer-content renderer streaming)
 set(atlas_requires_application memory jobs-diagnostics ipc)
 set(atlas_requires_memory-integration memory jobs streaming renderer jobs-diagnostics)
 set(atlas_requires_game application renderer renderer-jobs renderer-content render-host ui-renderer ui-images)
-set(atlas_requires_editor application renderer renderer-jobs renderer-content render-host ui-renderer ui-images)
+set(atlas_requires_editor application renderer-jobs ui-content ui-text)
 set(atlas_requires_tools application)
 
 set(atlas_requested_components ${ATLAS_COMPONENTS})
