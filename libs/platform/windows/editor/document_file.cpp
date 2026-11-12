@@ -124,6 +124,20 @@ class pending_file
 };
 } // namespace
 
+/// @brief Resolve the real executable path independently of the working directory.
+std::filesystem::path installed_tools_root()
+{
+    std::wstring path(32768, L'\0');
+    const auto length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+    if (length == 0 || length >= path.size())
+    {
+        fail("Locate installed editor tools");
+    }
+
+    path.resize(length);
+    return std::filesystem::path{path}.parent_path() / "content" / "editor_tools";
+}
+
 /// @brief Missing files start a fresh editor document.
 bool document_exists(const std::filesystem::path& path)
 {
@@ -131,8 +145,8 @@ bool document_exists(const std::filesystem::path& path)
 }
 
 /// @brief Register exactly the selected document, then delegate byte acquisition to the streamer.
-ui_content::document open_document(const std::filesystem::path& path, jobs::job_system& jobs,
-                                   const diagnostics::services& sinks)
+std::string read_editor_source(const std::filesystem::path& path, jobs::job_system& jobs,
+                               const diagnostics::services& sinks)
 {
     const diagnostics::operation_scope scope{sinks, {"editor.open", "editor"}};
     const auto size = file_length(path);
@@ -141,16 +155,37 @@ ui_content::document open_document(const std::filesystem::path& path, jobs::job_
         throw std::invalid_argument("Missing, empty or oversized UI document");
     }
 
-    assets::catalog_document draft;
-    draft.space = assets::parse_namespace("0ee4c236a74c4fc79c814f90c2f2ba55");
-    const assets::asset_ref reference{assets::allocate_id(draft), assets::asset_type::ui};
-    draft.records.push_back({reference, {"editor", "document.xml"}, 1, *size});
-    streaming::storage_mount mount;
-    mount.sources.emplace("document", streaming::loose_file_asset{std::filesystem::absolute(path)});
-    mount.routes.push_back({reference, 1, "document", 0});
-    streaming::catalog_streamer storage{
-        jobs, assets::catalog::compile(std::move(draft)), std::move(mount), {}, {}, sinks};
-    return ui_content::load(reference, {storage, {}, {}, sinks});
+    streaming::asset_streamer storage{
+        jobs,
+        {{"source", streaming::loose_file_asset{std::filesystem::absolute(path)}}},
+        {},
+        {},
+        sinks};
+    std::string bytes;
+    storage
+        .read({"source", 0, static_cast<std::size_t>(*size)},
+              [&](streaming::read_result result)
+              {
+                  if (const auto* failure = std::get_if<std::exception_ptr>(&result))
+                  {
+                      std::rethrow_exception(*failure);
+                  }
+
+                  const auto& buffer =
+                      *std::get<std::shared_ptr<const streaming::asset_bytes>>(result);
+                  bytes.assign(reinterpret_cast<const char*>(buffer.data()), buffer.size());
+              })
+        .get();
+    return bytes;
+}
+
+/// @brief Parse authoring bytes with the source filename in validation errors.
+ui_content::document open_document(const std::filesystem::path& path, jobs::job_system& jobs,
+                                   const diagnostics::services& sinks)
+{
+    const auto bytes = read_editor_source(path, jobs, sinks);
+    const auto name = path.filename().string();
+    return ui_content::parse_xml({bytes, name}, sinks);
 }
 
 /// @brief Persist canonical authoring values without holding a preview or touching the engine tree.

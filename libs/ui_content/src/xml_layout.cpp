@@ -80,6 +80,7 @@ void panel(fields& xml, ui::panel_layout& data)
 void element_fields(fields& xml, element& data)
 {
     xml.value("id", data.id, true);
+    xml.optional("text", data.caption, !data.caption.empty());
     xml.optional("parent", data.parent, !data.parent.empty());
     panel(xml, data.panel);
     auto& requested = data.requested;

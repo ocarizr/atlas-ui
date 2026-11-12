@@ -25,10 +25,26 @@ function(atlas_add_application target source output label argument)
     elseif(label STREQUAL "editor")
         target_sources(${target} PRIVATE apps/editor/document_session.cpp apps/editor/editor_host.cpp
             apps/editor/editor_view.cpp apps/editor/editor_graphics.cpp apps/editor/panel_scene.cpp
-            apps/editor/panels.cpp)
+            apps/editor/panels.cpp apps/editor/tool_registry.cpp apps/editor/tool_panel.cpp)
         target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/apps/common"
             "${PROJECT_SOURCE_DIR}/apps/editor")
         target_link_libraries(${target} PRIVATE atlas::ui_content atlas::ui_text atlas::renderer_jobs atlas::memory)
+        set(editor_assets "${PROJECT_SOURCE_DIR}/assets/editor_tools")
+        set(editor_sources "${editor_assets}/commands.xml" "${editor_assets}/commands.lua"
+            "${editor_assets}/shell.xml" "${editor_assets}/width.xml")
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${editor_sources})
+        file(SIZE "${editor_assets}/commands.xml" editor_commands_xml)
+        file(SIZE "${editor_assets}/commands.lua" editor_commands_lua)
+        file(SIZE "${editor_assets}/shell.xml" editor_shell_xml)
+        file(SIZE "${editor_assets}/width.xml" editor_width_xml)
+        set(editor_catalog "${PROJECT_BINARY_DIR}/editor_tools/catalog.xml")
+        configure_file("${PROJECT_SOURCE_DIR}/apps/editor/tool_catalog.xml.in" "${editor_catalog}" @ONLY)
+        add_custom_target(atlas_editor_tools
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${target}>/content/editor_tools"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${editor_sources} "${editor_catalog}"
+                "$<TARGET_FILE_DIR:${target}>/content/editor_tools")
+        add_dependencies(${target} atlas_editor_tools)
+        install(FILES ${editor_sources} "${editor_catalog}" DESTINATION bin/content/editor_tools)
         if(ATLAS_BUILD_WINDOWS_INTEGRATION)
             target_sources(${target} PRIVATE libs/platform/windows/editor/document_file.cpp)
             target_compile_definitions(${target} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
@@ -73,7 +89,9 @@ if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
     if(ATLAS_BUILD_WINDOWS_INTEGRATION)
         target_sources(atlas_editor_tests PRIVATE tests/platform/windows/editor/authoring_tests.cpp
             libs/platform/windows/editor/document_file.cpp apps/editor/editor_view.cpp
-            apps/editor/panels.cpp apps/editor/panel_scene.cpp)
+            apps/editor/panels.cpp apps/editor/panel_scene.cpp apps/editor/tool_registry.cpp
+            apps/editor/tool_panel.cpp tests/platform/windows/editor/tool_tests.cpp)
+        add_dependencies(atlas_editor_tests atlas_editor_tools)
         target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_text)
         target_compile_definitions(atlas_editor_tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
     endif()

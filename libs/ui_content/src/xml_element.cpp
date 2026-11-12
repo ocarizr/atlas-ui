@@ -103,6 +103,7 @@ void write_element(pugi::xml_node node, const element& source)
 {
     element attributes;
     attributes.id = source.id;
+    attributes.caption = source.caption;
     attributes.parent = source.parent;
     attributes.panel = source.panel;
     attributes.requested = source.requested;

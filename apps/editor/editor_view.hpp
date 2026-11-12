@@ -5,6 +5,8 @@
 
 namespace atlas::editor
 {
+class tool_registry; ///< Optional editor and project contributions.
+
 /// @brief A retained render packet contains only portable CPU values.
 struct editor_frame final : render_host::frame_payload
 {
@@ -19,7 +21,7 @@ class editor_view
   public:
     /// @brief Retain one authored session and its selected file.
     editor_view(document_session& session, jobs::job_system& jobs, std::filesystem::path file,
-                const diagnostics::services& sinks);
+                const diagnostics::services& sinks, const tool_registry* tools = nullptr);
     ~editor_view(); ///< Retire UI and input on the main owner.
     /// @brief Publish an updated immutable packet after dispatching native input.
     [[nodiscard]] std::shared_ptr<const editor_frame>

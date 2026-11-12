@@ -4,8 +4,14 @@
 
 namespace atlas::editor
 {
+/// @brief Locate installed editor tools alongside the executable.
+[[nodiscard]] std::filesystem::path installed_tools_root();
 /// @brief Test whether the selected file exists, surfacing errors other than absence.
 [[nodiscard]] bool document_exists(const std::filesystem::path& path);
+/// @brief Acquire a bounded text source via the streamer from a host-selected file.
+[[nodiscard]] std::string read_editor_source(const std::filesystem::path& path,
+                                             jobs::job_system& jobs,
+                                             const diagnostics::services& sinks);
 /// @brief Read authored XML through a temporary typed mount for the selected file.
 [[nodiscard]] ui_content::document open_document(const std::filesystem::path& path,
                                                  jobs::job_system& jobs,

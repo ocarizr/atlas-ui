@@ -113,6 +113,7 @@ void validate_sibling(const element& node, const std::optional<sibling_boundary>
 /// @brief Validate identity and parent order before creating any runtime handles.
 void add_element(const element& node, locations& seen, const model_names& models)
 {
+    mvvm::validate_text(node.caption, 256);
     const auto parent = seen.find(node.parent);
     if (!valid_name(node.id) || (seen.empty() ? !node.parent.empty() : parent == seen.end()))
     {

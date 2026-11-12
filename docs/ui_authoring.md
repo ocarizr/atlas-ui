@@ -39,7 +39,7 @@ native UI validators.
 
 | Location | V1 data |
 | --- | --- |
-| Element | Overlay, leaf, size box, horizontal or vertical stack, or canvas. An omitted width or height is automatic. An explicit zero is fixed. |
+| Element | Overlay, leaf, size box, horizontal or vertical stack, or canvas. An omitted width or height is automatic. An explicit zero is fixed. The optional `text` caption is presentation metadata consumed by editor tools. |
 | `layout` | Intrinsic size, margins, padding, min/max and alignment. An omitted maximum is unbounded. |
 | `paint` | Rectangle fill, clip, layer, RGBA, UV, translation, transform origin and optional persistent texture. |
 | `canvas-slot` or `stack-slot` | Anchors, pivots, offsets and sizing, or child order and grow/shrink weights. |

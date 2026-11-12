@@ -353,6 +353,7 @@ components:
   editor:
     paths:
     - apps/editor/**
+    - assets/editor_tools/**
     - libs/platform/windows/editor/**
     - tests/editor/**
     - tests/platform/windows/editor/**
@@ -365,6 +366,7 @@ components:
     build_targets:
     - atlas_editor
     - atlas_editor_tests
+    - atlas_editor_tools
     test_labels:
     - editor
     build_requires:

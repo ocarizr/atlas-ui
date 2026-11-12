@@ -127,12 +127,23 @@ panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
     source_ = tree_.snapshot();
     geometry_ = layout.calculate(source_);
     const auto chrome = paint.calculate(source_, geometry_);
-    const auto preview_geometry = layout.update(preview, plan.preview);
-    const auto displayed = paint.calculate(preview.snapshot(), preview_geometry);
     auto result = std::make_shared<editor_frame>();
     result->viewport = viewport;
-    result->quads.assign(chrome.quads().begin(), chrome.quads().end());
-    result->quads.insert(result->quads.end(), displayed.quads().begin(), displayed.quads().end());
+    result->quads.assign(plan.shell.quads().begin(), plan.shell.quads().end());
+    result->quads.insert(result->quads.end(), chrome.quads().begin(), chrome.quads().end());
+    if (plan.tool)
+    {
+        result->quads.insert(result->quads.end(), plan.tool->quads().begin(),
+                             plan.tool->quads().end());
+    }
+    else
+    {
+        const auto preview_geometry = layout.update(preview, plan.preview);
+        const auto displayed = paint.calculate(preview.snapshot(), preview_geometry);
+        result->quads.insert(result->quads.end(), displayed.quads().begin(),
+                             displayed.quads().end());
+    }
+
     append_labels(*result, plan, scale_, sinks);
     packet_ = std::move(result);
 }
