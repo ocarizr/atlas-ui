@@ -353,30 +353,27 @@ components:
   editor:
     paths:
     - apps/editor/**
+    - libs/platform/windows/editor/**
     - tests/editor/**
-    - apps/common/**
+    - tests/platform/windows/editor/**
+    - apps/common/input_adapter.hpp
     depends_on:
-    - ui-renderer
-    - ui-images
     - application
-    - renderer
     - renderer-jobs
-    - renderer-content
-    - render-host
+    - ui-content
+    - ui-text
     build_targets:
     - atlas_editor
-    - atlas_editor_content
+    - atlas_editor_tests
     test_labels:
     - editor
     build_requires:
-    - ui-renderer
-    - ui-images
     - application
-    - renderer
     - renderer-jobs
-    - renderer-content
-    - render-host
+    - ui-content
+    - ui-text
     vendors:
+    - testing
     - memory
     - ipc
     - content

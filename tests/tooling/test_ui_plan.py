@@ -63,7 +63,8 @@ def test_ui_imports_the_shared_jobs_and_diagnostics_prerequisites(ui_configurati
 def test_authoring_restores_only_its_composition_inputs(ui_configuration):
     """Keep XML composition independent of apps, renderer, and IPC."""
     assert select_components(ui_configuration, ["libs/ui_content/src/instance.cpp"]) == {
-        "ui-content"
+        "ui-content",
+        "editor",
     }
     plan = plan_components(ui_configuration, {"ui-content"})
     assert plan["prerequisites"]["ui-content"] == [
@@ -93,4 +94,4 @@ def test_authoring_restores_only_its_composition_inputs(ui_configuration):
 )
 def test_image_changes_select_consumers_without_retesting_prerequisites(ui_configuration, path):
     """Image-only edits select host consumers, not unchanged jobs, streaming or core UI tests."""
-    assert select_components(ui_configuration, [path]) == {"ui-images", "game", "editor"}
+    assert select_components(ui_configuration, [path]) == {"ui-images", "game"}

@@ -19,6 +19,7 @@ def test_scripting_core_requires_no_ui_renderer_or_jobs():
         "scripting",
         "ui-scripting",
         "ui-content",
+        "editor",
     }
 
 
