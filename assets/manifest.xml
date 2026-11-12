@@ -2,4 +2,14 @@
 <Assets schemaVersion="1">
   <Asset id="renderer.checker" type="image" path="renderer/checker.bmp" />
   <Asset id="renderer.quad" type="shader" path="renderer/quad.hlsl" />
+  <Asset id="editor.commands" type="view_model" path="editor_tools/commands.xml" />
+  <Asset id="editor.behavior" type="script" path="editor_tools/commands.lua" />
+  <Asset id="editor.shell" type="ui" path="editor_tools/shell.xml">
+    <DependsOn id="editor.commands" />
+    <DependsOn id="editor.behavior" />
+  </Asset>
+  <Asset id="editor.width" type="ui" path="editor_tools/width.xml">
+    <DependsOn id="editor.commands" />
+    <DependsOn id="editor.behavior" />
+  </Asset>
 </Assets>

@@ -1,0 +1,6 @@
+<asset-catalog version="1" namespace="27bac729479a4dcfae9b791f13d7fa92" next-local="5">
+  <asset id="27bac729479a4dcfae9b791f13d7fa92:0000000000000001" type="view_model" root="tools" path="commands.xml" revision="1" byte-size="@editor_commands_xml@" importer="raw" importer-version="1" settings-version="1"/>
+  <asset id="27bac729479a4dcfae9b791f13d7fa92:0000000000000002" type="script" root="tools" path="commands.lua" revision="1" byte-size="@editor_commands_lua@" importer="raw" importer-version="1" settings-version="1"/>
+  <asset id="27bac729479a4dcfae9b791f13d7fa92:0000000000000003" type="ui" root="tools" path="shell.xml" revision="1" byte-size="@editor_shell_xml@" importer="raw" importer-version="1" settings-version="1"/>
+  <asset id="27bac729479a4dcfae9b791f13d7fa92:0000000000000004" type="ui" root="tools" path="width.xml" revision="1" byte-size="@editor_width_xml@" importer="raw" importer-version="1" settings-version="1"/>
+</asset-catalog>

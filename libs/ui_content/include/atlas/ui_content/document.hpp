@@ -66,6 +66,7 @@ struct element
     std::vector<property_binding> properties;           ///< Ordered declarations.
     std::vector<action_binding> actions;                ///< Ordered action routes.
     std::optional<behavior> script; ///< At most one behavior instance per element.
+    std::string caption{};          ///< Optional authored text for a host's label presentation.
 };
 
 /// @brief Ordered authoring data shared by parsed XML and prepared/native sources.

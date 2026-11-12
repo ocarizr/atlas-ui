@@ -57,7 +57,8 @@ void hierarchy(panel_plan& result, const document_session& session, ui::layout_r
 }
 
 /// @brief Expose basic scalar authoring without binding to live preview entities.
-void inspector(panel_plan& result, const document_session& session, ui::layout_rect bounds)
+void inspector(panel_plan& result, const document_session& session, ui::layout_rect bounds,
+               bool authored)
 {
     const auto& elements = session.document().elements;
     const auto selected = std::ranges::find(elements, session.selected(), &ui_content::element::id);
@@ -69,11 +70,20 @@ void inspector(panel_plan& result, const document_session& session, ui::layout_r
     const float x = bounds.x + 8;
     const float w = bounds.width - 16;
     result.controls.push_back({{x, bounds.y + 36, w, 26}, clear_color, selected->id});
-    result.controls.push_back({{x, bounds.y + 67, w, 26},
-                               clear_color,
-                               selected->requested.width_fixed
-                                   ? std::format("Width {:.0f}", selected->requested.width)
-                                   : "Width auto"});
+    auto width = selected->requested.width_fixed
+                     ? std::format("Width {:.0f}", selected->requested.width)
+                     : std::string{"Width auto"};
+    if (authored)
+    {
+        width += selected->requested.visible ? " | Visible" : " | Hidden";
+    }
+
+    result.controls.push_back({{x, bounds.y + 67, w, 26}, clear_color, std::move(width)});
+    if (authored)
+    {
+        return;
+    }
+
     button(result, {x, bounds.y + 99, (w - 4) / 2, 25}, "- Width", control_kind::narrower);
     button(result, {x + (w + 4) / 2, bounds.y + 99, (w - 4) / 2, 25}, "+ Width",
            control_kind::wider);
@@ -93,29 +103,36 @@ void inspector(panel_plan& result, const document_session& session, ui::layout_r
 
 /// @brief Keep the authored runtime viewport isolated between the editor panels.
 panel_plan make_panels(const document_session& session, ui::layout_extent size, std::size_t page,
-                       std::string_view status)
+                       std::string_view status, const shell_areas* shell)
 {
     panel_plan result;
     const float side = std::clamp(size.width * 0.23f, 132.f, 220.f);
     const float height = std::max(1.f, size.height - 64);
-    const ui::layout_rect left{8, 48, side, height};
-    const ui::layout_rect right{std::max(side + 24, size.width - side - 8), 48, side, height};
-    const ui::layout_rect center{side + 16, 48, std::max(1.f, right.x - side - 24), height};
+    const auto left = shell ? shell->hierarchy : ui::layout_rect{8, 48, side, height};
+    const auto right =
+        shell ? shell->inspector
+              : ui::layout_rect{std::max(side + 24, size.width - side - 8), 48, side, height};
+    const auto center =
+        shell ? shell->preview
+              : ui::layout_rect{side + 16, 48, std::max(1.f, right.x - side - 24), height};
     result.preview = {center.x, center.y + 32, center.width, std::max(1.f, center.height - 32)};
-    result.controls = {{left, panel_color, "Hierarchy"},
-                       {right, panel_color, "Inspector"},
-                       {center, panel_color, "Preview"}};
-    button(result, {8, 8, 56, 30}, "New", control_kind::new_document);
-    button(result, {70, 8, 58, 30}, "Save", control_kind::save);
-    button(result, {134, 8, 72, 30}, "Reopen", control_kind::reopen);
-    if (session.can_undo())
+    if (!shell)
     {
-        button(result, {212, 8, 62, 30}, "Undo", control_kind::undo);
-    }
+        result.controls = {{left, panel_color, "Hierarchy"},
+                           {right, panel_color, "Inspector"},
+                           {center, panel_color, "Preview"}};
+        button(result, {8, 8, 56, 30}, "New", control_kind::new_document);
+        button(result, {70, 8, 58, 30}, "Save", control_kind::save);
+        button(result, {134, 8, 72, 30}, "Reopen", control_kind::reopen);
+        if (session.can_undo())
+        {
+            button(result, {212, 8, 62, 30}, "Undo", control_kind::undo);
+        }
 
-    if (session.can_redo())
-    {
-        button(result, {280, 8, 62, 30}, "Redo", control_kind::redo);
+        if (session.can_redo())
+        {
+            button(result, {280, 8, 62, 30}, "Redo", control_kind::redo);
+        }
     }
 
     result.controls.push_back(
@@ -123,7 +140,7 @@ panel_plan make_panels(const document_session& session, ui::layout_extent size, 
          clear_color,
          std::string{session.dirty() ? "Unsaved  " : "Saved  "} + std::string{status}});
     hierarchy(result, session, left, page);
-    inspector(result, session, right);
+    inspector(result, session, right, shell != nullptr);
     return result;
 }
 } // namespace atlas::editor

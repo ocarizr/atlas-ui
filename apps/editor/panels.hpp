@@ -1,6 +1,7 @@
 /** @file @brief Value-only Atlas editor panel and control descriptions. */
 #pragma once
 #include "document_session.hpp"
+#include <atlas/ui/paint_engine.hpp>
 
 namespace atlas::editor
 {
@@ -22,7 +23,8 @@ enum class control_kind : std::uint8_t
     save,           ///< Persist the active document.
     reopen,         ///< Reload the selected file.
     previous,       ///< Browse the preceding hierarchy page.
-    next            ///< Browse the next hierarchy page.
+    next,           ///< Browse the next hierarchy page.
+    cycle_tool      ///< Cycle preview and registered tool contributions.
 };
 
 /// @brief Owned command materialized from a control after pointer release.
@@ -44,11 +46,22 @@ struct control
 /// @brief Shared output of hierarchy, toolbar, inspector, and preview arrangement.
 struct panel_plan
 {
-    std::vector<control> controls; ///< Insertion order, back to front.
-    ui::layout_rect preview;       ///< Clip and viewport for the isolated runtime tree.
+    std::vector<control> controls;          ///< Insertion order, back to front.
+    ui::layout_rect preview;                ///< Clip and viewport for the isolated runtime tree.
+    ui::paint_snapshot shell;               ///< Authored editor background, panels and controls.
+    std::optional<ui::paint_snapshot> tool; ///< Active authored contribution in the center.
+};
+
+/// @brief Named slots in the installed self-authored shell.
+struct shell_areas
+{
+    ui::layout_rect hierarchy; ///< Hierarchy display bounds.
+    ui::layout_rect inspector; ///< Inspector display bounds.
+    ui::layout_rect preview;   ///< Preview and tool viewport bounds.
 };
 
 /// @brief Build chrome for the currently selected revision and viewport.
 [[nodiscard]] panel_plan make_panels(const document_session& session, ui::layout_extent size,
-                                     std::size_t page, std::string_view status);
+                                     std::size_t page, std::string_view status,
+                                     const shell_areas* shell = nullptr);
 } // namespace atlas::editor

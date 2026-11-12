@@ -30,6 +30,7 @@ struct construction
     diagnostics::services diagnostics{};                 ///< Optional logs and CPU profiling.
     streaming::read_options reads{}; ///< Shared priority and cancellation for bootstrap.
     scripting::script_diagnostics_options script_diagnostics{}; ///< Explicit Lua opt-in.
+    std::span<const scripting::service_definition> services{};  ///< Host capabilities at startup.
 };
 
 /// @brief Acquire an authored UI document through a typed catalog mount.

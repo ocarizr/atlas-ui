@@ -45,6 +45,11 @@ instance::impl::impl(const document& source, const construction& options)
             options.diagnostics},
       diagnostics{options.diagnostics}
 {
+    for (const auto& service : options.services)
+    {
+        domain->register_service(service);
+    }
+
     const auto counts = binding_counts(source);
     std::uint64_t producer = 1;
     for (const auto& context : source.models)

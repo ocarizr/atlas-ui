@@ -1,0 +1,14 @@
+<ui version="1">
+  <model name="commands" asset="27bac729479a4dcfae9b791f13d7fa92:0000000000000001"/>
+  <element id="root" panel="canvas">
+    <interaction hit-test="false"/>
+    <behavior model="commands" asset="27bac729479a4dcfae9b791f13d7fa92:0000000000000002"/>
+  </element>
+  <element id="wider" parent="root" panel="leaf" text="Widen selected element" width="180" height="30">
+    <canvas-slot x-offset-min="8" y-offset-min="8"/>
+    <paint fill="true" r="0.18" g="0.37" b="0.55"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="wider"/>
+    </action>
+  </element>
+</ui>

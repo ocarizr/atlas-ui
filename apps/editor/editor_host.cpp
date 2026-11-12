@@ -2,6 +2,7 @@
 #include "editor_host.hpp"
 #include "document_file.hpp"
 #include "editor_graphics.hpp"
+#include "tool_registry.hpp"
 #include <algorithm>
 #include <atlas/application/entry_point.hpp>
 #include <atlas/memory/memory_resource.hpp>
@@ -129,7 +130,12 @@ void run(const launch_options& options, const diagnostics::services& sinks)
         session.mark_saved();
     }
 
-    editor_view view{session, workers, std::move(path), sinks};
+    const tool_registry tools{{installed_tools_root(), options.smoke
+                                                           ? std::filesystem::path{}
+                                                           : path.parent_path() / "editor_tools"},
+                              workers,
+                              sinks};
+    editor_view view{session, workers, std::move(path), sinks, &tools};
     window::window window{{"Atlas Editor", 960, 540, !options.smoke}};
     const auto target = window.share_presentation();
     std::atomic<std::uint64_t> presented{0};

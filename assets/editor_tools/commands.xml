@@ -1,0 +1,7 @@
+<ViewModel version="1" name="editor_commands">
+  <Actions>
+    <Action name="execute">
+      <Param name="command" type="text"/>
+    </Action>
+  </Actions>
+</ViewModel>

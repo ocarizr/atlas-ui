@@ -1,0 +1,89 @@
+<ui version="1">
+  <model name="commands" asset="27bac729479a4dcfae9b791f13d7fa92:0000000000000001"/>
+  <element id="root" panel="canvas">
+    <interaction hit-test="false"/>
+    <behavior model="commands" asset="27bac729479a4dcfae9b791f13d7fa92:0000000000000002"/>
+  </element>
+  <element id="hierarchy" parent="root" panel="leaf" width="220" text="Hierarchy">
+    <canvas-slot x-offset-min="8" y-anchor-max="1" y-offset-min="48" y-offset-max="16" y-sizing="stretch"/>
+    <paint fill="true" clip="true" r="0.075" g="0.105" b="0.15"/>
+  </element>
+  <element id="inspector" parent="root" panel="leaf" width="220" text="Inspector">
+    <canvas-slot x-anchor-min="1" x-anchor-max="1" x-offset-min="-228" y-anchor-max="1" y-offset-min="48" y-offset-max="16" y-sizing="stretch"/>
+    <paint fill="true" clip="true" r="0.075" g="0.105" b="0.15"/>
+  </element>
+  <element id="preview" parent="root" panel="leaf" text="Preview">
+    <canvas-slot x-anchor-max="1" x-offset-min="236" x-offset-max="236" x-sizing="stretch" y-anchor-max="1" y-offset-min="48" y-offset-max="16" y-sizing="stretch"/>
+    <paint fill="true" clip="true" r="0.075" g="0.105" b="0.15"/>
+  </element>
+  <element id="new" parent="root" panel="leaf" text="New" width="56" height="30">
+    <canvas-slot x-offset-min="8" y-offset-min="8"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="new"/>
+    </action>
+  </element>
+  <element id="save" parent="root" panel="leaf" text="Save" width="58" height="30">
+    <canvas-slot x-offset-min="70" y-offset-min="8"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="save"/>
+    </action>
+  </element>
+  <element id="reopen" parent="root" panel="leaf" text="Reopen" width="72" height="30">
+    <canvas-slot x-offset-min="134" y-offset-min="8"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="reopen"/>
+    </action>
+  </element>
+  <element id="undo" parent="root" panel="leaf" text="Undo" width="62" height="30">
+    <canvas-slot x-offset-min="212" y-offset-min="8"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="undo"/>
+    </action>
+  </element>
+  <element id="redo" parent="root" panel="leaf" text="Redo" width="62" height="30">
+    <canvas-slot x-offset-min="280" y-offset-min="8"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="redo"/>
+    </action>
+  </element>
+  <element id="narrower" parent="root" panel="leaf" text="- Width" width="100" height="25">
+    <canvas-slot x-anchor-min="1" x-anchor-max="1" x-offset-min="-220" y-offset-min="147"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="narrower"/>
+    </action>
+  </element>
+  <element id="wider" parent="root" panel="leaf" text="+ Width" width="100" height="25">
+    <canvas-slot x-anchor-min="1" x-anchor-max="1" x-offset-min="-116" y-offset-min="147"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="wider"/>
+    </action>
+  </element>
+  <element id="toggle_visible" parent="root" panel="leaf" text="Toggle visibility" width="204" height="25">
+    <canvas-slot x-anchor-min="1" x-anchor-max="1" x-offset-min="-220" y-offset-min="180"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="toggle_visible"/>
+    </action>
+  </element>
+  <element id="add_child" parent="root" panel="leaf" text="Add child" width="204" height="25">
+    <canvas-slot x-anchor-min="1" x-anchor-max="1" x-offset-min="-220" y-offset-min="215"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="add_child"/>
+    </action>
+  </element>
+  <element id="remove" parent="root" panel="leaf" text="Remove subtree" width="204" height="25">
+    <canvas-slot x-anchor-min="1" x-anchor-max="1" x-offset-min="-220" y-offset-min="248"/>
+    <paint fill="true" r="0.14" g="0.21" b="0.30"/>
+    <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="remove"/>
+    </action>
+  </element>
+</ui>
