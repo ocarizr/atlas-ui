@@ -5,6 +5,7 @@
 #pragma once
 #include <atlas/scripting/domain.hpp>
 #include <atlas/streaming/catalog_streamer.hpp>
+#include <atlas/ui_content/animation.hpp>
 #include <atlas/ui_content/document.hpp>
 
 namespace atlas::ui_content
@@ -57,6 +58,16 @@ class instance
     [[nodiscard]] scripting::domain& scripts(); ///< Borrow the single UI domain.
     void begin_models(std::uint64_t frame); ///< Begin matching model and Lua frames before input.
     void synchronize(); ///< Flush models, apply Lua subscription edits and queue property writes.
+    /// @brief Replace playback after validating a clip against live targets and binding ownership.
+    void play_animation(animation_clip clip, animation_repeat repeat = animation_repeat::once);
+    void stop_animation(); ///< Retire playback and completion, holding already applied values.
+    void advance_animation(animation_time elapsed); ///< Advance time without opening a UI frame.
+    void
+    seek_animation(animation_time position); ///< Position the clock without signaling completion.
+    [[nodiscard]] std::optional<animation_time> animation_position() const; ///< Current clip time.
+    [[nodiscard]] bool take_animation_completion(); ///< Consume the pending one-shot completion.
+    /// @brief Queue a dirty sample after other frame producers and before sealing UI commands.
+    void publish_animation();
     /// @brief Queue the explicit reverse write for an authored two-way binding.
     void write_back(std::string_view id, ui::property property, ui::property_value value);
 

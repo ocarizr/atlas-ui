@@ -98,6 +98,7 @@ class command_buffer
     void begin_frame(std::uint64_t frame); ///< Require increasing identity and no pending writes.
     void set(element_handle target, property field, property_value value,
              std::uint64_t producer); ///< Validate before appending; never mutate live UI state.
+    void require_capacity(std::size_t writes) const; ///< Preflight a group of validated writes.
     command_batch
     seal(); ///< Strong exception guarantee; publish winners/conflicts, retain history.
     void discard_pending();      ///< Roll back only unsealed writes after a dispatch failure.

@@ -118,17 +118,15 @@ void command_buffer::set(element_handle target, property field, property_value v
         throw std::invalid_argument("UI command target belongs to another tree session");
     }
 
-    if (impl_->ordinal >= impl_->limits.max_batches)
-    {
-        throw std::overflow_error("UI frame batch capacity exhausted");
-    }
-
-    if (impl_->history.size() >= impl_->limits.max_commands)
-    {
-        throw std::overflow_error("UI frame command capacity exhausted");
-    }
-
+    impl_->require_capacity(1);
     impl_->history.push_back({target, field, value, producer, impl_->history.size() + 1});
+}
+
+/// @brief Check the remaining frame budget without changing pending or sealed history.
+void command_buffer::require_capacity(std::size_t writes) const
+{
+    impl_->check();
+    impl_->require_capacity(writes);
 }
 
 /// @brief Roll back an unsealed dispatch; keep earlier conflict history intact.

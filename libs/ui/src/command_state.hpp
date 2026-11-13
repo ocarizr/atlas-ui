@@ -61,6 +61,19 @@ class command_buffer::impl
         }
     } ///< Check affinity before reading any mutable producer state.
 
+    void require_capacity(std::size_t writes) const
+    {
+        if (ordinal >= limits.max_batches)
+        {
+            throw std::overflow_error("UI frame batch capacity exhausted");
+        }
+
+        if (writes > limits.max_commands - history.size())
+        {
+            throw std::overflow_error("UI frame command capacity exhausted");
+        }
+    } ///< Preflight writes after the owner and open-frame checks.
+
     command_limits limits;           ///< Immutable validated admission policy.
     std::uint64_t session = 0;       ///< Nonzero only for a tree-owned producer.
     const bool* tree_busy = nullptr; ///< Borrowed guard; the tree destroys this producer first.

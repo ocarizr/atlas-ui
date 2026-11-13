@@ -51,7 +51,7 @@ instance::impl::impl(const document& source, const construction& options)
     }
 
     const auto counts = binding_counts(source);
-    std::uint64_t producer = 1;
+    auto producer = detail::animation_producer;
     for (const auto& context : source.models)
     {
         model_order.push_back(context.name);

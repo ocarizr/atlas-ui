@@ -8,7 +8,8 @@ add_custom_command(OUTPUT "${generated}"
     COMMAND $<TARGET_FILE:atlas_ui_content_fixture_generator> "${model_fixture}" "${generated}" make_ui_content_fixture
     DEPENDS atlas_ui_content_fixture_generator "${model_fixture}"
     VERBATIM)
-add_executable(atlas_ui_content_tests xml_tests.cpp composition_tests.cpp composition_failure_tests.cpp "${generated}")
+add_executable(atlas_ui_content_tests xml_tests.cpp composition_tests.cpp composition_failure_tests.cpp
+    animation_tests.cpp "${generated}")
 target_compile_definitions(atlas_ui_content_tests PRIVATE
     ATLAS_UI_DOCUMENT="${CMAKE_CURRENT_SOURCE_DIR}/data/dashboard.xml"
     ATLAS_UI_MODEL="${model_fixture}")
