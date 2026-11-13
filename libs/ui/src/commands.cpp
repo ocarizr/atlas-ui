@@ -15,20 +15,14 @@ void validate(element_handle target, property field, const property_value& value
         throw std::invalid_argument("UI command needs a target generation and producer identity");
     }
 
-    switch (field)
+    if (field == property::visible)
     {
-        case property::visible:
-            if (!std::holds_alternative<bool>(value))
-            {
-                throw std::invalid_argument("UI visible requires a boolean");
-            }
-            return;
-        case property::width:
-        case property::height:
-        case property::opacity:
-            break;
-        default:
-            throw std::invalid_argument("unknown UI property");
+        if (!std::holds_alternative<bool>(value))
+        {
+            throw std::invalid_argument("UI visible requires a boolean");
+        }
+
+        return;
     }
 
     if ((field == property::width || field == property::height) &&
@@ -38,13 +32,66 @@ void validate(element_handle target, property field, const property_value& value
     }
 
     const auto* scalar = std::get_if<float>(&value);
-    if (!scalar || !std::isfinite(*scalar) || *scalar < 0.f ||
-        (field == property::opacity && *scalar > 1.f))
+    if (!scalar || !valid_scalar(field, *scalar))
     {
         throw std::invalid_argument("UI property requires a finite scalar within its range");
     }
 }
 } // namespace
+
+/// @brief Shared numeric domain for commands and track keys.
+bool valid_scalar(property field, float value) noexcept
+{
+    if (field == property::visible || field > property::canvas_y_anchor_max ||
+        !std::isfinite(value))
+    {
+        return false;
+    }
+
+    if ((field >= property::translate_x && field <= property::translate_y) ||
+        field == property::rotate ||
+        (field >= property::canvas_x_offset_min && field <= property::canvas_y_offset_max))
+    {
+        return true;
+    }
+
+    return value >= 0 &&
+           ((field != property::opacity && field < property::canvas_x_anchor_min) || value <= 1);
+}
+
+/// @brief Index the closed command vocabulary without exposing its storage.
+std::string_view property_name(property field) noexcept
+{
+    constexpr std::array<std::string_view, 26> names{"width",
+                                                     "height",
+                                                     "opacity",
+                                                     "visible",
+                                                     "translate-x",
+                                                     "translate-y",
+                                                     "scale-x",
+                                                     "scale-y",
+                                                     "rotate",
+                                                     "margin-left",
+                                                     "margin-top",
+                                                     "margin-right",
+                                                     "margin-bottom",
+                                                     "padding-left",
+                                                     "padding-top",
+                                                     "padding-right",
+                                                     "padding-bottom",
+                                                     "spacing",
+                                                     "canvas-x-offset-min",
+                                                     "canvas-x-offset-max",
+                                                     "canvas-y-offset-min",
+                                                     "canvas-y-offset-max",
+                                                     "canvas-x-anchor-min",
+                                                     "canvas-x-anchor-max",
+                                                     "canvas-y-anchor-min",
+                                                     "canvas-y-anchor-max"};
+    const auto index = static_cast<std::size_t>(field);
+    static_assert(names.size() == static_cast<std::size_t>(property::canvas_y_anchor_max) + 1);
+    return index < names.size() ? names[index] : "unknown";
+}
 
 /// @brief Null means the standard allocation resource; applications may inject their shared PMR.
 command_buffer::command_buffer(command_limits limits,

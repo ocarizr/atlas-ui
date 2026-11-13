@@ -41,7 +41,7 @@ native UI validators.
 | --- | --- |
 | Element | Overlay, leaf, size box, horizontal or vertical stack, or canvas. An omitted width or height is automatic. An explicit zero is fixed. The optional `text` caption is presentation metadata consumed by editor tools. |
 | `layout` | Intrinsic size, margins, padding, min/max and alignment. An omitted maximum is unbounded. |
-| `paint` | Rectangle fill, clip, layer, RGBA, UV, translation, transform origin and optional persistent texture. |
+| `paint` | Rectangle fill, clip, layer, RGBA, UV, translation, scale, rotation, transform origin and optional persistent texture. |
 | `canvas-slot` or `stack-slot` | Anchors, pivots, offsets and sizing, or child order and grow/shrink weights. |
 | `horizontal-boundary` or `vertical-boundary` | Stable sibling source, side, gap, sizing and overflow. |
 | `interaction` | Enabled, hit-test and focusable flags. |
@@ -83,7 +83,7 @@ subscriptions and pending Lua work on the owner.
 
 The host can start an `animation_clip` on a composed instance. Each clip
 contains up to 256 tracks. A track names an authored element and controls
-its width, height, or opacity with up to 1,024 ordered keys. Each key
+one numeric property with up to 1,024 ordered keys. Each key
 selects step, linear, or smoothstep interpolation to the next key. The
 first and last values hold outside their keyed interval. A new valid clip
 replaces the current clip and starts at zero. Stopping leaves the already
@@ -108,3 +108,32 @@ When the animation is published last, its sample wins that batch.
 
 The playback API accepts C++ clip values. The UI XML schema currently
 stores the elements that tracks address.
+
+### Visual motion and layout
+
+Use `translate_x` and `translate_y` for a drawer that slides without
+moving its neighbors. Translation uses signed logical units. Place the
+drawer under a stationary clipped container and target the drawer
+itself. Publish the pose before capturing the snapshot used for the next
+input pass. The renderer and hit testing consume the same pose.
+
+`scale_x`, `scale_y` and `rotate` apply scale, then clockwise rotation
+in degrees, then translation. Scale and rotation use the normalized
+border origin. Descendants inherit the complete transform. Paint and
+input retain the original layout geometry. Pointer positions are
+inverse-mapped into the receiver's original border coordinates. Focus
+reveal uses the viewport bounding rectangle. An element collapsed by
+zero scale has no paint or pointer hit area. An existing capture still
+receives events, with a zero local position while the transform is singular.
+
+A clip node must resolve to a viewport-axis-aligned rectangle. The
+renderer uses scissor rectangles, so a mask that would become a rotated
+polygon fails during paint or input preparation. A rotated child inside
+a stationary mask is supported.
+
+Use explicit layout tracks for reflow. Width and height set requested
+size. Margin, padding and stack spacing take nonnegative logical units.
+Canvas offsets take signed logical units and anchors take normalized
+values from zero to one. Canvas fields require a canvas parent. Anchor
+minima and maxima are validated on the combined command batch, together
+with canvas measurement and sibling-boundary rules.

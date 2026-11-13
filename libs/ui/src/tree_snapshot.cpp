@@ -94,6 +94,11 @@ element_snapshot element_tree::snapshot() const
             data->records.back().paint = *value;
         }
 
+        auto& style = data->records.back().paint;
+        style.translation = node.translation;
+        style.scale = node.scale;
+        style.rotation = node.rotation;
+
         if (const auto* slot = registry.try_get<canvas_slot>(impl_->slots[index].entity))
         {
             data->canvas_slots.push_back({impl_->handle(index), *slot});

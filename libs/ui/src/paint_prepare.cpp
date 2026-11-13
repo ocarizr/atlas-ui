@@ -48,6 +48,26 @@ layout_rect intersect_clip(layout_rect a, layout_rect b)
 
 namespace detail
 {
+namespace
+{
+/// @brief Apply only masks representable by the shared rectangular clip contract.
+layout_rect clip_border(layout_rect inherited, layout_rect hull, const paint_transform& transform)
+{
+    if (!transform.invertible())
+    {
+        inherited.width = 0;
+        return inherited;
+    }
+
+    if (!transform.axes_preserved())
+    {
+        throw std::invalid_argument("UI clip requires a viewport-axis-aligned transform");
+    }
+
+    return intersect_clip(inherited, hull);
+}
+} // namespace
+
 /// @brief Resolve inherited state iteratively after stable stacking links have been prepared.
 void prepare_paint(const element_snapshot& input, const layout_snapshot& geometry,
                    std::pmr::memory_resource* memory, const std::stop_token& stop,
@@ -65,11 +85,11 @@ void prepare_paint(const element_snapshot& input, const layout_snapshot& geometr
 
     struct visit
     {
-        std::size_t index;   ///< Node in captured slot order.
-        layout_point offset; ///< Inherited translation.
-        layout_rect clip;    ///< Inherited effective rectangular viewport.
-        float alpha;         ///< Ancestor opacity product.
-        bool visible;        ///< Ancestor visibility conjunction.
+        std::size_t index;         ///< Node in captured slot order.
+        paint_transform transform; ///< Inherited presentation transform.
+        layout_rect clip;          ///< Inherited effective rectangular viewport.
+        float alpha;               ///< Ancestor opacity product.
+        bool visible;              ///< Ancestor visibility conjunction.
     }; ///< Bounded explicit traversal stack, not recursive C++ execution.
 
     std::pmr::vector<visit> stack(0, memory);
@@ -96,42 +116,42 @@ void prepare_paint(const element_snapshot& input, const layout_snapshot& geometr
             stack.pop_back();
             const auto& node = nodes[current.index];
             auto bounds = layouts[current.index].geometry.bounds;
-            current.offset.x =
-                checked(static_cast<double>(current.offset.x) + node.paint.translation.x);
-            current.offset.y =
-                checked(static_cast<double>(current.offset.y) + node.paint.translation.y);
-            bounds.x = checked(static_cast<double>(bounds.x) + current.offset.x);
-            bounds.y = checked(static_cast<double>(bounds.y) + current.offset.y);
-            validate(bounds);
+            current.transform = compose(current.transform, bounds, node);
+            const auto hull = current.transform.bounds(bounds);
+            validate(hull);
             current.alpha *= node.requested.opacity;
             current.visible = current.visible && node.requested.visible;
             if (node.paint.clip)
             {
-                current.clip = intersect_clip(current.clip, bounds);
+                current.clip = clip_border(current.clip, hull, current.transform);
             }
 
-            const auto covered = intersect_clip(current.clip, bounds);
+            const auto covered = intersect_clip(current.clip, hull);
             if (regions)
             {
-                regions->push_back(
-                    {node.target, node.parent, bounds, current.clip, current.visible});
+                regions->push_back({node.target, node.parent, hull, current.clip, current.visible,
+                                    bounds, current.transform});
             }
 
-            if (emit_quads && node.paint.fill && current.visible && current.alpha > 0 &&
-                node.paint.color[3] > 0 && covered.width > 0 && covered.height > 0)
+            if (emit_quads && node.paint.fill && current.visible &&
+                current.transform.invertible() && current.alpha > 0 && node.paint.color[3] > 0 &&
+                covered.width > 0 && covered.height > 0)
             {
                 auto style = node.paint;
                 style.color[3] *= current.alpha;
+                auto fitted_hull = hull;
                 if (style.image)
                 {
                     const auto fitted = fit_image(bounds, *style.image, style.uv);
                     bounds = fitted.bounds;
                     style.uv = fitted.uv;
+                    fitted_hull = current.transform.bounds(bounds);
                 }
 
                 if (bounds.width > 0 && bounds.height > 0)
                 {
-                    result.inputs.push_back({node.target, bounds, current.clip, style});
+                    result.inputs.push_back(
+                        {node.target, bounds, fitted_hull, current.clip, style, current.transform});
                 }
             }
 
@@ -139,7 +159,7 @@ void prepare_paint(const element_snapshot& input, const layout_snapshot& geometr
             for (auto child = first[current.index]; child != none; child = next[child])
             {
                 stack.push_back(
-                    {child, current.offset, current.clip, current.alpha, current.visible});
+                    {child, current.transform, current.clip, current.alpha, current.visible});
             }
 
             std::reverse(stack.begin() + static_cast<std::ptrdiff_t>(begin), stack.end());

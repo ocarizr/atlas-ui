@@ -3,6 +3,7 @@
  * @brief Bounded serial UI command production and immutable phase-boundary batches.
  */
 #pragma once
+#include <array>
 #include <atlas/diagnostics/instrumentation.hpp>
 #include <cstddef>
 #include <cstdint>
@@ -10,6 +11,7 @@
 #include <memory_resource>
 #include <span>
 #include <stdexcept>
+#include <string_view>
 #include <variant>
 
 namespace atlas::ui
@@ -28,11 +30,38 @@ struct element_handle
 /// @brief Initial absolute property vocabulary; actions and relative deltas are separate contracts.
 enum class property : std::uint8_t
 {
-    width,   ///< Finite nonnegative requested width.
-    height,  ///< Finite nonnegative requested height.
-    opacity, ///< Finite normalized opacity in [0, 1].
-    visible  ///< Boolean visibility request.
+    width,               ///< Finite nonnegative requested width.
+    height,              ///< Finite nonnegative requested height.
+    opacity,             ///< Finite normalized opacity in [0, 1].
+    visible,             ///< Boolean visibility request.
+    translate_x,         ///< Signed horizontal visual offset in logical units.
+    translate_y,         ///< Signed vertical visual offset in logical units.
+    scale_x,             ///< Nonnegative horizontal scale about the border origin.
+    scale_y,             ///< Nonnegative vertical scale about the border origin.
+    rotate,              ///< Clockwise angle in degrees.
+    margin_left,         ///< Leading outer inset in logical units.
+    margin_top,          ///< Upper outer inset in logical units.
+    margin_right,        ///< Trailing outer inset in logical units.
+    margin_bottom,       ///< Lower outer inset in logical units.
+    padding_left,        ///< Leading inner inset in logical units.
+    padding_top,         ///< Upper inner inset in logical units.
+    padding_right,       ///< Trailing inner inset in logical units.
+    padding_bottom,      ///< Lower inner inset in logical units.
+    spacing,             ///< Stack spacing in logical units.
+    canvas_x_offset_min, ///< Leading horizontal canvas offset.
+    canvas_x_offset_max, ///< Trailing horizontal canvas offset.
+    canvas_y_offset_min, ///< Leading vertical canvas offset.
+    canvas_y_offset_max, ///< Trailing vertical canvas offset.
+    canvas_x_anchor_min, ///< Leading normalized horizontal anchor.
+    canvas_x_anchor_max, ///< Trailing normalized horizontal anchor.
+    canvas_y_anchor_min, ///< Leading normalized vertical anchor.
+    canvas_y_anchor_max, ///< Trailing normalized vertical anchor.
 };
+
+/// @brief Validate a finite numeric value for the given scalar property.
+[[nodiscard]] bool valid_scalar(property field, float value) noexcept;
+/// @brief Return the diagnostic name of a validated property.
+[[nodiscard]] std::string_view property_name(property field) noexcept;
 
 using property_value =
     std::variant<float, bool, std::monostate>; ///< Monostate restores automatic width/height.

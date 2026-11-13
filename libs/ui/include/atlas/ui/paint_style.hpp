@@ -20,6 +20,8 @@ struct paint_style
     layout_rect uv{0, 0, 1, 1}; ///< Finite normalized texture region, nonnegative extent.
     layout_point translation{}; ///< Finite paint-only offset inherited by descendants.
     std::optional<image_sampling> image; ///< Aspect fitting uses metadata without reading pixels.
+    layout_point scale{1, 1};            ///< Nonnegative scale around the visual origin.
+    float rotation = 0; ///< Clockwise rotation in degrees around the visual origin.
     bool operator==(const paint_style&) const = default; ///< Exact appearance comparison.
 }; ///< Sparse component; no graphics resource or platform SDK dependency.
 } // namespace atlas::ui

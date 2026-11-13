@@ -138,6 +138,9 @@ void paint_fields(fields& xml, element& data)
     xml.value("uv-height", paint.uv.height);
     xml.value("translate-x", paint.translation.x);
     xml.value("translate-y", paint.translation.y);
+    xml.optional("scale-x", paint.scale.x, paint.scale.x != 1);
+    xml.optional("scale-y", paint.scale.y, paint.scale.y != 1);
+    xml.optional("rotation", paint.rotation, paint.rotation != 0);
     xml.value("origin-x", data.visual.origin.x);
     xml.value("origin-y", data.visual.origin.y);
     xml.reference("texture", data.texture, assets::asset_type::texture);
