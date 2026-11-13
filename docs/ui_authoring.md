@@ -78,3 +78,33 @@ Build the replacement before retiring the active instance. To deliver
 lifecycle notifications at retirement, begin a newer matching model/Lua
 frame, shut down input, and synchronize. Destruction releases registrations,
 subscriptions and pending Lua work on the owner.
+
+## Animation playback
+
+The host can start an `animation_clip` on a composed instance. Each clip
+contains up to 256 tracks. A track names an authored element and controls
+its width, height, or opacity with up to 1,024 ordered keys. Each key
+selects step, linear, or smoothstep interpolation to the next key. The
+first and last values hold outside their keyed interval. A new valid clip
+replaces the current clip and starts at zero. Stopping leaves the already
+applied values in the tree.
+
+Use `advance_animation` with host elapsed time, even while a view is
+inactive. It advances an integral nanosecond clock without opening a UI
+frame or evaluating properties. `seek_animation` selects an absolute
+position. Once playback clamps to the end and reports natural completion
+once through `take_animation_completion`. Seeking never emits completion
+and clears any unread completion. Loop playback wraps at the duration and
+never emits completion.
+
+During an active frame, call `publish_animation` after the final
+`synchronize` and other property producers, before sealing the command
+batch and updating layout or paint. The player samples the current pose
+only when its clock changes or it receives a new clip or seek. Removed
+targets are skipped even if their slots have been reused. A clip is
+rejected if it repeats a target property or targets any MVVM-bound
+property. Other competing writes use the existing frame conflict records.
+When the animation is published last, its sample wins that batch.
+
+The playback API accepts C++ clip values. The UI XML schema currently
+stores the elements that tracks address.
