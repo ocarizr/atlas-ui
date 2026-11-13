@@ -24,14 +24,20 @@ void tessellate(std::span<const paint_input> inputs, std::span<paint_quad> outpu
         const auto& source = inputs[i];
         auto& quad = output[i];
         quad.target = source.target;
-        quad.bounds = source.bounds;
+        quad.bounds = source.hull;
         quad.clip = source.clip;
         quad.texture = source.style.texture;
+        const auto translation_only = source.transform.translation_only();
         for (std::size_t v = 0; v < corners.size(); ++v)
         {
             const auto p = corners[v];
-            quad.vertices[v] = {{source.bounds.x + p.x * source.bounds.width,
-                                 source.bounds.y + p.y * source.bounds.height},
+            const auto position =
+                translation_only
+                    ? layout_point{source.hull.x + p.x * source.hull.width,
+                                   source.hull.y + p.y * source.hull.height}
+                    : source.transform.project({source.bounds.x + p.x * source.bounds.width,
+                                                source.bounds.y + p.y * source.bounds.height});
+            quad.vertices[v] = {position,
                                 {source.style.uv.x + p.x * source.style.uv.width,
                                  source.style.uv.y + p.y * source.style.uv.height},
                                 source.style.color};

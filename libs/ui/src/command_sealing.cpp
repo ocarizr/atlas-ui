@@ -58,18 +58,18 @@ void report(const detail::command_data& data, const diagnostics::services& desti
                         static_cast<unsigned long long>(data.frame), data.ordinal,
                         data.conflicts.size());
     diagnostics::write(destinations, diagnostics::log_level::warning, "ui.commands", text.data());
-    constexpr std::array names{"width", "height", "opacity", "visible"};
     const auto count = std::min(detail_limit, data.conflicts.size());
     for (std::size_t index = 0; index < count; ++index)
     {
         const auto& conflict = data.conflicts[index];
         const auto& last = conflict.replacement;
+        const auto name = property_name(last.field);
         (void)std::snprintf(
             text.data(), text.size(),
-            "frame=%llu batch=%u element=%u:%u property=%s producer=%llu sequence=%llu -> "
+            "frame=%llu batch=%u element=%u:%u property=%.*s producer=%llu sequence=%llu -> "
             "producer=%llu sequence=%llu writes=%zu",
             static_cast<unsigned long long>(data.frame), data.ordinal, last.target.index,
-            last.target.generation, names[static_cast<std::size_t>(last.field)],
+            last.target.generation, static_cast<int>(name.size()), name.data(),
             static_cast<unsigned long long>(conflict.previous.producer),
             static_cast<unsigned long long>(conflict.previous.sequence),
             static_cast<unsigned long long>(last.producer),

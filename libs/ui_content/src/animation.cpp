@@ -15,14 +15,10 @@ constexpr std::size_t max_keys_per_track = 1024; ///< Upper bound on each curve'
 /// @brief Reject incomplete, unordered or unsafe data before playback can reach the command queue.
 void validate_track(const animation_track& track, animation_time duration)
 {
-    switch (track.property)
+    if (track.property == ui::property::visible ||
+        track.property > ui::property::canvas_y_anchor_max)
     {
-        case ui::property::width:
-        case ui::property::height:
-        case ui::property::opacity:
-            break;
-        default:
-            throw std::invalid_argument("Animation requires width, height or opacity");
+        throw std::invalid_argument("Animation requires a supported numeric UI property");
     }
 
     if (track.keys.empty() || track.keys.size() > max_keys_per_track)
@@ -33,9 +29,8 @@ void validate_track(const animation_track& track, animation_time duration)
     animation_time previous{-1};
     for (const auto& key : track.keys)
     {
-        if (key.time <= previous || key.time > duration || !std::isfinite(key.value) ||
-            key.value < 0 || (track.property == ui::property::opacity && key.value > 1) ||
-            key.curve > animation_curve::smoothstep)
+        if (key.time <= previous || key.time > duration ||
+            !ui::valid_scalar(track.property, key.value) || key.curve > animation_curve::smoothstep)
         {
             throw std::invalid_argument("Animation key time, value or curve is invalid");
         }
@@ -98,6 +93,22 @@ void instance::play_animation(animation_clip clip, animation_repeat repeat)
         }
 
         validate_track(track, clip.duration);
+        if (track.property == ui::property::spacing)
+        {
+            const auto panel = impl_->tree.panel(target);
+            if (!std::holds_alternative<ui::horizontal_layout>(panel) &&
+                !std::holds_alternative<ui::vertical_layout>(panel))
+            {
+                throw std::invalid_argument("Animation spacing track requires a stack");
+            }
+        }
+
+        if (track.property >= ui::property::canvas_x_offset_min &&
+            !impl_->tree.canvas_slot_for(target))
+        {
+            throw std::invalid_argument("Animation canvas track requires a canvas parent");
+        }
+
         if (!targets.insert(key).second)
         {
             throw std::invalid_argument("Duplicate animation track for an element/property");

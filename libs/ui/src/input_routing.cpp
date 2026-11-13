@@ -21,8 +21,8 @@ element_handle input_session::impl::hit(layout_point point) const
     for (auto it = regions.rbegin(); it != regions.rend(); ++it)
     {
         const auto* binding = find(it->target);
-        if (binding && binding->options.hit_test && contains(it->bounds, point) &&
-            contains(it->clip, point) && eligible(it->target))
+        if (binding && binding->options.hit_test && contains(it->clip, point) &&
+            it->transform.hit(it->border, point) && eligible(it->target))
         {
             return it->target;
         }

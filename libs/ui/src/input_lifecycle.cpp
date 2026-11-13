@@ -1,27 +1,8 @@
 /** @file @brief Safe cleanup and bounded serial callback delivery. */
 #include "input_state.hpp"
-#include <cmath>
 
 namespace atlas::ui
 {
-namespace
-{
-/// @brief Finite inputs can still have an unrepresentable difference on captured motion.
-layout_point local_position(layout_point position, layout_rect bounds)
-{
-    const auto checked = [](double value)
-    {
-        if (!std::isfinite(value) || std::abs(value) > std::numeric_limits<float>::max())
-        {
-            throw std::overflow_error("UI local input coordinate overflow");
-        }
-
-        return static_cast<float>(value);
-    };
-    return {checked(static_cast<double>(position.x) - bounds.x),
-            checked(static_cast<double>(position.y) - bounds.y)};
-}
-} // namespace
 
 /// @brief Missing or reused slots never resolve to another generation.
 const detail::presentation_region* input_session::impl::region(element_handle target) const
@@ -87,7 +68,7 @@ event_response input_session::impl::send(element_handle current, event_kind kind
     {
         current_bounds = value->bounds;
         clip = value->clip;
-        local = local_position(raw.position, value->bounds);
+        local = value->transform.local(value->border, raw.position);
     }
 
     if (const auto* value = region(target))

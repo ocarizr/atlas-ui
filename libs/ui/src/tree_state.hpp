@@ -3,6 +3,7 @@
 #include <atlas/ui/element_tree.hpp>
 #include <entt/entity/registry.hpp>
 #include <limits>
+#include <map>
 #include <thread>
 #include <vector>
 
@@ -22,6 +23,9 @@ class element_tree::impl
         std::optional<layout_geometry> computed; ///< Last published geometry.
         bool computed_valid = false;             ///< Independent from dirty acknowledgment.
         requested_properties requested;          ///< Committed local properties.
+        layout_point translation{};              ///< Effective visual translation.
+        layout_point scale{1, 1};                ///< Effective visual scale.
+        float rotation = 0;                      ///< Effective visual rotation.
         invalidation dirty;                      ///< Accumulated conservative work.
         std::uint32_t parent = none;             ///< Ancestor slot or none.
         std::uint32_t first = none;              ///< First child in insertion order.
@@ -84,6 +88,12 @@ class element_tree::impl
     std::uint64_t layout_revision = 1;    ///< Nonwrapping geometry-input identity.
     layout_rect viewport{};               ///< Logical root bounds.
     void ensure_layout_revision() const;  ///< Reject exhaustion before mutation.
+    using canvas_writes =
+        std::pmr::map<std::uint32_t, canvas_slot>; ///< Changed slots in stable order.
+    bool prepare_writes(std::span<const property_write> writes,
+                        std::optional<canvas_writes>& canvas); ///< Validate before mutation.
+    void apply_canvas(const canvas_writes& canvas);   ///< Reserve and publish sparse slots.
+    void apply_scalar(const property_write& write);   ///< Apply a preflighted local write.
     void validate_parent(std::uint32_t parent) const; ///< Enforce arity for a newly attached child.
     canvas_slot child_slot(std::uint32_t index) const; ///< Implicit default or sparse override.
     stack_slot

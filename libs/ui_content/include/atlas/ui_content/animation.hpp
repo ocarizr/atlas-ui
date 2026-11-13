@@ -24,7 +24,7 @@ enum class animation_curve : std::uint8_t
 struct animation_key
 {
     animation_time time;                             ///< Time relative to the clip start.
-    float value;                                     ///< Width, height or normalized opacity.
+    float value;                                     ///< Value in the target property's units.
     animation_curve curve = animation_curve::linear; ///< Segment rule after this key.
 };
 
@@ -32,7 +32,7 @@ struct animation_key
 struct animation_track
 {
     std::string element;             ///< Authored target ID.
-    ui::property property;           ///< Width, height or opacity.
+    ui::property property;           ///< Supported numeric command property.
     std::vector<animation_key> keys; ///< Strictly ordered nonnegative key times.
 };
 

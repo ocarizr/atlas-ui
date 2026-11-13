@@ -9,7 +9,7 @@ namespace atlas::ui
 {
 struct paint_vertex
 {
-    layout_point position;      ///< Logical viewport position, including inherited translation.
+    layout_point position;      ///< Logical viewport position, including inherited transforms.
     layout_point uv;            ///< Normalized texture coordinates.
     std::array<float, 4> color; ///< Straight-alpha color including inherited opacity.
     bool operator==(const paint_vertex&) const = default; ///< Reference numeric comparison.
@@ -18,7 +18,7 @@ struct paint_vertex
 struct paint_quad
 {
     element_handle target;     ///< Source identity for diagnostics and future hit testing.
-    layout_rect bounds;        ///< Translated border rectangle before clipping.
+    layout_rect bounds;        ///< Axis-aligned viewport hull before clipping.
     layout_rect clip;          ///< Intersected viewport/ancestor clip in logical coordinates.
     std::uint64_t texture = 0; ///< Consumer-resolved resident key, not a native descriptor.
     std::array<paint_vertex, 6> vertices;               ///< Ordered triangle-list geometry.

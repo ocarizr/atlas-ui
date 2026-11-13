@@ -72,9 +72,9 @@ struct routed_event
     element_handle target;      ///< Original destination, including generation/session.
     element_handle current;     ///< Handler receiving this delivery.
     layout_point position;      ///< Logical viewport coordinates.
-    layout_point local;         ///< Position relative to the current translated border.
-    layout_rect target_bounds;  ///< Frozen translated target border for focus reveal.
-    layout_rect current_bounds; ///< Frozen translated receiving element border.
+    layout_point local;         ///< Inverse-transformed position relative to the original border.
+    layout_rect target_bounds;  ///< Frozen viewport hull of the target for focus reveal.
+    layout_rect current_bounds; ///< Frozen viewport hull of the receiving element.
     layout_rect clip;           ///< Receiving element's intersected ancestor clip.
     std::uint32_t key = 0;      ///< Semantic key identifier from the input packet.
     std::uint64_t frame = 0;    ///< Increasing owner-selected frame identity.

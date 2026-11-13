@@ -1,5 +1,6 @@
 /** @file @brief Private resolved paint descriptors and joined execution storage. */
 #pragma once
+#include "paint_transform.hpp"
 #include <atlas/ui/paint_engine.hpp>
 #include <thread>
 #include <vector>
@@ -26,10 +27,12 @@ void order_paint(std::span<const element_record> nodes, std::size_t slots,
 
 struct paint_input
 {
-    element_handle target; ///< Captured immutable identity.
-    layout_rect bounds;    ///< Resolved translated rectangle.
-    layout_rect clip;      ///< Effective inherited mask.
-    paint_style style;     ///< Resolved alpha and local texture region.
+    element_handle target;     ///< Captured immutable identity.
+    layout_rect bounds;        ///< Fitted rectangle before transform.
+    layout_rect hull;          ///< Axis-aligned transformed geometry bounds.
+    layout_rect clip;          ///< Effective inherited mask.
+    paint_style style;         ///< Resolved alpha and local texture region.
+    paint_transform transform; ///< Captured affine map for tessellation.
 }; ///< One independent tessellation input; no mutable registry references.
 
 class paint_data
@@ -62,9 +65,11 @@ struct presentation_region
 {
     element_handle target; ///< Stable identity, including nonpainting elements.
     element_handle parent; ///< Captured routing ancestry.
-    layout_rect bounds;    ///< Translated border before image-background fitting.
+    layout_rect bounds;    ///< Axis-aligned hull before image-background fitting.
     layout_rect clip;      ///< Same inherited rectangular clip used for painting.
     bool visible;          ///< Inherited explicit visibility; opacity does not disable interaction.
+    layout_rect border;    ///< Original untransformed input border.
+    paint_transform transform; ///< Shared affine map for inverse hit testing.
 }; ///< Optional coordinator metadata; ordinary painting does not allocate this output.
 
 /// @brief Resolve matching geometry, stacking, translation, visibility and clips.
