@@ -22,12 +22,12 @@ def merge_installed(roots, destination):
             if not source.is_file():
                 continue
             relative = source.relative_to(root)
-            # vcpkg records a timestamp and UUID for each independent port build.
-            # Keep those SBOMs in the original artifacts, where their provenance is intact.
+            # Keep vcpkg's per-build SBOM and ABI records with the original artifact.
+            # This temporary prefix is consumed by CMake with manifest installation disabled.
             if (
                 len(relative.parts) == 4
                 and relative.parts[1] == "share"
-                and source.name == "vcpkg.spdx.json"
+                and source.name in {"vcpkg.spdx.json", "vcpkg_abi_info.txt"}
             ):
                 continue
             target = destination / relative

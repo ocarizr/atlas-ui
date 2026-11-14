@@ -46,24 +46,42 @@ def test_merged_tree_does_not_share_vcpkg_manifest_status_files(tmp_path):
     assert not (destination / "vcpkg").exists()
 
 
-def test_vendor_sboms_stay_in_their_original_products(tmp_path):
-    """Independent builds of a shared port can generate different SPDX metadata."""
+def test_vendor_build_metadata_stays_in_the_original_products(tmp_path):
+    """Independently prepared ports retain both kinds of build-specific metadata."""
     roots = [tmp_path / name for name in ("testing", "content")]
     for root in roots:
         package = root / "x64-windows/share/vcpkg-cmake"
         package.mkdir(parents=True)
         (package / "vcpkg.spdx.json").write_text(root.name, encoding="utf-8")
+        (package / "vcpkg_abi_info.txt").write_text(f"cmake {root.name}", encoding="utf-8")
         (package / "copyright").write_text("same license", encoding="utf-8")
+        (package / "vcpkg-port-config.cmake").write_text("# same helper", encoding="utf-8")
 
     destination = tmp_path / "installed"
     merge_installed(roots, destination)
 
     package = destination / "x64-windows/share/vcpkg-cmake"
-    assert not (package / "vcpkg.spdx.json").exists()
+    assert sorted(path.name for path in package.iterdir()) == [
+        "copyright",
+        "vcpkg-port-config.cmake",
+    ]
     assert (package / "copyright").read_text(encoding="utf-8") == "same license"
     for root in roots:
-        original = root / "x64-windows/share/vcpkg-cmake/vcpkg.spdx.json"
-        assert original.read_text(encoding="utf-8") == root.name
+        original = root / "x64-windows/share/vcpkg-cmake"
+        assert (original / "vcpkg.spdx.json").read_text(encoding="utf-8") == root.name
+        assert (original / "vcpkg_abi_info.txt").read_text(encoding="utf-8") == f"cmake {root.name}"
+
+
+def test_conflicting_vcpkg_cmake_helpers_are_still_rejected(tmp_path):
+    """The metadata rule never bypasses a collision in a shared port's CMake code."""
+    roots = [tmp_path / name for name in ("testing", "content")]
+    for root in roots:
+        package = root / "x64-windows/share/vcpkg-cmake"
+        package.mkdir(parents=True)
+        (package / "vcpkg-port-config.cmake").write_text(f"# {root.name}", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"Conflicting dependency product: .*port-config\.cmake"):
+        merge_installed(roots, tmp_path / "installed")
 
 
 @pytest.mark.parametrize("configuration,first", [("Debug", "debug/bin"), ("Release", "bin")])
