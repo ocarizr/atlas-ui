@@ -27,6 +27,12 @@ void tessellate(std::span<const paint_input> inputs, std::span<paint_quad> outpu
         quad.bounds = source.hull;
         quad.clip = source.clip;
         quad.texture = source.style.texture;
+        quad.material = source.style.material;
+        if (quad.texture == 0 && quad.material && quad.material->kind == material_kind::texture)
+        {
+            quad.material.reset(); // Keep the host's solid placeholder until residency resolves.
+        }
+
         const auto translation_only = source.transform.translation_only();
         for (std::size_t v = 0; v < corners.size(); ++v)
         {

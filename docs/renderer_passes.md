@@ -63,7 +63,8 @@ The renderer does not install an include handler or open shader files. Content
 resolution and preprocessing belong above the renderer/streamer boundary. The
 supported shader resource ABI is at most 80 bytes of `b0` constants (matrix and
 tint), one float Texture2D at pixel `t0`, and an ordinary pixel sampler at `s0`,
-all in space zero. Reflection rejects other bindings, arrays and oversized
+all in space zero. Custom pipelines may also opt into an optional 64-byte
+pixel-only `b1` constant payload. Reflection rejects other bindings, arrays and oversized
 constant buffers. Only a shader actually consuming `t0` requires an SRV in its
 draw packet. This is a compatibility check, not a sandbox for hostile shaders.
 Custom vertex inputs and outputs must match the fixed pipeline ABI. Compilation

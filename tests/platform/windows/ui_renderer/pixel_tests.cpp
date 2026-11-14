@@ -3,6 +3,7 @@
 #include <atlas/jobs/job_system.hpp>
 #include <atlas/ui/element_tree.hpp>
 #include <atlas/ui_renderer/paint_renderer.hpp>
+#include <chrono>
 #include <gtest/gtest.h>
 
 namespace atlas::ui_renderer::tests
@@ -10,6 +11,13 @@ namespace atlas::ui_renderer::tests
 class pixel_test : public ::testing::Test
 {
   protected:
+    pixel_test() = default; ///< Ordinary reference tests run without a profiling sink.
+
+    explicit pixel_test(std::shared_ptr<diagnostics::profiler> capture)
+        : graphics{{renderer::adapter_preference::software}, {}, {{}, std::move(capture)}}
+    {
+    } ///< Enable native timestamps for the material profiling probe.
+
     void TearDown() override
     {
         graphics.wait_idle();
@@ -25,6 +33,99 @@ class pixel_test : public ::testing::Test
     ui::layout_engine layout{workers.dispatcher()}; ///< Geometry source.
     ui::paint_engine paint{workers.dispatcher()};   ///< Immutable paint packets.
 }; ///< RAII releases services after their users.
+
+/// @brief Keep timing capture local to the material probe.
+class material_pixel_test : public pixel_test
+{
+  protected:
+    material_pixel_test() : pixel_test{std::make_shared<diagnostics::profiler>()}
+    {
+    } ///< Keep the capture alive through the device's services.
+};
+
+/// @brief Reference pixels isolate corner treatment, morph and GPU glow phase.
+TEST_F(material_pixel_test, MaterialShapeChangesPixelsWithoutChangingGeometry)
+{
+    const auto node = tree.create();
+    ui::paint_style style;
+    style.fill = true;
+    style.color = {1, 0, 0, 1};
+    style.material = ui::material_style{.kind = ui::material_kind::shape};
+    tree.set_paint(node, style);
+    const auto geometry = layout.update(tree, {0, 0, 64, 64});
+    const auto target = resources.create_texture({64, 64, renderer::texture_role::color_target});
+    const auto render = [&](ui::material_style value)
+    {
+        tree.set_material(node, value);
+        const auto packet = paint.calculate(tree.snapshot(), geometry);
+        EXPECT_EQ(packet.revision(), geometry.revision());
+        resources.wait(renderer.submit(packet, target, {64, 64}));
+        EXPECT_EQ(renderer.last_vertex_bytes(), 6 * sizeof(renderer::vertex));
+        EXPECT_EQ(renderer.last_draws(), 1U);
+        return resources.readback(target);
+    };
+    const auto red = [](const auto& pixels, std::size_t x, std::size_t y)
+    {
+        return std::to_integer<unsigned>(pixels[(y * 64 + x) * 4]);
+    };
+    ui::material_style shape{.kind = ui::material_kind::shape};
+    const auto rectangle = render(shape);
+    EXPECT_EQ(red(rectangle, 32, 32), 255U);
+    EXPECT_GT(red(rectangle, 11, 11), 220U);
+    shape.radius[0] = 1;
+    shape.bevel = 1;
+    const auto cut_corner = render(shape);
+    EXPECT_LT(red(cut_corner, 11, 11), 32U);
+    EXPECT_GT(red(cut_corner, 52, 11), 220U);
+    shape.morph = 1;
+    const auto circle = render(shape);
+    EXPECT_LT(red(circle, 52, 11), 32U);
+    shape.glow = 1;
+    const auto bright = render(shape);
+    const auto cached = paint.calculate(tree.snapshot(), geometry);
+    const auto start = std::chrono::steady_clock::now();
+    const auto done =
+        renderer.submit_quads({cached.viewport(), cached.quads(), 0.5f}, target, {64, 64});
+    const auto cpu_time =
+        std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count();
+    resources.wait(done);
+    passes.collect();
+    const auto dim = resources.readback(target);
+    EXPECT_GT(red(bright, 59, 32), red(dim, 59, 32));
+    EXPECT_GE(passes.gpu_timing().last_duration_us, 0);
+    EXPECT_EQ(passes.gpu_timing().completed_frames > 0, diagnostics::instrumentation_enabled);
+    RecordProperty("cached_phase_submit_us", std::to_string(cpu_time));
+    RecordProperty("cached_phase_gpu_us", std::to_string(passes.gpu_timing().last_duration_us));
+    RecordProperty("cached_phase_vertex_bytes", static_cast<int>(renderer.last_vertex_bytes()));
+    RecordProperty("cached_phase_draws", static_cast<int>(renderer.last_draws()));
+}
+
+/// @brief A textured material modulates sampled pixels and rejects a retired descriptor.
+TEST_F(pixel_test, TextureMaterialsTintAndBatchWithoutWeakeningResidency)
+{
+    ui::paint_style style;
+    style.fill = true;
+    style.texture = 5;
+    style.material = ui::material_style{.tint = {0, 1, 0, 1}};
+    tree.set_paint(tree.create(), style);
+    tree.set_paint(tree.create(), style);
+    const auto geometry = layout.update(tree, {0, 0, 16, 16});
+    const auto packet = paint.calculate(tree.snapshot(), geometry);
+    const auto image = resources.create_texture({1, 1});
+    const std::array white{std::byte{255}, std::byte{255}, std::byte{255}, std::byte{255}};
+    resources.upload(image, white);
+    const auto view = resources.create_view(image);
+    const std::array bindings{texture_binding{5, view}};
+    const auto target = resources.create_texture({16, 16, renderer::texture_role::color_target});
+    resources.wait(renderer.submit(packet, target, {16, 16}, bindings));
+    const auto pixels = resources.readback(target);
+    EXPECT_EQ(std::to_integer<unsigned>(pixels[0]), 0U);
+    EXPECT_EQ(std::to_integer<unsigned>(pixels[1]), 255U);
+    EXPECT_EQ(renderer.last_draws(), 1U);
+    EXPECT_EQ(renderer.last_vertex_bytes(), 12 * sizeof(renderer::vertex));
+    resources.release(view);
+    EXPECT_THROW(renderer.submit(packet, target, {16, 16}, bindings), std::invalid_argument);
+}
 
 /// @brief Verify foreground and clip produce reference pixels and retire geometry.
 TEST_F(pixel_test, ForegroundAndClipProduceReferencePixelsAndRetireGeometry)

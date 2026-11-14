@@ -22,25 +22,31 @@ float4 textured_main(vertex_output input) : SV_Target { return image.Sample(imag
 )";
 
 /// @brief Declare a stable root ABI instead of exposing native descriptors in public headers.
-com_ptr<ID3D12RootSignature> root_signature(native_device& context, bool linear)
+com_ptr<ID3D12RootSignature> root_signature(native_device& context,
+                                            const pipeline_description& pipeline)
 {
     D3D12_DESCRIPTOR_RANGE range{D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, 0};
-    D3D12_ROOT_PARAMETER parameters[2]{};
+    D3D12_ROOT_PARAMETER parameters[3]{};
     parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
     parameters[0].Constants = {0, 0, 20};
     parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
     parameters[1].DescriptorTable = {1, &range};
     parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    parameters[2].Constants = {1, 0, 16};
+    parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_STATIC_SAMPLER_DESC sampler{};
-    sampler.Filter = linear ? D3D12_FILTER_MIN_MAG_MIP_LINEAR : D3D12_FILTER_MIN_MAG_MIP_POINT;
+    sampler.Filter =
+        pipeline.linear_sampling ? D3D12_FILTER_MIN_MAG_MIP_LINEAR : D3D12_FILTER_MIN_MAG_MIP_POINT;
     sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
     sampler.MaxAnisotropy = 1;
     sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
     sampler.MaxLOD = D3D12_FLOAT32_MAX;
     sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_ROOT_SIGNATURE_DESC description{
-        2, parameters, 1, &sampler, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT};
+        pipeline.pixel_parameters ? 3u : 2u, parameters, 1, &sampler,
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT};
     com_ptr<ID3DBlob> bytes, errors;
     check(D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1, &bytes, &errors),
           "serialize pass root signature");
@@ -65,10 +71,11 @@ std::shared_ptr<gpu_pipeline> create_pass_pipeline(native_device& context,
          custom
              ? description.pixel_entry
              : (description.program == shader_program::textured ? "textured_main" : "pixel_main"),
-         true});
+         true, description.pixel_parameters});
     auto output = std::make_shared<native_pipeline>();
     output->textured = pixel_shader.textured;
-    output->root = root_signature(context, description.linear_sampling);
+    output->pixel_parameters = description.pixel_parameters;
+    output->root = root_signature(context, description);
     const D3D12_INPUT_ELEMENT_DESC elements[]{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
                                               {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12,

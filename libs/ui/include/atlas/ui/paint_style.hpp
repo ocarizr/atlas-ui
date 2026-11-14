@@ -5,6 +5,7 @@
 #pragma once
 #include <array>
 #include <atlas/ui/image_fit.hpp>
+#include <atlas/ui/material.hpp>
 #include <atlas/ui/visual_style.hpp>
 #include <optional>
 
@@ -22,6 +23,7 @@ struct paint_style
     std::optional<image_sampling> image; ///< Aspect fitting uses metadata without reading pixels.
     layout_point scale{1, 1};            ///< Nonnegative scale around the visual origin.
     float rotation = 0; ///< Clockwise rotation in degrees around the visual origin.
+    std::optional<material_style> material{}; ///< Optional resolved built-in pixel material.
     bool operator==(const paint_style&) const = default; ///< Exact appearance comparison.
 }; ///< Sparse component; no graphics resource or platform SDK dependency.
 } // namespace atlas::ui

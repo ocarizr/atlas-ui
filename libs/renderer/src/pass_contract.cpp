@@ -37,6 +37,11 @@ void pipeline_description::validate() const
         throw std::invalid_argument("unsupported pipeline policy");
     }
 
+    if (pixel_parameters && program != shader_program::custom)
+    {
+        throw std::invalid_argument("Pixel parameters require a custom shader");
+    }
+
     if (program == shader_program::custom &&
         (source.empty() || source.size() > 1024ULL * 1024 || !identifier(vertex_entry) ||
          !identifier(pixel_entry)))

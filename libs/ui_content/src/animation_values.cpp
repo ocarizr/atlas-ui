@@ -98,6 +98,16 @@ ui::property_value read_animation_value(const ui::element_tree& tree, ui::elemen
                                         ui::property field)
 {
     using enum ui::property;
+    if (ui::material_slot(field))
+    {
+        if (auto material = tree.material(target))
+        {
+            return ui::material_value(*material, field);
+        }
+
+        throw std::invalid_argument("Animation material no longer exists");
+    }
+
     if (field >= margin_left)
     {
         return layout_value(tree, target, field);

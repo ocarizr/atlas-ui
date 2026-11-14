@@ -1,4 +1,5 @@
 /** @file @brief Coordinator-only upload and order-preserving adjacent draw batching. */
+#include "material_shader.hpp"
 #include "paint_draws.hpp"
 #include <algorithm>
 #include <cmath>
@@ -25,15 +26,44 @@ class paint_renderer::impl
         }
     } ///< Check before touching borrowed graphics services.
 
+    /// @brief Compile material pipelines on first use and retain them until graphics teardown.
+    void prepare_materials(paint_list list)
+    {
+        for (const auto& quad : list.quads)
+        {
+            if (!quad.material)
+            {
+                continue;
+            }
+
+            const auto kind = quad.material->kind;
+            auto& pipeline = kind == ui::material_kind::shape ? shape_material : texture_material;
+            if (pipeline.owner == 0)
+            {
+                renderer::pipeline_description description;
+                description.program = renderer::shader_program::custom;
+                description.source = detail::material_shader;
+                description.blend = renderer::blend_mode::straight_alpha;
+                description.pixel_parameters = true;
+                description.pixel_entry =
+                    kind == ui::material_kind::shape ? "shape_main" : "texture_main";
+                pipeline = passes.create_pipeline(description);
+            }
+        }
+    }
+
     renderer::resource_store& resources;               ///< Outlives this adapter.
     renderer::pass_renderer& passes;                   ///< Outlives this adapter.
     std::shared_ptr<std::pmr::memory_resource> memory; ///< CPU upload preparation allocation.
     diagnostics::services destinations;                ///< Optional logging/profiling endpoints.
     const std::thread::id owner = std::this_thread::get_id(); ///< Native graphics owner.
-    renderer::pipeline_handle solid;    ///< Reused straight-alpha solid pipeline.
-    renderer::pipeline_handle textured; ///< Reused straight-alpha sampled pipeline.
-    std::size_t draws = 0;              ///< Last successful submitted batch count.
-    bool busy = false;                  ///< Reject diagnostic callback reentry.
+    renderer::pipeline_handle solid;            ///< Reused straight-alpha solid pipeline.
+    renderer::pipeline_handle textured;         ///< Reused straight-alpha sampled pipeline.
+    renderer::pipeline_handle texture_material; ///< Optional texture parameter shader.
+    renderer::pipeline_handle shape_material;   ///< Optional signed-distance shader.
+    std::size_t vertex_bytes = 0;               ///< Last successful vertex upload size.
+    std::size_t draws = 0;                      ///< Last successful submitted batch count.
+    bool busy = false;                          ///< Reject diagnostic callback reentry.
 }; ///< No GPU resources cross into immutable UI packets.
 
 /// @brief Roll back the first pipeline if the second pipeline cannot be created.
@@ -78,6 +108,16 @@ paint_renderer::~paint_renderer()
     }
 
     impl_->busy = true;
+    if (impl_->shape_material.owner != 0)
+    {
+        impl_->passes.release(impl_->shape_material);
+    }
+
+    if (impl_->texture_material.owner != 0)
+    {
+        impl_->passes.release(impl_->texture_material);
+    }
+
     impl_->passes.release(impl_->textured);
     impl_->passes.release(impl_->solid);
 }
@@ -116,8 +156,10 @@ renderer::completion_token paint_renderer::submit_quads(paint_list list,
 
     const diagnostics::operation_scope scope{impl_->destinations, {"ui.renderer.submit", "ui.cpu"}};
     detail::draw_preparation prepared{impl_->memory.get()};
-    detail::prepare_draws(list, target, extent, textures, impl_->solid, impl_->textured,
-                          impl_->memory.get(), prepared);
+    impl_->prepare_materials(list);
+    const detail::paint_pipelines pipelines{impl_->solid, impl_->textured, impl_->texture_material,
+                                            impl_->shape_material};
+    detail::prepare_draws(list, target, extent, textures, pipelines, impl_->memory.get(), prepared);
     auto& vertices = prepared.vertices;
     auto& pass = prepared.pass;
     renderer::buffer_handle buffer;
@@ -146,6 +188,7 @@ renderer::completion_token paint_renderer::submit_quads(paint_list list,
         }
 
         impl_->draws = count;
+        impl_->vertex_bytes = vertices.size() * sizeof(renderer::vertex);
         return completion;
     }
     catch (...)
@@ -166,5 +209,12 @@ std::size_t paint_renderer::last_draws() const
 {
     impl_->check();
     return impl_->draws;
+}
+
+/// @brief Report uploaded geometry independently of root constants.
+std::size_t paint_renderer::last_vertex_bytes() const
+{
+    impl_->check();
+    return impl_->vertex_bytes;
 }
 } // namespace atlas::ui_renderer

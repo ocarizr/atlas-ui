@@ -47,7 +47,7 @@ void clear_color(const std::array<float, 4>& color)
 /// @brief Validate optional draw rectangles against attachment bounds.
 void rectangles(const draw_packet& draw, texture_description extent)
 {
-    if (!finite(draw.transform) || !finite(draw.tint))
+    if (!finite(draw.transform) || !finite(draw.tint) || !finite(draw.pixel_parameters))
     {
         throw std::invalid_argument("draw constants must be finite");
     }

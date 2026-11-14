@@ -30,6 +30,7 @@ struct paint_list
 {
     ui::layout_rect viewport;              ///< Logical projection and clip extent.
     std::span<const ui::paint_quad> quads; ///< Back-to-front painter order.
+    float cosmetic_phase = 0;              ///< Shared loop phase supplied by the owner in [0, 1].
 };
 
 class paint_renderer
@@ -52,7 +53,8 @@ class paint_renderer
                                             renderer::surface_extent extent,
                                             std::span<const texture_binding> textures = {},
                                             renderer::recording_executor* recorder = nullptr);
-    std::size_t last_draws() const; ///< Successful submitted batches, not source quad count.
+    std::size_t last_draws() const;        ///< Successful submitted batches, not source quad count.
+    std::size_t last_vertex_bytes() const; ///< Vertex bytes uploaded by the last successful submit.
   private:
     class impl;                  ///< Borrowed services plus thread-affine pipeline identities.
     std::unique_ptr<impl> impl_; ///< No storage reads or private worker pool.

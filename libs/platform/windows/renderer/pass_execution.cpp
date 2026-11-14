@@ -74,6 +74,11 @@ void native_passes::record(pass_batch& batch, const resolved_pass& pass,
         commands.SetGraphicsRootSignature(pipeline->root.Get());
         commands.SetGraphicsRoot32BitConstants(0, 16, draw.packet.transform.data(), 0);
         commands.SetGraphicsRoot32BitConstants(0, 4, draw.packet.tint.data(), 16);
+        if (pipeline->pixel_parameters)
+        {
+            commands.SetGraphicsRoot32BitConstants(2, 16, draw.packet.pixel_parameters.data(), 0);
+        }
+
         if (draw.texture)
         {
             transition(commands, *draw.texture, resource_state::shader_read, true);

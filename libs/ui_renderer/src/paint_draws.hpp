@@ -16,9 +16,17 @@ struct draw_preparation
     renderer::pass_description pass; ///< Ordered compatible adjacent batches.
 }; ///< Local resources are released after submit or validation failure.
 
+/// @brief Pipeline identities used during ordered draw preparation.
+struct paint_pipelines
+{
+    renderer::pipeline_handle solid;            ///< Ordinary filled geometry.
+    renderer::pipeline_handle textured;         ///< Ordinary sampled geometry.
+    renderer::pipeline_handle texture_material; ///< Material-controlled texture sampling.
+    renderer::pipeline_handle shape_material;   ///< Analytic SDF coverage.
+};
+
 void prepare_draws(paint_list list, renderer::texture_handle target,
                    renderer::surface_extent extent, std::span<const texture_binding> textures,
-                   renderer::pipeline_handle solid, renderer::pipeline_handle textured,
-                   std::pmr::memory_resource* memory,
+                   const paint_pipelines& pipelines, std::pmr::memory_resource* memory,
                    draw_preparation& output); ///< No GPU or file access.
 } // namespace atlas::ui_renderer::detail

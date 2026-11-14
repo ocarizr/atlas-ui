@@ -28,6 +28,9 @@ INSTANTIATE_TEST_SUITE_P(
                       "cbuffer large:register(b0){float4 values[6];}; float4 vertex_main(float3 "
                       "p:POSITION):SV_Position{return float4(p,1)+values[5];} float4 "
                       "pixel_main():SV_Target{return 1;}",
+                      "cbuffer pixel_data:register(b1){float4 color;}; float4 vertex_main(float3 "
+                      "p:POSITION):SV_Position{return float4(p,1);} float4 "
+                      "pixel_main():SV_Target{return color;}",
                       "RWTexture2D<float4> image:register(u0); float4 vertex_main(float3 "
                       "p:POSITION):SV_Position{return float4(p,1);} float4 "
                       "pixel_main():SV_Target{image[int2(0,0)]=1;return 1;}"));

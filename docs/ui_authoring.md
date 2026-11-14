@@ -209,3 +209,34 @@ the runtime boundary.
 segment endpoints. It is evaluated from the current time without
 integrating previous samples, and stays in range for bounded properties
 such as opacity.
+
+### Built-in material channels
+
+A rectangle can opt into `<paint material="shape" fill="true"
+material-radius-tl="0.5"/>`. Use `material="texture"` with a texture
+asset and optional tint or UV slots. Native hosts can use a
+`material_style` as shared defaults, resolve sparse typed overrides
+with `resolve_material`, then copy the result to each element. The
+runtime animates that copy; authored values and other instances are
+independent.
+
+Clips and state groups address material slots through `ui::property`.
+Tint interpolates component-wise in linear RGBA with straight alpha.
+Texture UV transforms use scale and offset before clamp sampling.
+Shape channels control per-corner radii, bevel mix, a rectangle-to-circle
+distance morph, a bounded union with one offset circle, local scale,
+outline, glow, gradient, and reveal. Shape coordinates are normalized
+to the existing quad, so circles become ellipses in non-square quads.
+The quad and rectangular hit region stay fixed, including where the
+shader produces transparent pixels. Ancestor clips and painter order
+still apply.
+
+Animate `material_phase` over zero to one, looping on the same clip
+clock as other tracks, to drive the GPU glow pulse. The shader uses
+the sampled phase instead of wall time, so pause, seek and replay use
+the same visual time. A host can also submit a cached paint list with
+a shared cosmetic phase, avoiding a new UI sample for each element.
+Material changes dirty paint without invalidating
+layout. Equal adjacent material constants still batch. Distinct
+constants split draws. Geometry upload currently resubmits six ordinary
+vertices per visible quad; the GPU applies analytic coverage inside it.

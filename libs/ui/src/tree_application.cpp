@@ -17,7 +17,7 @@ std::pair<float, bool> extent_value(const property_value& value)
 /// @brief Identify the authored canvas fields that must validate together.
 bool canvas_field(property field)
 {
-    return field >= property::canvas_x_offset_min;
+    return field >= property::canvas_x_offset_min && field <= property::canvas_y_anchor_max;
 }
 
 /// @brief Select one scalar from a staged canvas slot.
@@ -94,6 +94,19 @@ bool element_tree::impl::prepare_writes(std::span<const property_write> writes,
         const auto index = require(write.target);
         auto& target_node = at(index);
         const auto& current = target_node.requested;
+        if (material_slot(write.field))
+        {
+            const auto* style = registry.try_get<paint_style>(slots[index].entity);
+            if (!style || !style->material ||
+                !valid_material_slot(style->material->kind, write.field,
+                                     std::get<float>(write.value)))
+            {
+                throw std::invalid_argument("UI material write requires a compatible instance");
+            }
+
+            continue;
+        }
+
         if (write.field == property::width || write.field == property::height)
         {
             const auto [value, fixed] = extent_value(write.value);
@@ -202,6 +215,18 @@ void element_tree::impl::apply_canvas(const canvas_writes& canvas)
 void element_tree::impl::apply_scalar(const property_write& write)
 {
     auto& target_node = at(write.target.index);
+    if (material_slot(write.field))
+    {
+        auto& style = registry.get<paint_style>(slots[write.target.index].entity);
+        if (style.material &&
+            assign(material_value(*style.material, write.field), std::get<float>(write.value)))
+        {
+            target_node.dirty.paint = true;
+        }
+
+        return;
+    }
+
     auto& value = target_node.requested;
     bool changed = false;
     bool layout = false;

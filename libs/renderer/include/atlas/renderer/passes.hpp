@@ -48,6 +48,7 @@ struct pipeline_description
     std::string source;                       ///< Custom shader source, bounded to 1 MiB.
     std::string vertex_entry = "vertex_main"; ///< Custom vertex entry identifier.
     std::string pixel_entry = "pixel_main";   ///< Custom pixel entry identifier.
+    bool pixel_parameters = false;            ///< Opt in to sixteen float constants at pixel b1.
     void validate() const; ///< Reject unsupported enums and malformed shader inputs.
 };
 /// @brief Distinct identity for fence-retired graphics pipelines.
@@ -86,6 +87,7 @@ struct draw_packet
     std::array<float, 4> tint{1, 1, 1, 1};                   ///< b0 color multiplier.
     std::optional<pixel_rectangle> scissor;                  ///< Defaults to the full attachment.
     std::optional<pixel_viewport> viewport;                  ///< Defaults to the full attachment.
+    std::array<float, 16> pixel_parameters{};                ///< Optional custom shader b1 payload.
 };
 /// @brief Attachment initialization contract.
 enum class load_action : std::uint8_t

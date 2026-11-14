@@ -56,6 +56,27 @@ enum class property : std::uint8_t
     canvas_x_anchor_max, ///< Trailing normalized horizontal anchor.
     canvas_y_anchor_min, ///< Leading normalized vertical anchor.
     canvas_y_anchor_max, ///< Trailing normalized vertical anchor.
+    material_red,        ///< Linear red tint.
+    material_green,      ///< Linear green tint.
+    material_blue,       ///< Linear blue tint.
+    material_alpha,      ///< Straight-alpha tint multiplier.
+    material_radius_tl,  ///< Normalized top-left round radius.
+    material_radius_tr,  ///< Normalized top-right round radius.
+    material_radius_bl,  ///< Normalized bottom-left round radius.
+    material_radius_br,  ///< Normalized bottom-right round radius.
+    material_bevel,      ///< Normalized corner chamfer amount.
+    material_scale,      ///< Shape-local scale in [0, 2].
+    material_morph,      ///< Rectangle-to-ellipse mix.
+    material_outline,    ///< Normalized outline width.
+    material_glow,       ///< Normalized outer glow strength.
+    material_reveal,     ///< Normalized horizontal reveal.
+    material_gradient,   ///< Normalized gradient strength.
+    material_phase,      ///< Explicit normalized cosmetic time.
+    material_u_offset,   ///< Signed texture U offset.
+    material_v_offset,   ///< Signed texture V offset.
+    material_u_scale,    ///< Texture U scale in [0, 2].
+    material_v_scale,    ///< Texture V scale in [0, 2].
+    material_union,      ///< Mix toward the SDF union.
 };
 
 /// @brief Validate a finite numeric value for the given scalar property.
