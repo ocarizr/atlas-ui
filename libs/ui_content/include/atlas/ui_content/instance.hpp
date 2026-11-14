@@ -90,6 +90,15 @@ class instance
     /// @brief Subscribe a reusable clip to an MVVM action. Resolve names during registration.
     void bind_animation_action(animation_action_route route, animation_clip clip,
                                animation_options options = {});
+    /// @brief Resolve a group of exclusive numeric channels once. Registration leaves the pose
+    /// intact.
+    void register_animation_states(std::string name, std::vector<animation_channel> channels,
+                                   std::vector<animation_pose> poses,
+                                   animation_transition transition);
+    /// @brief Cross-fade to a named pose from the currently committed values.
+    void set_animation_state(animation_state_target target);
+    /// @brief Use an authored input or Lua-driven ViewModel action to select a named pose.
+    void bind_animation_state(animation_action_route route, animation_state_target target);
     void set_reduced_motion(bool enabled); ///< Finish finite clips early; freeze decorative loops.
     [[nodiscard]] std::vector<animation_event>
     take_animation_events(); ///< Drain owner notifications.

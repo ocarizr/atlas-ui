@@ -2,6 +2,7 @@
 #pragma once
 #include "model_sources.hpp"
 #include "tree_build.hpp"
+#include <set>
 
 namespace atlas::ui_content
 {
@@ -74,6 +75,18 @@ class instance::impl
         bool started = false;   ///< A delayed layer has reached its first sample.
     };
 
+    /// @brief Pre-resolved channels and scratch retained across state changes.
+    struct state_group
+    {
+        std::vector<resolved_track> channels; ///< Generation-checked targets.
+        std::vector<animation_pose> poses;    ///< Fixed destination poses by index.
+        std::vector<float> source;            ///< Captured displayed values in channel order.
+        animation_transition transition;      ///< Reusable timing and easing.
+        std::optional<std::size_t> selected;  ///< Last requested destination.
+        animation_time position{};            ///< Local cross-fade clock.
+        bool dirty = false;                   ///< Current pose awaits admission.
+    };
+
     playback resolve(const instance& view, animation_clip& clip,
                      animation_repeat repeat);       ///< Validate the complete target set.
     player& require_player(animation_handle handle); ///< Reject foreign and retired handles.
@@ -81,6 +94,10 @@ class instance::impl
     void advance_player(player& active, animation_time elapsed); ///< Advance one player.
     void queue_event(animation_event event); ///< Bounded owner notification queue.
     void publish_players();                  ///< Compose complete samples before command admission.
+    void advance_states(animation_time elapsed); ///< Advance transitions after clips succeed.
+    void collect_state_writes();   ///< Append resolved state samples to command scratch.
+    void admit_animation_writes(); ///< Preflight the complete batch before queueing writes.
+    void select_state(state_group& group, std::size_t pose); ///< Retarget using allocated scratch.
 
     ui::element_tree tree;                ///< First constructed and last released.
     detail::elements elements;            ///< Authored IDs resolved into this tree only.
@@ -96,6 +113,8 @@ class instance::impl
     diagnostics::services diagnostics;         ///< Optional composition and frame instrumentation.
     std::optional<playback> animation; ///< Clock and resolved tracks owned by this instance.
     std::vector<player> players;       ///< Bounded live clips in creation order.
+    std::map<std::string, state_group, std::less<>> animation_states; ///< Named state groups.
+    std::set<std::pair<std::uint32_t, ui::property>> state_channels;  ///< Exclusive state channels.
     std::map<std::string, animation_clip, std::less<>> named_animations; ///< Reusable definitions.
     std::vector<animation_event> animation_events; ///< Pending owner notifications.
     std::vector<std::pair<mvvm::view_model*, mvvm::subscription>>

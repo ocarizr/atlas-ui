@@ -31,13 +31,8 @@ void validate_track(const animation_track& track, animation_time duration)
     for (const auto& key : track.keys)
     {
         if (key.time <= previous || key.time > duration ||
-            !ui::valid_scalar(track.property, key.value) || key.curve > animation_curve::cubic ||
-            (key.curve == animation_curve::cubic &&
-             std::ranges::any_of(key.controls,
-                                 [](float value)
-                                 {
-                                     return !std::isfinite(value) || value < 0 || value > 1;
-                                 })))
+            !ui::valid_scalar(track.property, key.value) ||
+            !detail::valid_curve(key.curve, key.controls))
         {
             throw std::invalid_argument("Animation key time, value or curve is invalid");
         }
@@ -62,22 +57,12 @@ float detail::sample(const std::vector<animation_key>& keys, animation_time posi
         return left.value;
     }
 
-    auto fraction = static_cast<double>((position - left.time).count()) /
-                    static_cast<double>((next->time - left.time).count());
-    if (left.curve == animation_curve::smoothstep)
-    {
-        fraction = fraction * fraction * (3 - 2 * fraction);
-    }
-    else if (left.curve == animation_curve::cubic)
-    {
-        const auto inverse = 1 - fraction;
-        fraction = 3 * inverse * inverse * fraction * left.controls[0] +
-                   3 * inverse * fraction * fraction * left.controls[1] +
-                   fraction * fraction * fraction;
-    }
+    const auto fraction = static_cast<double>((position - left.time).count()) /
+                          static_cast<double>((next->time - left.time).count());
 
-    return static_cast<float>(
-        std::lerp(static_cast<double>(left.value), static_cast<double>(next->value), fraction));
+    return static_cast<float>(std::lerp(static_cast<double>(left.value),
+                                        static_cast<double>(next->value),
+                                        ease(left.curve, left.controls, fraction)));
 }
 
 /// @brief Resolve a candidate without modifying existing players.
@@ -98,6 +83,11 @@ instance::impl::playback instance::impl::resolve(const instance& view, animation
     {
         const auto target = view.find(track.element);
         const auto key = std::pair{target.index, track.property};
+        if (state_channels.contains(key))
+        {
+            throw std::invalid_argument("Animation property is owned by a state group");
+        }
+
         if (properties.contains(key))
         {
             diagnostics::write(diagnostics, diagnostics::log_level::warning, "ui.animation",
@@ -137,7 +127,7 @@ instance::impl::playback instance::impl::resolve(const instance& view, animation
 void instance::play_animation(animation_clip clip, animation_repeat repeat)
 {
     (void)impl_->tree.size();
-    if (!impl_->players.empty())
+    if (!impl_->players.empty() || !impl_->animation_states.empty())
     {
         throw std::logic_error("Finish concurrent clips before starting legacy playback");
     }
@@ -162,6 +152,7 @@ void instance::advance_animation(animation_time elapsed)
     }
 
     impl_->advance_players(elapsed);
+    impl_->advance_states(elapsed);
     auto& active = impl_->animation;
     if (!active || elapsed == animation_time::zero())
     {

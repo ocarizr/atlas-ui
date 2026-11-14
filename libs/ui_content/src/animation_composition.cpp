@@ -76,7 +76,11 @@ void instance::impl::publish_players()
     {
         return (active.started || active.retired) && active.clip.dirty;
     };
-    if (std::ranges::none_of(players, dirty))
+    if (std::ranges::none_of(players, dirty) && std::ranges::none_of(animation_states,
+                                                                     [](const auto& entry)
+                                                                     {
+                                                                         return entry.second.dirty;
+                                                                     }))
     {
         return;
     }
@@ -145,15 +149,8 @@ void instance::impl::publish_players()
         begin = end;
     }
 
-    if (!composed_writes.empty())
-    {
-        auto& commands = tree.commands();
-        commands.require_capacity(composed_writes.size());
-        for (const auto& write : composed_writes)
-        {
-            commands.set(write.target, write.field, write.value, write.producer);
-        }
-    }
+    collect_state_writes();
+    admit_animation_writes();
 
     std::erase_if(players,
                   [](const player& active)
@@ -163,6 +160,27 @@ void instance::impl::publish_players()
     for (auto& active : players)
     {
         active.clip.dirty = false;
+    }
+
+    for (auto& entry : animation_states)
+    {
+        entry.second.dirty = false;
+    }
+}
+
+/// @brief No write can reach the buffer before the full sample fits in the frame.
+void instance::impl::admit_animation_writes()
+{
+    if (animation_writes.empty())
+    {
+        return;
+    }
+
+    auto& commands = tree.commands();
+    commands.require_capacity(animation_writes.size());
+    for (const auto& write : animation_writes)
+    {
+        commands.set(write.target, write.field, write.value, write.producer);
     }
 }
 } // namespace atlas::ui_content

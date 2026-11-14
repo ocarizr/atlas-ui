@@ -180,3 +180,32 @@ markers. A finite clip under reduced motion jumps to its terminal pose
 on advancement and emits completion. Infinite decorative loops freeze.
 Elapsed time and undrained event limits fail atomically so the owner can
 retry with a smaller interval.
+
+### Named UI states
+
+Register a group with `register_animation_states`. Give it a fixed list
+of numeric channels, one complete pose per state, and a shared duration
+and curve. A group owns its channels for the lifetime of the instance.
+Groups on different channels can transition concurrently. Targets must
+have explicit numeric source values when the transition starts.
+
+`set_animation_state({group, pose})` captures the last committed pose
+and starts a cross-fade whose weight comes from the runtime clock. A
+repeated request for the same destination continues the existing blend.
+A different request starts from the last visible values, even if the
+previous destination was never reached. Reduced motion publishes the
+requested destination directly. Completed poses remain applied.
+
+Connect state selection to a typed model action with
+`bind_animation_state({context, action}, {group, pose})`. Existing
+authored focus, pointer, and semantic input routes, or a Lua action
+invocation, can select that pose. The subscription retains resolved
+targets and pose indices. Animation never writes a model value. Use
+separate unbound presentation channels for effects around model-owned
+properties. Timeline and state authoring use the native descriptors as
+the runtime boundary.
+
+`spring` is a fixed critically damped easing curve normalized to the
+segment endpoints. It is evaluated from the current time without
+integrating previous samples, and stays in range for bounded properties
+such as opacity.

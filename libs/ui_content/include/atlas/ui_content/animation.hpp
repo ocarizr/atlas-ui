@@ -19,7 +19,8 @@ enum class animation_curve : std::uint8_t
     step,       ///< Hold until the following key.
     linear,     ///< Interpolate by normalized time.
     smoothstep, ///< Apply cubic easing with zero slope at each endpoint.
-    cubic       ///< Bézier easing with fixed horizontal controls.
+    cubic,      ///< Bézier easing with fixed horizontal controls.
+    spring      ///< Endpoint-normalized, critically damped response.
 };
 
 /// @brief An absolute scalar sample with outgoing interpolation.
@@ -98,6 +99,35 @@ struct animation_action_route
 {
     std::string_view context; ///< Authored model context name.
     std::string_view action;  ///< Action defined by that model.
+};
+
+/// @brief A property controlled by one state group.
+struct animation_channel
+{
+    std::string element; ///< Authored element ID.
+    ui::property field;  ///< Scalar property animated by the group.
+};
+
+/// @brief A named target pose in channel declaration order.
+struct animation_pose
+{
+    std::string name;          ///< Unique within the group.
+    std::vector<float> values; ///< One endpoint for every channel.
+};
+
+/// @brief Fixed state-to-state cross-fade parameters.
+struct animation_transition
+{
+    animation_time duration{};                               ///< Positive duration in host time.
+    animation_curve curve = animation_curve::smoothstep;     ///< Interpolation between poses.
+    std::array<float, 2> controls{0.33333334f, 0.66666669f}; ///< Normalized cubic value controls.
+};
+
+/// @brief A destination within a registered state group.
+struct animation_state_target
+{
+    std::string_view group; ///< Registered group name.
+    std::string_view pose;  ///< Destination pose name.
 };
 
 /// @brief Interpret delays from the group origin or the previous entry's end.
