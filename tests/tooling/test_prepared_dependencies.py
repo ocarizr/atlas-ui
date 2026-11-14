@@ -46,6 +46,26 @@ def test_merged_tree_does_not_share_vcpkg_manifest_status_files(tmp_path):
     assert not (destination / "vcpkg").exists()
 
 
+def test_vendor_sboms_stay_in_their_original_products(tmp_path):
+    """Independent builds of a shared port can generate different SPDX metadata."""
+    roots = [tmp_path / name for name in ("testing", "content")]
+    for root in roots:
+        package = root / "x64-windows/share/vcpkg-cmake"
+        package.mkdir(parents=True)
+        (package / "vcpkg.spdx.json").write_text(root.name, encoding="utf-8")
+        (package / "copyright").write_text("same license", encoding="utf-8")
+
+    destination = tmp_path / "installed"
+    merge_installed(roots, destination)
+
+    package = destination / "x64-windows/share/vcpkg-cmake"
+    assert not (package / "vcpkg.spdx.json").exists()
+    assert (package / "copyright").read_text(encoding="utf-8") == "same license"
+    for root in roots:
+        original = root / "x64-windows/share/vcpkg-cmake/vcpkg.spdx.json"
+        assert original.read_text(encoding="utf-8") == root.name
+
+
 @pytest.mark.parametrize("configuration,first", [("Debug", "debug/bin"), ("Release", "bin")])
 def test_runtime_search_order_matches_configuration_and_cleanup_runs_on_error(
     tmp_path, monkeypatch, configuration, first

@@ -15,13 +15,21 @@ def digest(path):
 
 
 def merge_installed(roots, destination):
-    """Combine prepared vendor installations, rejecting conflicting files and manifest state."""
+    """Combine build inputs while leaving per-product vcpkg metadata in its original tree."""
     destination = Path(destination)
     for root in map(Path, roots):
         for source in sorted((root / "x64-windows").rglob("*")):
             if not source.is_file():
                 continue
             relative = source.relative_to(root)
+            # vcpkg records a timestamp and UUID for each independent port build.
+            # Keep those SBOMs in the original artifacts, where their provenance is intact.
+            if (
+                len(relative.parts) == 4
+                and relative.parts[1] == "share"
+                and source.name == "vcpkg.spdx.json"
+            ):
+                continue
             target = destination / relative
             if target.exists():
                 if target.stat().st_size != source.stat().st_size or digest(target) != digest(
