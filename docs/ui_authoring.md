@@ -137,3 +137,46 @@ Canvas offsets take signed logical units and anchors take normalized
 values from zero to one. Canvas fields require a canvas parent. Anchor
 minima and maxima are validated on the combined command batch, together
 with canvas measurement and sibling-boundary rules.
+
+### Interruptible transitions and clip groups
+
+Use `start_animation` for a typed playback handle or register a reusable
+definition with `register_animation` and start it by name.
+`tween_animation` takes the committed scalar pose as the first key and
+replaces concurrent single-track playback on that property.
+`reverse_animation` changes direction at the current clock position.
+Each player supports pause, silent seek, delay, subranges, playback rate
+and looping or ping-pong with optional traversal counts. Cubic easing
+uses two normalized value controls at fixed time fractions of one third
+and two thirds. Overshooting curves need a separate property policy.
+
+A group schedules clips from one time origin or staggers each once-only,
+normal-rate clip after the preceding clip's declared end. Group offsets
+are fixed at admission. Later pause, seek or reverse operations affect
+the individual handles. Use `bind_animation_action` at setup to start a
+clip from a ViewModel action. Authored semantic input routes and Lua
+`model.invoke` can reach the same action.
+
+Up to 16 concurrent layers compose per instance. They apply in ascending
+priority and creation order, with a warning for equal-priority writers
+to the same property. Track selection serves as the layer mask. Blend
+weight interpolates over the lower result, and a host can update it
+during a cross-fade. Additive playback uses the difference from the first
+key and supports translation and rotation. MVVM-owned properties retain
+exclusive ownership. Use the legacy single-player API or concurrent
+playback on an instance at a given time.
+
+Completion holds the terminal sample for its publication unless restore
+is selected. Cancellation holds the last committed value for an exclusive
+layer, or reveals remaining layers. Restore reveals other layers or the
+captured base, including automatic width or height. An overlapping live
+layer continues to control the property after retirement.
+
+Drain `take_animation_events` on the owner. Events are grouped by player
+creation order and then by traversal order. Equal-time keys preserve
+declaration order in both directions. A traversal excludes its starting
+endpoint and includes its destination. Seeks neither enqueue nor replay
+markers. A finite clip under reduced motion jumps to its terminal pose
+on advancement and emits completion. Infinite decorative loops freeze.
+Elapsed time and undrained event limits fail atomically so the owner can
+retry with a smaller interval.

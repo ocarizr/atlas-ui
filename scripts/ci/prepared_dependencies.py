@@ -15,13 +15,21 @@ def digest(path):
 
 
 def merge_installed(roots, destination):
-    """Combine prepared vendor installations, rejecting conflicting files and manifest state."""
+    """Combine build inputs while leaving per-product vcpkg metadata in its original tree."""
     destination = Path(destination)
     for root in map(Path, roots):
         for source in sorted((root / "x64-windows").rglob("*")):
             if not source.is_file():
                 continue
             relative = source.relative_to(root)
+            # Keep vcpkg's per-build SBOM and ABI records with the original artifact.
+            # This temporary prefix is consumed by CMake with manifest installation disabled.
+            if (
+                len(relative.parts) == 4
+                and relative.parts[1] == "share"
+                and source.name in {"vcpkg.spdx.json", "vcpkg_abi_info.txt"}
+            ):
+                continue
             target = destination / relative
             if target.exists():
                 if target.stat().st_size != source.stat().st_size or digest(target) != digest(

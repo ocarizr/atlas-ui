@@ -68,6 +68,31 @@ class instance
     [[nodiscard]] bool take_animation_completion(); ///< Consume the pending one-shot completion.
     /// @brief Queue a dirty sample after other frame producers and before sealing UI commands.
     void publish_animation();
+    /// @brief Start a bounded concurrent clip with optional delay, subrange and composition.
+    [[nodiscard]] animation_handle start_animation(animation_clip clip,
+                                                   animation_options options = {});
+    void register_animation(std::string name, animation_clip clip); ///< Store a reusable clip.
+    [[nodiscard]] animation_handle
+    start_named_animation(std::string_view name,
+                          animation_options options = {}); ///< Start a registered clip.
+    /// @brief Start a group transactionally. Sequential entries play once at normal rate.
+    [[nodiscard]] std::vector<animation_handle>
+    start_animation_group(std::span<const animation_group_entry> group,
+                          animation_group_order order = animation_group_order::parallel);
+    /// @brief Retarget an exclusive scalar from its last committed pose.
+    [[nodiscard]] animation_handle tween_animation(std::string_view element, ui::property field,
+                                                   float value, animation_time duration);
+    void pause_animation(animation_handle player, bool paused); ///< Freeze or resume its clock.
+    void reverse_animation(animation_handle player); ///< Change direction without changing pose.
+    void seek_animation(animation_handle player, animation_time position); ///< Scrub silently.
+    void cancel_animation(animation_handle player); ///< Retire the handle and publish hold/restore.
+    void set_animation_weight(animation_handle player, float weight); ///< Adjust a layer blend.
+    /// @brief Subscribe a reusable clip to an MVVM action. Resolve names during registration.
+    void bind_animation_action(animation_action_route route, animation_clip clip,
+                               animation_options options = {});
+    void set_reduced_motion(bool enabled); ///< Finish finite clips early; freeze decorative loops.
+    [[nodiscard]] std::vector<animation_event>
+    take_animation_events(); ///< Drain owner notifications.
     /// @brief Queue the explicit reverse write for an authored two-way binding.
     void write_back(std::string_view id, ui::property property, ui::property_value value);
 

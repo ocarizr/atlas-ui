@@ -9,7 +9,13 @@ instance::instance(std::unique_ptr<impl> state) : impl_{std::move(state)}
 }
 
 /// @brief Member order releases handlers before scripts, subscriptions, and tree.
-instance::~instance() = default;
+instance::~instance()
+{
+    for (const auto& [model, route] : impl_->animation_routes)
+    {
+        model->unsubscribe(route);
+    }
+}
 
 /// @brief An authored ID never resolves to a different element after the original is removed.
 ui::element_handle instance::find(std::string_view id) const
