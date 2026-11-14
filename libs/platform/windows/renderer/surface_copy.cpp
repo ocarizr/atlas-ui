@@ -25,8 +25,7 @@ surface_copy_result native_surface::present(const std::shared_ptr<gpu_resource>&
     }
 
     const auto native = std::static_pointer_cast<native_resource>(source);
-    if (native->description.Width != extent.width || native->description.Height != extent.height ||
-        native->description.Format != DXGI_FORMAT_R8G8B8A8_UNORM)
+    if (native->description.Width != extent.width || native->description.Height != extent.height)
     {
         throw std::invalid_argument("presentation source must match the surface RGBA extent");
     }

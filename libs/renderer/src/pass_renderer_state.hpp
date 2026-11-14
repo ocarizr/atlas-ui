@@ -10,7 +10,9 @@ struct pipeline_entry
 {
     std::shared_ptr<detail::gpu_pipeline> allocation; ///< Native immutable state.
     depth_mode depth =
-        depth_mode::disabled;     ///< Attachment compatibility without retaining shader source.
+        depth_mode::disabled; ///< Attachment compatibility without retaining shader source.
+    texture_format color_format = texture_format::rgba8_unorm; ///< Required RTV format.
+    bool coverage = false;        ///< Builtin that requires a linear R8 input.
     std::uint64_t generation = 1; ///< Nonwrapping slot lifetime.
     std::uint64_t last_use = 0;   ///< Protecting queue fence.
     bool live = false;            ///< Public identity validity.

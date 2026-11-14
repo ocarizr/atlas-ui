@@ -88,6 +88,11 @@ detail::resolved_draw pass_renderer::impl::resolve_draw(const draw_packet& draw,
         throw std::invalid_argument("pipeline and depth attachment are incompatible");
     }
 
+    if (pipeline.color_format != pass.extent.resolved_format())
+    {
+        throw std::invalid_argument("pipeline color format does not match the attachment");
+    }
+
     auto& vertices = resources->get(draw.vertices);
     auto& vertex_state = states[draw.vertices.index];
     const auto available = vertices.payload / sizeof(vertex);
@@ -108,6 +113,11 @@ detail::resolved_draw pass_renderer::impl::resolve_draw(const draw_packet& draw,
     {
         auto& descriptor = resources->get(draw.texture);
         auto& texture = resources->entries[descriptor.resource];
+        if (pipeline.coverage && texture.description.resolved_format() != texture_format::r8_unorm)
+        {
+            throw std::invalid_argument("coverage shader requires a linear R8 texture");
+        }
+
         auto& texture_state = states[descriptor.resource];
         if (descriptor.resource == pass.description.color.target.index)
         {

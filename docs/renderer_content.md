@@ -77,9 +77,11 @@ a buffer decoder instead of pretending to exercise native graphics.
 The adapter accepts static PNG, BMP and JPEG, normalizes one frame to tight
 top-down straight-alpha RGBA8 and balances COM initialization per call. WIC's
 mutable-memory-stream API uses a private encoded copy; the caller's immutable
-input is not modified. EXIF orientation, ICC conversion, sRGB texture interpretation,
-mip generation, compressed GPU formats and animated image playback are not provided.
-This is a byte-preserving unorm rendering foundation, not a complete image pipeline.
+input is not modified. An application can pass `renderer::texture_format::rgba8_srgb`
+as the fourth argument to `texture_upload` for content authored in sRGB. The
+default remains linear UNORM and both preserve the decoded bytes during upload.
+EXIF orientation, ICC conversion, mip generation, compressed GPU formats and
+animated image playback remain outside the WIC adapter.
 
 See Microsoft's [memory-stream decoder contract](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nf-wincodec-iwicimagingfactory-createdecoderfromstream)
 and [WIC API overview](https://learn.microsoft.com/en-us/windows/win32/wic/-wic-api).
@@ -91,8 +93,9 @@ rejects empty or embedded-NUL content and removes an optional UTF-8 BOM. The sou
 is passed to `pipeline_description`; the renderer compiles through its fixed ABI.
 File includes remain disabled, preserving the streamer storage boundary.
 
-`pipeline_cache` retains successful PSOs for exact source, entry points, program,
-blend/depth state and sampler mode. It compares complete keys rather than relying
+`pipeline_cache` retains successful PSOs by the complete pipeline description,
+including the color attachment format and optional pixel material constants.
+It compares complete keys rather than relying
 on a source hash. Compilation remains coordinator-owned and runs once per distinct
 cached description, not per frame. Failed compilation creates no cache entry.
 Capacity is explicit (default 32), and exhaustion fails instead of silently evicting

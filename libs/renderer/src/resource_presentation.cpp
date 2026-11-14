@@ -9,7 +9,9 @@ frame_result presentation_surface::present(resource_store& resources, texture_ha
     auto& entry = resources.impl_->get(source);
     const diagnostics::operation_scope scope{diagnostics_,
                                              {"surface.present_source", "renderer.cpu"}};
-    if (!entry.initialized || entry.description.role == texture_role::depth_target)
+    const auto format = entry.description.resolved_format();
+    if (!entry.initialized || entry.description.mip_levels != 1 ||
+        (format != texture_format::rgba8_unorm && format != texture_format::rgba8_srgb))
     {
         throw std::invalid_argument("presentation requires initialized RGBA contents");
     }

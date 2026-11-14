@@ -6,7 +6,7 @@ namespace atlas::renderer::detail
 {
 /// @brief Copy initialized GPU data to CPU bytes and restore the scheduled resource state.
 std::vector<std::byte> native_resources::readback(const std::shared_ptr<gpu_resource>& resource,
-                                                  resource_state before)
+                                                  resource_state before, std::uint16_t mip)
 {
     context->wait_idle();
     collect(completed());
@@ -14,10 +14,12 @@ std::vector<std::byte> native_resources::readback(const std::shared_ptr<gpu_reso
     const bool texture = native->description.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
     UINT64 size = native->description.Width;
+    UINT64 row_size = size;
+    UINT rows = 1;
     if (texture)
     {
-        context->gpu->GetCopyableFootprints(&native->description, 0, 1, 0, &footprint, nullptr,
-                                            nullptr, &size);
+        context->gpu->GetCopyableFootprints(&native->description, mip, 1, 0, &footprint, &rows,
+                                            &row_size, &size);
     }
 
     auto staging =
@@ -31,6 +33,7 @@ std::vector<std::byte> native_resources::readback(const std::shared_ptr<gpu_reso
         D3D12_TEXTURE_COPY_LOCATION source{};
         source.pResource = native->get();
         source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        source.SubresourceIndex = mip;
         D3D12_TEXTURE_COPY_LOCATION destination{};
         destination.pResource = output;
         destination.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
@@ -56,9 +59,7 @@ std::vector<std::byte> native_resources::readback(const std::shared_ptr<gpu_reso
         throw;
     }
 
-    const auto row_bytes =
-        static_cast<std::size_t>(native->description.Width) * (texture ? 4U : 1U);
-    const auto rows = texture ? native->description.Height : 1U;
+    const auto row_bytes = static_cast<std::size_t>(row_size);
     /// @brief Own exact readback bytes before mapping native staging storage.
     std::vector<std::byte> result(row_bytes * rows);
     void* mapped = nullptr;

@@ -63,13 +63,27 @@ struct buffer_description
     void validate() const; ///< Reject empty resources.
 };
 
-/// @brief Single-mip 2D allocation: RGBA8 color/sample data or D32 depth data.
+/// @brief Texel storage and transfer function used by shader views and attachments.
+enum class texture_format : std::uint8_t
+{
+    automatic,   ///< RGBA8 UNORM for color and D32 float for depth.
+    rgba8_unorm, ///< Linear RGBA8.
+    rgba8_srgb,  ///< sRGB RGB channels, linear alpha.
+    r8_unorm,    ///< Linear red channel, suitable for coverage atlases.
+    d32_float    ///< IEEE float depth.
+};
+
+/// @brief 2D allocation with a contiguous mip chain starting at the base extent.
 struct texture_description
 {
-    std::uint32_t width = 0;                   ///< Pixel width in [1, 16384].
-    std::uint32_t height = 0;                  ///< Pixel height in [1, 16384].
-    texture_role role = texture_role::sampled; ///< Immutable attachment capability.
-    void validate() const;                     ///< Reject empty/oversized extents.
+    std::uint32_t width = 0;                           ///< Pixel width in [1, 16384].
+    std::uint32_t height = 0;                          ///< Pixel height in [1, 16384].
+    texture_role role = texture_role::sampled;         ///< Immutable attachment capability.
+    texture_format format = texture_format::automatic; ///< Defaults follow the resource role.
+    std::uint16_t mip_levels = 1; ///< Sampled textures may include more than one level.
+    void validate() const;        ///< Check extent, format/role compatibility and chain length.
+    texture_format resolved_format() const noexcept; ///< Resolve the role-dependent default.
+    std::size_t payload_size() const; ///< Tight bytes across all mip levels, after validation.
 };
 
 /// @brief Hard admission limits include retired allocations and in-flight transfer staging.
@@ -122,8 +136,7 @@ class resource_store
         buffer_handle buffer,
         std::span<const std::byte> bytes); ///< Snapshot an exact payload into retained GPU staging.
     completion_token upload(texture_handle texture,
-                            std::span<const std::byte>
-                                rgba); ///< Pack exact tight RGBA rows using native copy footprints.
+                            std::span<const std::byte> bytes); ///< Upload all mips in level order.
     completion_token
     transition(buffer_handle buffer,
                resource_state target); ///< Schedule an explicit resource-state transition.
@@ -158,8 +171,8 @@ class resource_store
                     ///< without waiting.
     std::vector<std::byte> readback(
         buffer_handle buffer); ///< Blocking diagnostic exact-byte readback of initialized data.
-    std::vector<std::byte>
-    readback(texture_handle texture); ///< Blocking diagnostic tight RGBA8 or D32 byte readback.
+    std::vector<std::byte> readback(texture_handle texture,
+                                    std::uint16_t mip = 0); ///< Tight stored bytes of one mip.
     resource_statistics
     statistics() const; ///< Observe bounded occupancy and native heap reservation.
   private:

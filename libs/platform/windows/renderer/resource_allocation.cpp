@@ -17,20 +17,38 @@ D3D12_RESOURCE_DESC buffer_desc(std::uint64_t size)
     return result;
 }
 
-/// @brief Describe a single RGBA8 UNORM mip without UI-specific assumptions.
+/// @brief Map formats only after the portable resource and pipeline policy validates them.
+DXGI_FORMAT native_format(texture_format format)
+{
+    switch (format)
+    {
+        case texture_format::rgba8_unorm:
+            return DXGI_FORMAT_R8G8B8A8_UNORM;
+        case texture_format::rgba8_srgb:
+            return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        case texture_format::r8_unorm:
+            return DXGI_FORMAT_R8_UNORM;
+        case texture_format::d32_float:
+            return DXGI_FORMAT_D32_FLOAT;
+        default:
+            throw std::invalid_argument("expected an explicit native texture format");
+    }
+}
+
+/// @brief Describe a validated typed texture and its complete mip chain.
 D3D12_RESOURCE_DESC texture_desc(texture_description description)
 {
     auto result = buffer_desc(description.width);
     result.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     result.Height = description.height;
-    result.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    result.Format = native_format(description.resolved_format());
+    result.MipLevels = description.mip_levels;
     if (description.role == texture_role::color_target)
     {
         result.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     }
     else if (description.role == texture_role::depth_target)
     {
-        result.Format = DXGI_FORMAT_D32_FLOAT;
         result.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     }
 
@@ -108,9 +126,9 @@ void native_resources::view(const std::shared_ptr<gpu_resource>& resource, std::
     context->ensure_healthy("create GPU descriptor");
     const auto native = std::static_pointer_cast<native_resource>(resource);
     D3D12_SHADER_RESOURCE_VIEW_DESC view{};
-    view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    view.Format = native->description.Format;
     view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    view.Texture2D.MipLevels = 1;
+    view.Texture2D.MipLevels = native->description.MipLevels;
     view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     auto handle = descriptors->GetCPUDescriptorHandleForHeapStart();
     handle.ptr += static_cast<SIZE_T>(index) * context->gpu->GetDescriptorHandleIncrementSize(

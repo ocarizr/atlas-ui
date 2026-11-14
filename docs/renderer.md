@@ -29,7 +29,7 @@ Immutable passes describe fixed-ABI vertices, shaders, color/depth attachments,
 blend state, viewport/scissor and ordered draws. Whole-frame validation precedes
 submission. Shader compilation consumes in-memory HLSL through pinned DXC.
 
-Presentation copies initialized RGBA8 UNORM offscreen output into a matching
+Presentation copies initialized single-level linear or sRGB RGBA8 output into a matching
 `FLIP_SEQUENTIAL` swapchain. Diagnostic readback drains and removes row-pitch
 padding; it is excluded from normal submission. These choices have measurable
 copy/retention costs and do not imply optimal batching.

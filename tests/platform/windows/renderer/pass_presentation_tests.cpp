@@ -3,6 +3,24 @@
 
 namespace atlas::renderer::tests
 {
+/// @brief Swapchain copies preserve already encoded RGB without a second transfer function.
+TEST_F(pass_test, presents_srgb_bytes_to_the_swapchain)
+{
+    window::window window{{"sRGB presentation", 160, 120, false}};
+    const auto extent = window.state();
+    target = resources.create_texture(
+        {extent.width, extent.height, texture_role::color_target, texture_format::rgba8_srgb});
+    presentation_surface surface{graphics, window, {2, false}};
+    auto draw = pass();
+    draw.color.clear_color = {0.5F, 0, 0, 1};
+    const std::array passes{draw};
+    renderer.submit(frame_plan{passes});
+    const auto result = surface.present(resources, target);
+    EXPECT_TRUE(result == frame_result::presented || result == frame_result::occluded);
+    EXPECT_NEAR(surface.readback_last_frame().rgba.front(), 188, 1);
+    EXPECT_EQ(resources.state(target), resource_state::render_target);
+}
+
 /// @brief Neither uninitialized input nor a mismatched extent can reach a copy command.
 TEST_F(pass_test, presentation_rejects_uninitialized_and_mismatched_source)
 {

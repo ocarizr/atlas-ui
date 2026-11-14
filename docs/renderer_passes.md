@@ -53,10 +53,12 @@ The same input can express 2D primitives or transformed 3D geometry.
 
 Pipelines select colored or textured builtins, opaque/straight-alpha/premultiplied
 blending, optional depth writes/testing and a linear or nearest clamp sampler.
-Rasterization uses solid fill with no face culling and one sample. Color targets
-are RGBA8 UNORM; depth targets are D32 float. Depth uses less-or-equal comparison.
+Rasterization uses solid fill with no face culling and one sample. Depth targets
+are D32 float and use less-or-equal comparison.
 The alpha equation is source alpha plus destination alpha times one minus source
-alpha. Premultiplied inputs must already have RGB multiplied by alpha.
+alpha. Colored, textured and custom programs using premultiplied blending provide
+linear RGB already multiplied by alpha in their pixel output. The built-in
+coverage program accepts straight tint and multiplies by final alpha for that blend mode.
 
 Custom shaders receive trusted, in-memory UTF-8 HLSL and explicit entry identifiers.
 The renderer does not install an include handler or open shader files. Content
@@ -70,6 +72,37 @@ draw packet. This is a compatibility check, not a sandbox for hostile shaders.
 Custom vertex inputs and outputs must match the fixed pipeline ABI. Compilation
 or pipeline creation errors publish no handle or GPU work. Device-local shader/pipeline caching and
 asset orchestration belong to [renderer content](renderer_content.md).
+
+## Texture formats, color and mip chains
+
+| Format | Sampled | Color target | Depth target | Tight texel |
+| --- | --- | --- | --- | --- |
+| `rgba8_unorm` | Yes | Yes | | 4 bytes, linear RGBA |
+| `rgba8_srgb` | Yes | Yes | | 4 bytes, sRGB RGB and linear alpha |
+| `r8_unorm` | Yes | | | 1 byte, linear coverage |
+| `d32_float` | | | Yes | 4 bytes, float depth |
+
+`texture_format::automatic` preserves the RGBA8 UNORM and D32 defaults.
+The pipeline's `color_format` must match its attachment. sRGB views decode RGB
+when sampled. sRGB attachments accept linear shader outputs and clear colors,
+blend in linear space, then encode RGB for storage. Alpha stays linear. Premultiply
+in linear space before storing premultiplied input in an sRGB texture. Upload and
+readback transfer stored bytes as-is.
+
+Sampled textures accept a contiguous mip chain up to the full extent.
+Each level halves the previous dimensions, rounding down with a minimum of one.
+Pass the tightly packed bytes starting with mip zero, with no row padding or
+gaps between levels. One upload stages and publishes the entire chain through a
+single fence. The SRV exposes all levels. Attachments have one level.
+`resource_store::readback(texture, mip)` returns the tight stored bytes of one level.
+The renderer accepts caller-prepared mips. Content preparation owns downsampling,
+alpha-aware filtering and padding around atlas regions. Whole-chain replacement
+uses the same ordered upload API.
+
+The `coverage` program samples linear R8 through the same t0/s0 bindings.
+The quad's UVs select the atlas region. Coverage multiplies the vertex/tint alpha.
+The texture and descriptor remain fence-retained through upload and drawing.
+Glyph shaping, atlas packing and material asset authoring belong above this API.
 
 ## Attachment and ordering contracts
 
@@ -116,9 +149,11 @@ Persistent registries and command pools use the injected PMR resource; immutable
 snapshots, validation scratch, strings and DXC/driver memory use their normal
 allocators. No global allocation replacement is installed.
 
-`surface.present(resources, output)` copies initialized RGBA data from the same
-device into a matching swapchain, restores source state and protects its lifetime
-through the copy fence. It does not stage through CPU memory. Closed or suspended
+`surface.present(resources, output)` copies initialized single-level RGBA data from
+the same device into a matching swapchain. The copy restores the source state and
+protects its lifetime through the copy fence.
+The copy preserves stored bytes, including sRGB-encoded RGB from an sRGB target.
+It does not stage through CPU memory. Closed or suspended
 surfaces submit no copy. Frame slots retain store ownership until safe reuse;
 completed resources can still be collected independently. The extra offscreen
 copy is an explicit foundation choice, not a claim of optimal presentation cost.
@@ -144,4 +179,4 @@ unchanged. These checks do not establish hardware throughput or device recovery.
 
 [Content preparation](renderer_content.md) and [render-host lifecycle](render_host.md)
 are separate consumers. The fixed primitive ABI does not implement indexed/instanced
-geometry, additional formats/MSAA, general material layouts, lighting or UI semantics.
+geometry, MSAA, general material layouts, lighting or UI semantics.

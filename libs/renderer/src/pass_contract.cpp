@@ -28,11 +28,12 @@ bool identifier(std::string_view value)
 void pipeline_description::validate() const
 {
     if ((program != shader_program::colored && program != shader_program::textured &&
-         program != shader_program::custom) ||
+         program != shader_program::custom && program != shader_program::coverage) ||
         (blend != blend_mode::opaque && blend != blend_mode::straight_alpha &&
          blend != blend_mode::premultiplied_alpha) ||
         (depth != depth_mode::disabled && depth != depth_mode::read_write &&
-         depth != depth_mode::read_only))
+         depth != depth_mode::read_only) ||
+        (color_format != texture_format::rgba8_unorm && color_format != texture_format::rgba8_srgb))
     {
         throw std::invalid_argument("unsupported pipeline policy");
     }

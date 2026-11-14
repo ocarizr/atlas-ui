@@ -54,6 +54,8 @@ pipeline_handle pass_renderer::create_pipeline(const pipeline_description& descr
 
     auto allocation = impl_->backend->create(description);
     found->depth = description.depth;
+    found->color_format = description.color_format;
+    found->coverage = description.program == shader_program::coverage;
     found->allocation = std::move(allocation);
     found->last_use = 0;
     found->live = true;

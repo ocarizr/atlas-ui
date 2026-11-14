@@ -135,6 +135,37 @@ TEST_F(native_content_test, cache_hits_enforce_coordinator_ownership)
     result.get();
 }
 
+/// @brief Both target encoding and the material root signature affect the cache key.
+TEST_F(native_content_test, cache_separates_target_encoding_and_material_bindings)
+{
+    pipeline_cache cache{passes};
+    renderer::pipeline_description description;
+    description.program = renderer::shader_program::custom;
+    description.source = loader.read_shader({"shader", 0, ATLAS_CONTENT_SHADER_SIZE}).get();
+    const auto linear = cache.get(description);
+    description.color_format = renderer::texture_format::rgba8_srgb;
+    const auto srgb = cache.get(description);
+    description.pixel_parameters = true;
+    const auto material = cache.get(description);
+    EXPECT_NE(linear, srgb);
+    EXPECT_NE(srgb, material);
+    EXPECT_EQ(cache.get(description), material);
+    EXPECT_EQ(cache.size(), 3U);
+}
+
+/// @brief Upload selects a view interpretation without changing the encoded source bytes.
+TEST_F(native_content_test, uploads_decoded_rgba_with_explicit_srgb_encoding)
+{
+    const auto decoded = image();
+    EXPECT_THROW((texture_upload{resources, decoded, {}, renderer::texture_format::r8_unorm}),
+                 std::invalid_argument);
+    EXPECT_EQ(resources.statistics().live_resources, 0U);
+    texture_upload upload{resources, decoded, {}, renderer::texture_format::rgba8_srgb};
+    graphics.wait_idle();
+    EXPECT_EQ(resources.readback(upload.binding().texture),
+              std::vector(decoded->pixels.begin(), decoded->pixels.end()));
+}
+
 /// @brief The complete loose-image/shader path renders exact sampled pixels through generic draws.
 TEST_F(native_content_test, streamed_content_renders_a_textured_primitive)
 {

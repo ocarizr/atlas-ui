@@ -1,5 +1,6 @@
 /** @file @brief Fixed-ABI colored/textured graphics pipelines and explicit blend/depth state. */
 #include "native_passes.hpp"
+#include "native_resources.hpp"
 
 namespace atlas::renderer::detail
 {
@@ -19,7 +20,31 @@ vertex_output vertex_main(vertex_input input) {
 }
 float4 pixel_main(vertex_output input) : SV_Target { return input.color; }
 float4 textured_main(vertex_output input) : SV_Target { return image.Sample(image_sampler,input.uv)*input.color; }
+float4 coverage_main(vertex_output input) : SV_Target {
+    return float4(input.color.rgb, input.color.a * image.Sample(image_sampler, input.uv).r);
+}
+float4 coverage_premultiplied_main(vertex_output input) : SV_Target {
+    float4 color = coverage_main(input);
+    return float4(color.rgb * color.a, color.a);
+}
 )";
+
+/// @brief Match texture and mask builtins to their alpha conventions.
+std::string_view pixel_entry(const pipeline_description& pipeline)
+{
+    switch (pipeline.program)
+    {
+        case shader_program::custom:
+            return pipeline.pixel_entry;
+        case shader_program::textured:
+            return "textured_main";
+        case shader_program::coverage:
+            return pipeline.blend == blend_mode::premultiplied_alpha ? "coverage_premultiplied_main"
+                                                                     : "coverage_main";
+        default:
+            return "pixel_main";
+    }
+}
 
 /// @brief Declare a stable root ABI instead of exposing native descriptors in public headers.
 com_ptr<ID3D12RootSignature> root_signature(native_device& context,
@@ -66,12 +91,8 @@ std::shared_ptr<gpu_pipeline> create_pass_pipeline(native_device& context,
     const std::string_view source = custom ? std::string_view{description.source} : builtin_shader;
     const auto vertex_shader =
         compile_pass_shader({source, custom ? description.vertex_entry : "vertex_main", false});
-    const auto pixel_shader = compile_pass_shader(
-        {source,
-         custom
-             ? description.pixel_entry
-             : (description.program == shader_program::textured ? "textured_main" : "pixel_main"),
-         true, description.pixel_parameters});
+    const auto pixel_shader =
+        compile_pass_shader({source, pixel_entry(description), true, description.pixel_parameters});
     auto output = std::make_shared<native_pipeline>();
     output->textured = pixel_shader.textured;
     output->pixel_parameters = description.pixel_parameters;
@@ -113,7 +134,7 @@ std::shared_ptr<gpu_pipeline> create_pass_pipeline(native_device& context,
         description.depth == depth_mode::disabled ? DXGI_FORMAT_UNKNOWN : DXGI_FORMAT_D32_FLOAT;
     pipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     pipeline.NumRenderTargets = 1;
-    pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pipeline.RTVFormats[0] = native_format(description.color_format);
     pipeline.SampleDesc.Count = 1;
     check(context.gpu->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&output->state)),
           "create pass graphics pipeline");

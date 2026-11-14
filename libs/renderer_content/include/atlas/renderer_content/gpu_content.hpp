@@ -19,9 +19,10 @@ struct texture_binding
 class texture_upload
 {
   public:
+    /// @brief Snapshot decoded pixels with explicit encoding and rollback on failure.
     texture_upload(renderer::resource_store& resources, std::shared_ptr<const image_data> image,
-                   diagnostics::services destinations =
-                       {}); ///< Snapshot pixels into retained GPU staging with rollback on failure.
+                   diagnostics::services destinations = {},
+                   renderer::texture_format format = renderer::texture_format::rgba8_unorm);
     ~texture_upload(); ///< Retire native resources through their last GPU fence without waiting.
     texture_upload(const texture_upload&) = delete;            ///< One owner retires the binding.
     texture_upload& operator=(const texture_upload&) = delete; ///< Resource identities are unique.

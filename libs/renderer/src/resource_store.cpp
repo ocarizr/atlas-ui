@@ -1,5 +1,6 @@
 /** @file @brief Public resource operations and bounded fence-based reclamation. */
 #include "resource_store_state.hpp"
+#include <bit>
 
 namespace atlas::renderer
 {
@@ -19,8 +20,50 @@ void texture_description::validate() const
         (role != texture_role::sampled && role != texture_role::color_target &&
          role != texture_role::depth_target))
     {
-        throw std::invalid_argument("RGBA texture extent must be in [1, 16384]");
+        throw std::invalid_argument("texture extent must be in [1, 16384] with a valid role");
     }
+
+    const auto storage = resolved_format();
+    const bool rgba =
+        storage == texture_format::rgba8_unorm || storage == texture_format::rgba8_srgb;
+    if ((role == texture_role::depth_target && storage != texture_format::d32_float) ||
+        (role == texture_role::color_target && !rgba) ||
+        (role == texture_role::sampled && !rgba && storage != texture_format::r8_unorm))
+    {
+        throw std::invalid_argument("texture format is incompatible with its allocation role");
+    }
+
+    if (mip_levels == 0 || mip_levels > std::bit_width(std::max(width, height)) ||
+        (role != texture_role::sampled && mip_levels != 1))
+    {
+        throw std::invalid_argument("invalid mip chain for texture extent or role");
+    }
+}
+
+/// @brief Preserve the legacy default without exposing native format identifiers.
+texture_format texture_description::resolved_format() const noexcept
+{
+    if (format != texture_format::automatic)
+    {
+        return format;
+    }
+
+    return role == texture_role::depth_target ? texture_format::d32_float
+                                              : texture_format::rgba8_unorm;
+}
+
+/// @brief Calculate tight storage for the validated chain with no native padding.
+std::size_t texture_description::payload_size() const
+{
+    validate();
+    std::size_t texels = 0;
+    for (std::uint16_t level = 0; level < mip_levels; ++level)
+    {
+        texels +=
+            static_cast<std::size_t>(std::max(1U, width >> level)) * std::max(1U, height >> level);
+    }
+
+    return texels * (resolved_format() == texture_format::r8_unorm ? 1U : 4U);
 }
 
 /// @brief Reject invalid descriptions or capacities before native mutation.
@@ -244,9 +287,9 @@ std::vector<std::byte> resource_store::readback(buffer_handle value)
 }
 
 /// @brief Copy initialized GPU data to CPU bytes and restore the scheduled resource state.
-std::vector<std::byte> resource_store::readback(texture_handle value)
+std::vector<std::byte> resource_store::readback(texture_handle value, std::uint16_t mip)
 {
-    return impl_->readback(value);
+    return impl_->readback(value, mip);
 }
 
 /// @brief Report occupied allocation ranges and staging separately from allocator heap reservation.

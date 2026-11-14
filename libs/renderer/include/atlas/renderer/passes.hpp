@@ -21,7 +21,8 @@ enum class shader_program : std::uint8_t
 {
     colored,  ///< Interpolated vertex color.
     textured, ///< Texture multiplied by interpolated color.
-    custom    ///< Trusted HLSL; b0 transform/tint, pixel t0 and s0 only.
+    custom,   ///< Trusted HLSL using the documented draw and material bindings.
+    coverage  ///< R8 linear coverage modulates glyph or mask opacity.
 };
 /// @brief Color composition policy, independent of UI concepts.
 enum class blend_mode : std::uint8_t
@@ -49,7 +50,9 @@ struct pipeline_description
     std::string vertex_entry = "vertex_main"; ///< Custom vertex entry identifier.
     std::string pixel_entry = "pixel_main";   ///< Custom pixel entry identifier.
     bool pixel_parameters = false;            ///< Opt in to sixteen float constants at pixel b1.
+    texture_format color_format = texture_format::rgba8_unorm; ///< Required attachment format.
     void validate() const; ///< Reject unsupported enums and malformed shader inputs.
+    bool operator==(const pipeline_description&) const = default; ///< Compare all cache inputs.
 };
 /// @brief Distinct identity for fence-retired graphics pipelines.
 struct pipeline_tag;
