@@ -1,4 +1,5 @@
 /** @file @brief Owner-driven animation clock, curve evaluation and command publication. */
+#include "animation_values.hpp"
 #include "instance_state.hpp"
 #include <algorithm>
 #include <cmath>
@@ -30,7 +31,13 @@ void validate_track(const animation_track& track, animation_time duration)
     for (const auto& key : track.keys)
     {
         if (key.time <= previous || key.time > duration ||
-            !ui::valid_scalar(track.property, key.value) || key.curve > animation_curve::smoothstep)
+            !ui::valid_scalar(track.property, key.value) || key.curve > animation_curve::cubic ||
+            (key.curve == animation_curve::cubic &&
+             std::ranges::any_of(key.controls,
+                                 [](float value)
+                                 {
+                                     return !std::isfinite(value) || value < 0 || value > 1;
+                                 })))
         {
             throw std::invalid_argument("Animation key time, value or curve is invalid");
         }
@@ -38,9 +45,10 @@ void validate_track(const animation_track& track, animation_time duration)
         previous = key.time;
     }
 }
+} // namespace
 
 /// @brief Hold outside the keyed interval and evaluate the outgoing rule within a segment.
-float sample(const std::vector<animation_key>& keys, animation_time position)
+float detail::sample(const std::vector<animation_key>& keys, animation_time position)
 {
     const auto next = std::ranges::upper_bound(keys, position, {}, &animation_key::time);
     if (next == keys.begin())
@@ -60,16 +68,22 @@ float sample(const std::vector<animation_key>& keys, animation_time position)
     {
         fraction = fraction * fraction * (3 - 2 * fraction);
     }
+    else if (left.curve == animation_curve::cubic)
+    {
+        const auto inverse = 1 - fraction;
+        fraction = 3 * inverse * inverse * fraction * left.controls[0] +
+                   3 * inverse * fraction * fraction * left.controls[1] +
+                   fraction * fraction * fraction;
+    }
 
     return static_cast<float>(
         std::lerp(static_cast<double>(left.value), static_cast<double>(next->value), fraction));
 }
-} // namespace
 
-/// @brief Commit a candidate only after every track resolves and passes ownership checks.
-void instance::play_animation(animation_clip clip, animation_repeat repeat)
+/// @brief Resolve a candidate without modifying existing players.
+instance::impl::playback instance::impl::resolve(const instance& view, animation_clip& clip,
+                                                 animation_repeat repeat)
 {
-    (void)impl_->tree.size();
     if (clip.duration <= animation_time::zero() || clip.tracks.empty() ||
         clip.tracks.size() > max_tracks || repeat > animation_repeat::loop)
     {
@@ -82,11 +96,11 @@ void instance::play_animation(animation_clip clip, animation_repeat repeat)
     std::set<std::pair<std::uint32_t, ui::property>> targets;
     for (auto& track : clip.tracks)
     {
-        const auto target = find(track.element);
+        const auto target = view.find(track.element);
         const auto key = std::pair{target.index, track.property};
-        if (impl_->properties.contains(key))
+        if (properties.contains(key))
         {
-            diagnostics::write(impl_->diagnostics, diagnostics::log_level::warning, "ui.animation",
+            diagnostics::write(diagnostics, diagnostics::log_level::warning, "ui.animation",
                                "Animation track targets a property owned by an MVVM binding");
             throw std::invalid_argument(
                 "Animation track targets a property owned by an MVVM binding");
@@ -95,7 +109,7 @@ void instance::play_animation(animation_clip clip, animation_repeat repeat)
         validate_track(track, clip.duration);
         if (track.property == ui::property::spacing)
         {
-            const auto panel = impl_->tree.panel(target);
+            const auto panel = tree.panel(target);
             if (!std::holds_alternative<ui::horizontal_layout>(panel) &&
                 !std::holds_alternative<ui::vertical_layout>(panel))
             {
@@ -103,8 +117,7 @@ void instance::play_animation(animation_clip clip, animation_repeat repeat)
             }
         }
 
-        if (track.property >= ui::property::canvas_x_offset_min &&
-            !impl_->tree.canvas_slot_for(target))
+        if (track.property >= ui::property::canvas_x_offset_min && !tree.canvas_slot_for(target))
         {
             throw std::invalid_argument("Animation canvas track requires a canvas parent");
         }
@@ -117,7 +130,19 @@ void instance::play_animation(animation_clip clip, animation_repeat repeat)
         candidate.tracks.push_back({target, track.property, std::move(track.keys)});
     }
 
-    impl_->animation = std::move(candidate);
+    return candidate;
+}
+
+/// @brief Preserve the original single-player API for existing hosts.
+void instance::play_animation(animation_clip clip, animation_repeat repeat)
+{
+    (void)impl_->tree.size();
+    if (!impl_->players.empty())
+    {
+        throw std::logic_error("Finish concurrent clips before starting legacy playback");
+    }
+
+    impl_->animation = impl_->resolve(*this, clip, repeat);
 }
 
 /// @brief Cancel timing and any undelivered completion while holding already applied values.
@@ -136,6 +161,7 @@ void instance::advance_animation(animation_time elapsed)
         throw std::invalid_argument("Animation elapsed time must be nonnegative");
     }
 
+    impl_->advance_players(elapsed);
     auto& active = impl_->animation;
     if (!active || elapsed == animation_time::zero())
     {
@@ -206,6 +232,7 @@ bool instance::take_animation_completion()
 void instance::publish_animation()
 {
     (void)impl_->tree.size();
+    impl_->publish_players();
     auto& active = impl_->animation;
     if (!active || !active->dirty)
     {
@@ -226,7 +253,8 @@ void instance::publish_animation()
         {
             if (live(track))
             {
-                commands.set(track.target, track.property, sample(track.keys, active->position),
+                commands.set(track.target, track.property,
+                             detail::sample(track.keys, active->position),
                              detail::animation_producer);
             }
         }
