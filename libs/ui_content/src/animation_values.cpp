@@ -1,8 +1,55 @@
 /** @file @brief Read animation bases without exposing mutable registry components. */
 #include "animation_values.hpp"
+#include <algorithm>
+#include <cmath>
 
 namespace atlas::ui_content::detail
 {
+/// @brief Only cubic controls are consumed by the easing kernel.
+bool valid_curve(animation_curve curve, std::array<float, 2> controls)
+{
+    return curve <= animation_curve::spring &&
+           (curve != animation_curve::cubic || std::ranges::all_of(controls,
+                                                                   [](float value)
+                                                                   {
+                                                                       return value >= 0 &&
+                                                                              value <= 1;
+                                                                   }));
+}
+
+/// @brief Use one bounded easing implementation for authored clips and transitions.
+double ease(animation_curve curve, std::array<float, 2> controls, double fraction)
+{
+    switch (curve)
+    {
+        case animation_curve::step:
+            return fraction < 1 ? 0 : 1;
+        case animation_curve::linear:
+            return fraction;
+        case animation_curve::smoothstep:
+            return fraction * fraction * (3 - 2 * fraction);
+        case animation_curve::cubic:
+        {
+            const auto inverse = 1 - fraction;
+            return std::clamp(3 * inverse * inverse * fraction * controls[0] +
+                                  3 * inverse * fraction * fraction * controls[1] +
+                                  fraction * fraction * fraction,
+                              0., 1.);
+        }
+        case animation_curve::spring:
+        {
+            const auto response = [](double time)
+            {
+                constexpr double damping = 8;
+                return 1 - (1 + damping * time) * std::exp(-damping * time);
+            };
+            return std::clamp(response(fraction) / response(1), 0., 1.);
+        }
+    }
+
+    throw std::invalid_argument("Unknown animation curve");
+}
+
 namespace
 {
 /// @brief Read an inset in the same order as the command vocabulary.
