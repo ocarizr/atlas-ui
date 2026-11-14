@@ -47,6 +47,25 @@ bool compatible(const renderer::draw_packet& a, const renderer::draw_packet& b)
            a.pixel_parameters == b.pixel_parameters;
 }
 
+/// @brief Resolve a prepared shader key before any buffer upload or native draw.
+renderer::pipeline_handle select_pipeline(const ui::material_style& material,
+                                          const paint_pipelines& pipelines)
+{
+    if (material.shader == 0)
+    {
+        return material.kind == ui::material_kind::shape ? pipelines.shape_material
+                                                         : pipelines.texture_material;
+    }
+
+    const auto found = pipelines.custom.find(material.shader);
+    if (found == pipelines.custom.end() || found->second.kind != material.kind)
+    {
+        throw std::invalid_argument("Unresolved or incompatible UI material shader");
+    }
+
+    return found->second.pipeline;
+}
+
 /// @brief Select the shader and pack the fixed parameter ABI for this material.
 bool apply_material(const ui::paint_quad& quad, const paint_pipelines& pipelines,
                     renderer::draw_packet& draw, float phase)
@@ -60,6 +79,7 @@ bool apply_material(const ui::paint_quad& quad, const paint_pipelines& pipelines
     const auto& material = *quad.material;
     ui::validate_material(material);
     draw.tint = material.tint;
+    draw.pipeline = select_pipeline(material, pipelines);
     if (material.kind == ui::material_kind::texture)
     {
         if (quad.texture == 0)
@@ -67,7 +87,6 @@ bool apply_material(const ui::paint_quad& quad, const paint_pipelines& pipelines
             throw std::invalid_argument("Texture material requires a resident texture key");
         }
 
-        draw.pipeline = pipelines.texture_material;
         draw.pixel_parameters = {material.uv_offset[0], material.uv_offset[1], material.uv_scale[0],
                                  material.uv_scale[1]};
         return false;
@@ -78,7 +97,6 @@ bool apply_material(const ui::paint_quad& quad, const paint_pipelines& pipelines
         throw std::invalid_argument("Shape material cannot sample a texture");
     }
 
-    draw.pipeline = pipelines.shape_material;
     draw.pixel_parameters = {material.radius[0], material.radius[1], material.radius[2],
                              material.radius[3], material.bevel,     material.scale,
                              material.morph,     material.outline,   material.glow,

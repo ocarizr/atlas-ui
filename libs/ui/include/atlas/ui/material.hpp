@@ -30,7 +30,8 @@ struct material_style
     float phase = 0;                     ///< Explicit normalized cosmetic loop time.
     std::array<float, 2> uv_offset{};    ///< Signed texture-coordinate offsets.
     std::array<float, 2> uv_scale{1, 1}; ///< Texture-coordinate multipliers.
-    float unite = 0; ///< Blend toward the union of the rectangle and an offset ellipse.
+    float unite = 0;          ///< Blend toward the union of the rectangle and an offset ellipse.
+    std::uint64_t shader = 0; ///< Resident custom shader key; zero selects the built-in program.
     bool operator==(const material_style&) const = default; ///< Compare complete instance data.
 };
 

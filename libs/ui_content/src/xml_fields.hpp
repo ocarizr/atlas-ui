@@ -165,7 +165,9 @@ class fields
 };
 
 void expect_empty(pugi::xml_node node); ///< Reject content in attribute-only XML nodes.
-void validate(const document& source);  ///< Validate document-local identities and references.
+[[nodiscard]] pugi::xml_node read_root(pugi::xml_document& xml, std::string_view source,
+                                       std::size_t maximum); ///< Read one strict UTF-8 XML root.
+void validate(const document& source); ///< Validate document-local identities and references.
 void read_element(pugi::xml_node node, element& target); ///< Decode one element and its sections.
 void write_element(pugi::xml_node node, const element& source);  ///< Encode one element.
 void read_binding(pugi::xml_node node, element& target);         ///< Decode a descriptor child.

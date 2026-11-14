@@ -39,6 +39,14 @@ enum class depth_mode : std::uint8_t
     read_only   ///< Less-or-equal comparison without depth writes.
 };
 
+/// @brief Optional exact pixel resource contract for reusable material shader families.
+enum class pixel_resource_policy : std::uint8_t
+{
+    infer,                ///< Preserve the generic shader reflection behavior.
+    constants_only,       ///< Require 64 bytes at pixel b1 and forbid t0.
+    constants_and_texture ///< Require 16 bytes at pixel b1 and a texture at t0.
+};
+
 /// @brief Immutable pipeline creation input; no shader file access is performed.
 struct pipeline_description
 {
@@ -51,7 +59,9 @@ struct pipeline_description
     std::string pixel_entry = "pixel_main";   ///< Custom pixel entry identifier.
     bool pixel_parameters = false;            ///< Opt in to sixteen float constants at pixel b1.
     texture_format color_format = texture_format::rgba8_unorm; ///< Required attachment format.
-    void validate() const; ///< Reject unsupported enums and malformed shader inputs.
+    pixel_resource_policy pixel_resources = pixel_resource_policy::infer; ///< Reflection policy.
+    bool builtin_vertex = false; ///< Use the fixed vertex shader with a custom pixel program.
+    void validate() const;       ///< Reject unsupported enums and malformed shader inputs.
     bool operator==(const pipeline_description&) const = default; ///< Compare all cache inputs.
 };
 /// @brief Distinct identity for fence-retired graphics pipelines.

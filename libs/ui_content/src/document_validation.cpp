@@ -128,6 +128,7 @@ void add_element(const element& node, locations& seen, const model_names& models
     }
 
     if (node.paint.texture || node.paint.image ||
+        (node.paint.material && node.paint.material->shader) ||
         (!node.requested.width_fixed && node.requested.width != 0) ||
         (!node.requested.height_fixed && node.requested.height != 0))
     {
@@ -137,6 +138,16 @@ void add_element(const element& node, locations& seen, const model_names& models
     if (node.texture)
     {
         require_type(*node.texture, assets::asset_type::texture);
+    }
+
+    if (node.material)
+    {
+        require_type(*node.material, assets::asset_type::material);
+        if (node.paint.material || node.texture)
+        {
+            throw std::invalid_argument(
+                "Material assets own their shader values and texture pairing");
+        }
     }
 
     validate_bindings(node, models);

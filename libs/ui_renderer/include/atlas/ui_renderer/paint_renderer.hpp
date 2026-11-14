@@ -33,15 +33,27 @@ struct paint_list
     float cosmetic_phase = 0;              ///< Shared loop phase supplied by the owner in [0, 1].
 };
 
+/// @brief Prepare one trusted pixel program for a specific material ABI and runtime key.
+struct material_shader
+{
+    std::uint64_t key;      ///< Nonzero key copied into paint packets.
+    ui::material_kind kind; ///< Select the fixed shape or texture parameter layout.
+    std::string_view hlsl;  ///< Borrowed bytes defining atlas_material(float4, float2).
+};
+
 class paint_renderer
 {
   public:
+    /// @brief Create reusable pipelines for the selected attachment format.
     paint_renderer(renderer::resource_store& resources, renderer::pass_renderer& passes,
                    std::shared_ptr<std::pmr::memory_resource> memory = {},
-                   diagnostics::services destinations = {}); ///< Create two reusable pipelines.
+                   diagnostics::services destinations = {},
+                   renderer::texture_format color_format = renderer::texture_format::rgba8_unorm);
     ~paint_renderer(); ///< Release pipeline handles on the creating GPU coordinator.
     paint_renderer(const paint_renderer&) = delete;            ///< Unique pipeline ownership.
     paint_renderer& operator=(const paint_renderer&) = delete; ///< Never duplicate release.
+    void register_shader(material_shader source); ///< Validate and publish a fresh immutable key.
+    void release_shader(std::uint64_t key); ///< Invalidate the key and fence-retire its pipeline.
     /// @brief Validate resident keys, batch adjacent compatible draws, upload and submit.
     renderer::completion_token submit(const ui::paint_snapshot& snapshot,
                                       renderer::texture_handle target,

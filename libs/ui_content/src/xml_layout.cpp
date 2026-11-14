@@ -174,6 +174,7 @@ void paint_fields(fields& xml, element& data)
     xml.value("origin-x", data.visual.origin.x);
     xml.value("origin-y", data.visual.origin.y);
     xml.reference("texture", data.texture, assets::asset_type::texture);
+    xml.reference("material-asset", data.material, assets::asset_type::material);
     material_fields(xml, paint.material);
     if (paint.material &&
         ((paint.material->kind == ui::material_kind::texture) != data.texture.has_value()))

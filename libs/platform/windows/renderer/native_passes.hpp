@@ -19,8 +19,9 @@ struct native_pipeline final : gpu_pipeline
 /// @brief Compiler output includes reflection-derived texture requirements.
 struct compiled_shader
 {
-    com_ptr<IDxcBlob> code; ///< DXIL executable bytes.
-    bool textured = false;  ///< Pixel shader reads the validated t0 binding.
+    com_ptr<IDxcBlob> code;                  ///< DXIL executable bytes.
+    bool textured = false;                   ///< Pixel shader reads the validated t0 binding.
+    std::uint32_t pixel_parameter_bytes = 0; ///< Reflected size of the optional pixel b1 binding.
 };
 
 /// @brief Named compiler inputs avoid interchangeable source/entry arguments.

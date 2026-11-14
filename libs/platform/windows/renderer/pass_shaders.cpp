@@ -6,8 +6,8 @@ namespace atlas::renderer::detail
 {
 namespace
 {
-/// @brief Reject shader resources outside b0 constants and pixel t0/s0 bindings.
-bool reflect(IDxcResult& result, const shader_input& shader)
+/// @brief Reject resources outside the fixed b0 and opt-in pixel bindings.
+void reflect(IDxcResult& result, const shader_input& shader, compiled_shader& output)
 {
     com_ptr<IDxcBlob> metadata;
     check(result.GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&metadata), nullptr),
@@ -20,7 +20,6 @@ bool reflect(IDxcResult& result, const shader_input& shader)
     check(utilities->CreateReflection(&input, IID_PPV_ARGS(&reflection)), "reflect shader ABI");
     D3D12_SHADER_DESC description{};
     check(reflection->GetDesc(&description), "describe shader bindings");
-    bool textured = false;
     for (UINT index = 0; index < description.BoundResources; ++index)
     {
         D3D12_SHADER_INPUT_BIND_DESC binding{};
@@ -40,7 +39,7 @@ bool reflect(IDxcResult& result, const shader_input& shader)
                      binding.ReturnType == D3D_RETURN_TYPE_FLOAT)
             {
                 allowed = true;
-                textured = true;
+                output.textured = true;
             }
             else if (shader.pixel && binding.Type == D3D_SIT_SAMPLER &&
                      (binding.uFlags & D3D_SIF_COMPARISON_SAMPLER) == 0)
@@ -56,6 +55,7 @@ bool reflect(IDxcResult& result, const shader_input& shader)
             check(reflection->GetConstantBufferByName(binding.Name)->GetDesc(&buffer),
                   "describe pixel parameters");
             allowed = buffer.Size <= 64;
+            output.pixel_parameter_bytes = buffer.Size;
         }
 
         if (!allowed)
@@ -63,8 +63,6 @@ bool reflect(IDxcResult& result, const shader_input& shader)
             throw std::invalid_argument("shader binding exceeds the declared graphics ABI");
         }
     }
-
-    return textured;
 }
 } // namespace
 
@@ -95,7 +93,7 @@ compiled_shader compile_pass_shader(shader_input shader)
     }
 
     compiled_shader output;
-    output.textured = reflect(*result.Get(), shader);
+    reflect(*result.Get(), shader, output);
     check(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&output.code), nullptr),
           "read pass shader object");
     return output;

@@ -67,6 +67,7 @@ struct element
     std::vector<action_binding> actions;                ///< Ordered action routes.
     std::optional<behavior> script; ///< At most one behavior instance per element.
     std::string caption{};          ///< Optional authored text for a host's label presentation.
+    std::optional<assets::asset_ref> material{}; ///< Persistent material template or override.
 };
 
 /// @brief Ordered authoring data shared by parsed XML and prepared/native sources.

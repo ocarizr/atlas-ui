@@ -6,6 +6,20 @@ namespace atlas::ui_content::tests
 {
 using namespace std::chrono_literals;
 
+/// @brief An explicitly default-valued replacement survives the authoring round trip.
+TEST(ui_material, RetainsExplicitOverrideValues)
+{
+    constexpr auto authored = R"(<material-override version="1"
+        template="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000001"
+        material-alpha="1"/>)";
+    const auto value = parse_material_xml({authored});
+    const auto round_trip = parse_material_xml({write_material_xml(value)});
+    const auto& overrides = std::get<material_instance>(round_trip).parameters;
+    ASSERT_EQ(overrides.size(), 1);
+    EXPECT_EQ(overrides.front().slot, ui::property::material_alpha);
+    EXPECT_EQ(overrides.front().value, 1);
+}
+
 /// @brief Publish through the existing absolute property stream.
 static void publish(instance& view, std::uint64_t frame)
 {

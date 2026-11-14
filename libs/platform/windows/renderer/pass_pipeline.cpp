@@ -89,10 +89,21 @@ std::shared_ptr<gpu_pipeline> create_pass_pipeline(native_device& context,
 {
     const bool custom = description.program == shader_program::custom;
     const std::string_view source = custom ? std::string_view{description.source} : builtin_shader;
+    const bool custom_vertex = custom && !description.builtin_vertex;
     const auto vertex_shader =
-        compile_pass_shader({source, custom ? description.vertex_entry : "vertex_main", false});
+        compile_pass_shader({custom_vertex ? source : builtin_shader,
+                             custom_vertex ? description.vertex_entry : "vertex_main", false});
     const auto pixel_shader =
         compile_pass_shader({source, pixel_entry(description), true, description.pixel_parameters});
+    const bool sampled =
+        description.pixel_resources == pixel_resource_policy::constants_and_texture;
+    if (description.pixel_resources != pixel_resource_policy::infer &&
+        (pixel_shader.pixel_parameter_bytes != (sampled ? 16U : 64U) ||
+         pixel_shader.textured != sampled))
+    {
+        throw std::invalid_argument("Pixel shader does not match the material bindings");
+    }
+
     auto output = std::make_shared<native_pipeline>();
     output->textured = pixel_shader.textured;
     output->pixel_parameters = description.pixel_parameters;

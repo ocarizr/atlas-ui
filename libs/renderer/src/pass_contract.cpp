@@ -43,6 +43,13 @@ void pipeline_description::validate() const
         throw std::invalid_argument("Pixel parameters require a custom shader");
     }
 
+    if (pixel_resources > pixel_resource_policy::constants_and_texture ||
+        (pixel_resources != pixel_resource_policy::infer && !pixel_parameters) ||
+        (builtin_vertex && program != shader_program::custom))
+    {
+        throw std::invalid_argument("Invalid custom shader interface policy");
+    }
+
     if (program == shader_program::custom &&
         (source.empty() || source.size() > 1024ULL * 1024 || !identifier(vertex_entry) ||
          !identifier(pixel_entry)))

@@ -306,6 +306,7 @@ TEST_F(pixel_test, PmrFailurePointsReleaseScratchAndPermitRetry)
     auto memory = std::make_shared<ui::tests::failing_resource>();
     paint_renderer checked{resources, passes, memory};
     const auto calls = memory->calls;
+    const auto retained_bytes = memory->live_bytes;
     resources.wait(checked.submit(packet, target, {16, 16}));
     const auto count = memory->calls - calls;
     resources.collect();
@@ -315,7 +316,7 @@ TEST_F(pixel_test, PmrFailurePointsReleaseScratchAndPermitRetry)
         memory->remaining = i;
         EXPECT_THROW(checked.submit(packet, target, {16, 16}), std::bad_alloc);
         memory->remaining = std::numeric_limits<std::size_t>::max();
-        EXPECT_EQ(memory->live_bytes, 0);
+        EXPECT_EQ(memory->live_bytes, retained_bytes);
         EXPECT_EQ(resources.statistics().live_resources, baseline);
     }
 

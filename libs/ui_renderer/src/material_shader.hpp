@@ -4,6 +4,18 @@
 
 namespace atlas::ui_renderer::detail
 {
+/// @brief Link the fixed vertex signature to a trusted authored pixel function.
+inline constexpr std::string_view authored_pixel_entry = R"(
+struct atlas_material_input {
+    float4 position : SV_Position;
+    float4 color : COLOR;
+    float2 uv : TEXCOORD;
+};
+float4 pixel_main(atlas_material_input input) : SV_Target {
+    return atlas_material(input.color, input.uv);
+}
+)";
+
 /// @brief Evaluate bounded shapes and cosmetic phase within an unchanged quad.
 inline constexpr std::string_view material_shader = R"(
 cbuffer draw_constants : register(b0) { row_major float4x4 transform; float4 tint; };

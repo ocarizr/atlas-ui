@@ -73,6 +73,25 @@ Custom vertex inputs and outputs must match the fixed pipeline ABI. Compilation
 or pipeline creation errors publish no handle or GPU work. Device-local shader/pipeline caching and
 asset orchestration belong to [renderer content](renderer_content.md).
 
+Viewport material shaders register through `ui_renderer::paint_renderer`.
+They use the fixed vertex program and define
+`float4 atlas_material(float4 color, float2 uv)`. The adapter generates the
+pixel entry and passes the interpolated tint and inherited opacity in `color`,
+and the element coordinates in `uv`. Return straight-alpha linear RGBA,
+factoring in the incoming alpha. The adapter retains painter order and inherited
+scissor.
+
+| Material family | Pixel bindings |
+| --- | --- |
+| Texture | `b1` contains one float4, with UV offset in XY and scale in ZW. The shader reads a float Texture2D at `t0` and may use the clamp sampler at `s0`. |
+| Shape | `b1` contains four float4 values. They carry corner radii in TL/TR/BL/BR order, bevel/scale/morph/outline, glow/reveal/gradient/phase, and union weight with three reserved zeros. UV spans the local quad. |
+
+Reflection checks the exact `b1` byte count and the selected family's texture
+policy. UI pipelines share an explicit color attachment format, defaulting to
+RGBA8 UNORM. The graphics coordinator registers fresh keys for replacement
+sources and fence-retires released pipelines. Use a distinct runtime key for
+each shader publication while old snapshots can still exist.
+
 ## Texture formats, color and mip chains
 
 | Format | Sampled | Color target | Depth target | Tight texel |

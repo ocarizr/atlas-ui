@@ -41,7 +41,7 @@ native UI validators.
 | --- | --- |
 | Element | Overlay, leaf, size box, horizontal or vertical stack, or canvas. An omitted width or height is automatic. An explicit zero is fixed. The optional `text` caption is presentation metadata consumed by editor tools. |
 | `layout` | Intrinsic size, margins, padding, min/max and alignment. An omitted maximum is unbounded. |
-| `paint` | Rectangle fill, clip, layer, RGBA, UV, translation, scale, rotation, transform origin and optional persistent texture. |
+| `paint` | Rectangle fill, clip, layer, RGBA, UV, translation, scale, rotation, transform origin and optional persistent texture or material asset. |
 | `canvas-slot` or `stack-slot` | Anchors, pivots, offsets and sizing, or child order and grow/shrink weights. |
 | `horizontal-boundary` or `vertical-boundary` | Stable sibling source, side, gap, sizing and overflow. |
 | `interaction` | Enabled, hit-test and focusable flags. |
@@ -49,7 +49,7 @@ native UI validators.
 | `action` | Model and action, event, route, semantic input filter where applicable, and exact scalar arguments. |
 | `behavior` | Script asset and model context. One returned handler table per element in the shared Lua domain. |
 
-Model, script and texture use sites fix the expected
+Model, script, texture and material use sites fix the expected
 [asset type](assets.md#persistent-identity). The same references resolve
 against loose files or prepared backing ranges. The host receives the
 persistent texture reference for image residency.
@@ -210,7 +210,53 @@ segment endpoints. It is evaluated from the current time without
 integrating previous samples, and stays in range for bounded properties
 such as opacity.
 
-### Built-in material channels
+### Material templates and overrides
+
+A material asset can be a directly usable template or a sparse override of one
+template. Reference either by its typed catalog ID in the element's paint section.
+
+```xml
+<paint fill="true" material-asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000011"/>
+```
+
+The template pairs a shader family with typed defaults. A shape template can
+select the built-in signed-distance program by declaring `kind="shape"`. A
+texture template declares `kind="texture"` and a persistent `texture` ID for its
+default image. Either can also identify a custom shader asset with `shader`.
+
+```xml
+<material-template version="1" kind="shape" material-radius-tl="0.5"
+                   material-radius-tr="0.5" material-alpha="0.8"/>
+<material-override version="1" template="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000011"
+                   material-alpha="1"/>
+```
+
+Use one root per material asset. A texture override can also provide a different
+`texture` ID. An override targets a template directly and inherits its shader.
+Absent fields inherit, and explicitly supplied values survive serialization even
+when they match a built-in default. Vector and color components are independently
+addressable numeric slots. An element that references a material asset takes its
+material parameters and texture pairing from that asset.
+
+The composition resolves each referenced descriptor once per build, copies its
+resolved numeric values into each element and exposes its texture through
+`instance::texture`. `construction::materials` also accepts typed prepared
+descriptors at the exact mounted revision. This lets a prepared/native source
+skip XML parsing while using the same type and slot validation.
+
+The host checks `instance::materials_current(active_mount)` after a catalog
+replacement. Material, template, shader and texture stamps participate, including
+the mount generation. Build the replacement composition privately and register
+its custom shader keys on the graphics coordinator before publishing it. For
+each entry in `instance::material_shaders()`, call
+`paint_renderer::register_shader({entry.key, entry.kind, entry.hlsl})`. The host
+copies the source payload if it crosses threads and publishes texture residency
+using the existing texture-binding path. Release superseded shader keys after
+the last packet using them has been submitted. GPU fences retain submitted
+pipelines and texture resources. Host preview and editor authoring controls can
+consume the same descriptor and invalidation APIs.
+
+### Material channels and geometry
 
 A rectangle can opt into `<paint material="shape" fill="true"
 material-radius-tl="0.5"/>`. Use `material="texture"` with a texture
