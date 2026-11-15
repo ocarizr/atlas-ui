@@ -1,9 +1,42 @@
 /** @file @brief Streamed, interpreted, and generated authored UI composition. */
 #include "composition_fixture.hpp"
 #include <atlas/ui/layout_engine.hpp>
+#include <atlas/ui_content/prepared.hpp>
 
 namespace atlas::ui_content::tests
 {
+/// @brief Prepared construction retains the authored view and catalog revisions.
+TEST_F(composition_fixture, ComposesTheSameViewFromPreparedBytes)
+{
+    const construction options{*storage};
+    const auto cooked = prepare_view(ui_asset, options);
+    const auto bytes = encode_prepared(cooked);
+    const auto rebuilt = decode_prepared(bytes);
+    ASSERT_EQ(rebuilt.models.size(), 1U);
+    EXPECT_EQ(rebuilt.models.front().source, vm_asset);
+    EXPECT_EQ(write_xml(rebuilt.view), write_xml(load(ui_asset, options)));
+    EXPECT_EQ(encode_prepared(rebuilt), bytes);
+    const auto view = build_prepared(rebuilt, options);
+    EXPECT_EQ(view->texture("sibling"), instance::build(cooked.view, options)->texture("sibling"));
+}
+
+/// @brief Corruption and unsupported envelopes never reach the runtime constructor.
+TEST_F(composition_fixture, PreparedBytesRejectCorruptionAndUnsupportedVersion)
+{
+    const auto bytes = encode_prepared(prepare_view(ui_asset, {*storage}));
+    auto changed = bytes;
+    changed.at(4) = std::byte{255};
+    EXPECT_THROW((void)decode_prepared(changed), std::invalid_argument);
+    changed = bytes;
+    changed.back() ^= std::byte{1};
+    EXPECT_THROW((void)decode_prepared(changed), std::invalid_argument);
+    EXPECT_THROW((void)decode_prepared(std::span{bytes}.first(bytes.size() - 1)),
+                 std::invalid_argument);
+    changed = bytes;
+    changed.push_back(std::byte{0});
+    EXPECT_THROW((void)decode_prepared(changed), std::invalid_argument);
+}
+
 namespace
 {
 /// @brief Record the authored action's exact payload during model synchronization.
@@ -60,10 +93,13 @@ TEST_F(composition_fixture, StreamedAndGeneratedModelsHaveEquivalentWiring)
     auto interpreted = instance::build(parse_xml({bytes}), {*storage});
     const std::array factories{prepared_model{vm_asset, 1, generated::make_ui_content_fixture}};
     auto prepared = instance::build(document, {*storage, factories});
+    const auto binary = decode_prepared(encode_prepared(prepare_view(ui_asset, {*storage})));
+    auto cooked = build_prepared(binary, {*storage});
     EXPECT_NE(interpreted->find("button"), prepared->find("button"));
     EXPECT_EQ(prepared->texture("button"), texture_asset);
     exercise(*interpreted, jobs);
     exercise(*prepared, jobs);
+    exercise(*cooked, jobs);
 }
 
 /// @brief Removing a live element never redirects its authored ID to another slot.

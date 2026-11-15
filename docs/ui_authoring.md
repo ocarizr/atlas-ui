@@ -56,6 +56,57 @@ persistent texture reference for image residency.
 
 ## Construction and frames
 
+### Prepared UI and materials
+
+`<atlas/ui_content/prepared.hpp>` exposes the typed preparation and construction
+path. A cooker calls `prepare_view(ui_id, options)` on a typed XML mount and
+`encode_prepared` to obtain bytes. The resulting record includes the ordered
+UI descriptors, the material templates and overrides they use, one validated
+schema per referenced ViewModel asset, and a sorted
+table of required asset IDs, types and authored revisions. The table includes
+models, scripts, textures and shaders referenced by the view or its materials.
+
+A runtime can use `decode_prepared` with owned bytes or `load_prepared` to read
+the prepared representation through the streamer. `load_prepared` expects the
+UI asset's normal typed identity and the exact binary extent in the mount.
+`build_prepared` checks all recorded revisions against the active mount before
+building the private runtime instance. It feeds the embedded material descriptors
+and ViewModel schemas to the existing composition path. Separate named model
+contexts share immutable schema metadata and keep independent values. A matching
+generated factory can still supply a fresh ViewModel. Lua, textures and shaders
+use their existing source and residency contracts.
+
+Version 2 is little-endian with an `AUIP` signature, 16-bit version, 32-bit payload
+length and 32-bit FNV-1a payload checksum. The reader checks the complete envelope
+before allocating typed records. It bounds the file at 16 MiB and validates
+counts, references and the exact dependency closure. The checksum detects
+accidental corruption. Asset identity and integrity at distribution boundaries
+belong to the host. The format stores no native handles, paths or C++ object
+layouts. Version 2 adds the ViewModel table. Reprepare bytes produced by the
+earlier UI/material-only development format.
+
+Run `atlas_ui_prepared_benchmark` in Release for warmed decode and decode-plus-build
+P50/P95 measurements on the same 512-element viewport and shared material.
+It measures CPU construction from in-memory inputs. The smoke configuration
+checks XML equivalence and material results without enforcing a timing threshold.
+
+The UI/material-only development format was measured in a local Windows x64
+clang-cl Release run on a Core Ultra 7 265KF with
+40 samples per path after three warmups. The view used canonical XML, one
+shared shape material, and two job workers. Times exclude GPU work and disk I/O.
+
+| Path | P50 | P95 |
+| --- | ---: | ---: |
+| XML decode | 3.77 ms | 4.03 ms |
+| Prepared decode | 0.47 ms | 0.57 ms |
+| XML decode and build | 4.65 ms | 4.88 ms |
+| Prepared decode and build | 1.23 ms | 1.40 ms |
+
+The canonical XML view used 306,540 bytes. The prepared record, including its
+material and dependency table, used 103,004 bytes.
+
+### Owner-thread composition
+
 `load` reads an authored UI from the streamer. The same constructor accepts
 a C++ `document` from a prepared source. Bootstrap reads wait on the owner
 during explicit construction. Streamer jobs deliver buffers and the owner

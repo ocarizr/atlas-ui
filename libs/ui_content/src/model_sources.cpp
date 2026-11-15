@@ -9,6 +9,28 @@ namespace atlas::ui_content::detail
 namespace
 {
 using factory_map = std::map<assets::asset_id, prepared_model>; ///< Indexed prepared candidates.
+using schema_map = std::map<assets::asset_id, prepared_model_schema>; ///< Indexed schema inputs.
+
+/// @brief Validate borrowed prepared schema entries before creating any instances.
+schema_map index_schemas(const construction& options)
+{
+    if (options.model_schemas.size() > max_models)
+    {
+        throw std::invalid_argument("Too many prepared UI schemas");
+    }
+
+    schema_map schemas;
+    for (const auto& entry : options.model_schemas)
+    {
+        if (entry.source.type != assets::asset_type::view_model || !entry.value ||
+            !entry.revision || !schemas.emplace(entry.source.id, entry).second)
+        {
+            throw std::invalid_argument("Invalid or duplicate prepared UI schema");
+        }
+    }
+
+    return schemas;
+}
 
 /// @brief Reject invalid prepared tables before creating model or script state.
 factory_map index_factories(const construction& options)
@@ -32,10 +54,9 @@ factory_map index_factories(const construction& options)
 }
 
 /// @brief Resolve the model type through the mounted catalog, even for native factories.
-std::shared_ptr<mvvm::view_model> make_model(const model_context& context,
-                                             const construction& options,
-                                             const factory_map& factories,
-                                             std::map<assets::asset_id, mvvm::schema>& parsed)
+std::shared_ptr<mvvm::view_model>
+make_model(const model_context& context, const construction& options, const factory_map& factories,
+           const schema_map& schemas, std::map<assets::asset_id, mvvm::schema>& parsed)
 {
     const auto info = options.storage.describe(context.source);
     const auto factory = factories.find(context.source.id);
@@ -54,6 +75,17 @@ std::shared_ptr<mvvm::view_model> make_model(const model_context& context,
         }
 
         return model;
+    }
+
+    if (const auto prepared = schemas.find(info.reference.id); prepared != schemas.end())
+    {
+        if (prepared->second.revision != info.revision)
+        {
+            throw std::invalid_argument("Stale prepared UI schema revision");
+        }
+
+        return std::make_shared<mvvm::view_model>(*prepared->second.value, mvvm::runtime_limits{},
+                                                  options.memory, options.diagnostics);
     }
 
     auto schema = parsed.find(info.reference.id);
@@ -76,11 +108,12 @@ model_map make_models(const document& source, const construction& options)
     model_map models;
     std::map<assets::asset_id, mvvm::schema> parsed;
     const auto factories = index_factories(options);
+    const auto schemas = index_schemas(options);
     for (const auto& context : source.models)
     {
         try
         {
-            models.emplace(context.name, make_model(context, options, factories, parsed));
+            models.emplace(context.name, make_model(context, options, factories, schemas, parsed));
         }
         catch (const std::logic_error& error)
         {

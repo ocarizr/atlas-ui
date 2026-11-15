@@ -1,5 +1,5 @@
 add_library(atlas_mvvm_content STATIC src/scalars.cpp src/xml_validation.cpp src/xml_read.cpp
-    src/xml_write.cpp src/codegen.cpp)
+    src/xml_write.cpp src/codegen.cpp src/prepared.cpp)
 add_library(atlas::mvvm_content ALIAS atlas_mvvm_content)
 target_compile_features(atlas_mvvm_content PUBLIC cxx_std_20)
 target_include_directories(atlas_mvvm_content PUBLIC

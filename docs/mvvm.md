@@ -161,6 +161,13 @@ uses this runtime; visual authoring belongs to
 
 ## Native factories and packaging boundary
 
+The standalone `<atlas/mvvm_content/prepared.hpp>` API encodes authored definitions
+and decodes immutable schemas with the same validation used by XML. The `AVMP`
+v1 envelope carries typed defaults and ordered action/event protocols. Runtime
+instances built from the same decoded schema share its metadata and own their
+state. The prepared UI format embeds these definitions and checks their typed
+asset IDs and revisions through the runtime catalog.
+
 `generate_factory_cpp(definition, "make_hud")` returns C++20 source defining
 `atlas::generated::make_hud(runtime_limits, shared_memory, diagnostics)`. Compiling
 it produces a function returning an owning `std::unique_ptr<view_model>`. The
@@ -173,13 +180,10 @@ defaults use exact bit reconstruction. Schema limits are carried into generated
 construction. A build test generates a real translation unit from XML, compiles it
 and compares the resulting model with interpreted construction.
 
-This implements factory generation, not the complete cooking/linking pipeline or
-a portable bundle format. The compiled factory is native executable code; dumping
-instance memory would serialize pointers/allocator state and is not a supported
-binary format. A future packaging step can compile/link generated factories and
-map catalog identities to them, alongside versioned binary content. Rebuilding
-native factories does not provide hot reload, cross-version state migration or an
-editor implementation by itself.
+Packaging can map catalog identities to generated native factories alongside
+versioned binary content. The prepared definition stores authored data. The
+factory constructs schema metadata and fresh instances through the same MVVM
+entry points.
 
 ## Bounds, diagnostics and performance
 
