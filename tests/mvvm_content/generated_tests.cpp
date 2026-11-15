@@ -1,5 +1,6 @@
 /** @file @brief Compile and execute an XML-generated native factory with no runtime parser call. */
 #include <atlas/mvvm_content/document.hpp>
+#include <atlas/mvvm_content/prepared.hpp>
 #include <bit>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -41,15 +42,21 @@ TEST(mvvm_codegen, CompiledFactoryMatchesInterpretedModelAndSharesItsSchema)
     ASSERT_TRUE(stream);
     const std::string xml{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
     mvvm::view_model interpreted{mvvm::compile(parse_xml(xml))};
+    const auto prepared_bytes = encode_prepared(parse_xml(xml));
+    mvvm::view_model prepared{decode_prepared(prepared_bytes)};
     auto generated = atlas::generated::make_fixture();
     std::shared_ptr<mvvm::view_model> another = atlas::generated::make_fixture();
     for (const auto& field : interpreted.description().describe().fields)
     {
         EXPECT_EQ(interpreted.read(interpreted.description().field(field.name)),
                   generated->read(generated->description().field(field.name)));
+        EXPECT_EQ(interpreted.read(interpreted.description().field(field.name)),
+                  prepared.read(prepared.description().field(field.name)));
     }
 
     EXPECT_EQ(generated->description().identity(), another->description().identity());
+    EXPECT_EQ(write_xml(interpreted.description().describe()),
+              write_xml(prepared.description().describe()));
     EXPECT_EQ(std::bit_cast<std::uint64_t>(
                   generated->number(generated->description().field("negative_zero"))),
               std::bit_cast<std::uint64_t>(-0.0));
@@ -57,6 +64,18 @@ TEST(mvvm_codegen, CompiledFactoryMatchesInterpretedModelAndSharesItsSchema)
     generated->set(generated->description().field("xp"), std::int64_t{11});
     generated->flush();
     EXPECT_EQ(another->integer(another->description().field("xp")), 7);
+}
+
+/// @brief A corrupted or foreign prepared version cannot publish a schema.
+TEST(mvvm_prepared, RejectsInvalidEnvelope)
+{
+    const auto bytes = encode_prepared({"hud"});
+    auto corrupted = bytes;
+    corrupted.back() ^= std::byte{1};
+    EXPECT_THROW((void)decode_prepared(corrupted), std::invalid_argument);
+    corrupted = bytes;
+    corrupted.at(4) = std::byte{255};
+    EXPECT_THROW((void)decode_prepared(corrupted), std::invalid_argument);
 }
 
 /// @brief Source escaping and function identifiers cannot inject executable statements.

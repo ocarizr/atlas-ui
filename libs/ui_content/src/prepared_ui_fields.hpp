@@ -1,6 +1,7 @@
 /** @file @brief Prepared v1 codecs for typed UI layout, appearance and bindings. */
 #pragma once
 #include "prepared_material_fields.hpp"
+#include <atlas/mvvm_content/detail/prepared_definition.hpp>
 
 namespace atlas::ui_content::detail
 {
@@ -105,38 +106,6 @@ template <class Archive> void appearance_fields(Archive& format, element& node)
     format.optional(node.material, reference);
 }
 
-/// @brief Keep the v1 action scalar type independent of its serialized value.
-inline constexpr auto argument_fields = [](auto& format, mvvm::value& value)
-{
-    auto tag = mvvm::type_of(value);
-    format.choice(tag, mvvm::value_type::text);
-    if constexpr (std::remove_reference_t<decltype(format)>::reading)
-    {
-        switch (tag)
-        {
-            case mvvm::value_type::boolean:
-                value = false;
-                break;
-            case mvvm::value_type::integer:
-                value = std::int64_t{};
-                break;
-            case mvvm::value_type::number:
-                value = double{};
-                break;
-            case mvvm::value_type::text:
-                value = std::string{};
-                break;
-        }
-    }
-
-    std::visit(
-        [&](auto& field)
-        {
-            format.field(field);
-        },
-        value);
-};
-
 /// @brief Encode MVVM binding and event declarations and optional Lua attachment.
 template <class Archive> void binding_fields(Archive& format, element& node)
 {
@@ -155,7 +124,8 @@ template <class Archive> void binding_fields(Archive& format, element& node)
                         archive.choice(action.event, ui::event_kind::ensure_visible);
                         archive.choice(action.route, ui::route_phase::bubble);
                         archive.choice(action.input_phase, input::action_phase::cancelled);
-                        archive.sequence(action.arguments, 32, argument_fields);
+                        archive.sequence(action.arguments, 32,
+                                         mvvm_content::detail::prepared_scalar);
                     });
     format.optional(node.script,
                     [](auto& archive, behavior& value)

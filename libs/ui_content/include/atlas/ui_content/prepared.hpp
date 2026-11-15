@@ -21,6 +21,13 @@ struct prepared_material_record
     material_document value;  ///< Validated template or sparse override.
 };
 
+/// @brief Immutable ViewModel schema whose identity and revision remain catalog-backed.
+struct prepared_model_record
+{
+    assets::asset_ref source;          ///< Shared source for any number of named model contexts.
+    std::optional<mvvm::schema> value; ///< Validated schema owning fields and signal protocols.
+};
+
 /// @brief Typed intermediate representation independent of XML and backing storage.
 struct prepared_view
 {
@@ -28,11 +35,12 @@ struct prepared_view
     document view;                                   ///< Ordered view authoring data.
     std::vector<prepared_dependency> dependencies;   ///< Sorted closure including the view itself.
     std::vector<prepared_material_record> materials; ///< Sorted transitive material descriptors.
+    std::vector<prepared_model_record> models;       ///< Sorted unique ViewModel definitions.
 };
 
 /// @brief Prepare the current XML UI revision and its material closure from a catalog mount.
 [[nodiscard]] prepared_view prepare_view(assets::asset_ref source, const construction& options);
-/// @brief Encode the typed data as bounded, deterministic v1 bytes.
+/// @brief Encode the typed data as bounded, deterministic prepared bytes.
 [[nodiscard]] std::vector<std::byte> encode_prepared(const prepared_view& source);
 /// @brief Validate and decode a complete prepared payload without parsing XML.
 [[nodiscard]] prepared_view decode_prepared(std::span<const std::byte> bytes);

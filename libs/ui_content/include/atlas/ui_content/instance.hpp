@@ -23,6 +23,14 @@ struct prepared_model
     model_factory make;       ///< Construct a fresh instance per named context.
 };
 
+/// @brief Revision-checked schema borrowed only during construction.
+struct prepared_model_schema
+{
+    assets::asset_ref source;            ///< Catalog ViewModel identity.
+    std::uint64_t revision = 0;          ///< Authored revision represented by the schema.
+    const mvvm::schema* value = nullptr; ///< Immutable schema used for independent instances.
+};
+
 /// @brief Explicit startup services borrowed or retained by a composed UI instance.
 struct construction
 {
@@ -34,6 +42,7 @@ struct construction
     scripting::script_diagnostics_options script_diagnostics{}; ///< Explicit Lua opt-in.
     std::span<const scripting::service_definition> services{};  ///< Host capabilities at startup.
     std::span<const prepared_material> materials{}; ///< Optional prepared authored materials.
+    std::span<const prepared_model_schema> model_schemas{}; ///< Optional prepared schemas.
 };
 
 /// @brief Acquire an authored UI document through a typed catalog mount.

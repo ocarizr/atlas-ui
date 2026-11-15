@@ -3,7 +3,9 @@
 #include "material_validation.hpp"
 #include "prepared_binary.hpp"
 #include "storage.hpp"
+#include <atlas/mvvm_content/document.hpp>
 #include <map>
+#include <ranges>
 #include <set>
 
 namespace atlas::ui_content
@@ -165,7 +167,17 @@ void detail::validate_prepared(const prepared_view& source)
 
                     return *found->second;
                 });
-    if (!std::ranges::equal(source.dependencies, closure,
+    auto models = closure | std::views::filter(
+                                [](assets::asset_ref ref)
+                                {
+                                    return ref.type == assets::asset_type::view_model;
+                                });
+    if (!std::ranges::equal(source.models, models,
+                            [](const auto& entry, assets::asset_ref ref)
+                            {
+                                return entry.source == ref && entry.value.has_value();
+                            }) ||
+        !std::ranges::equal(source.dependencies, closure,
                             [](const auto& record, const auto& reference)
                             {
                                 return record.revision != 0 && record.source == reference;
@@ -208,7 +220,16 @@ prepared_view prepare_view(assets::asset_ref source, const construction& options
                 });
     for (const auto& ref : closure)
     {
-        result.dependencies.push_back({ref, options.storage.describe(ref).revision});
+        const auto info = options.storage.describe(ref);
+        result.dependencies.push_back({ref, info.revision});
+        if (ref.type == assets::asset_type::view_model)
+        {
+            const mvvm_content::content_limits limits;
+            const auto bytes = detail::acquire(info, limits.max_bytes, options);
+            const auto definition = mvvm_content::parse_xml(bytes, limits, options.diagnostics);
+            result.models.push_back(
+                {ref, mvvm::compile(definition, limits.schema, options.diagnostics)});
+        }
     }
 
     for (auto& [ref, material] : materials)
@@ -245,9 +266,9 @@ std::unique_ptr<instance> build_prepared(const prepared_view& source, const cons
                                              {"ui.prepared.build", "ui.content"}};
     detail::validate_prepared(source);
     validate_mount(source, options);
-    if (!options.materials.empty())
+    if (!options.materials.empty() || !options.model_schemas.empty())
     {
-        throw std::invalid_argument("Prepared UI already owns its material descriptors");
+        throw std::invalid_argument("Prepared UI already owns its materials and model schemas");
     }
 
     std::vector<prepared_material> materials;
@@ -259,8 +280,21 @@ std::unique_ptr<instance> build_prepared(const prepared_view& source, const cons
         materials.push_back({record.source, match->revision, &record.value});
     }
 
+    std::vector<prepared_model_schema> models;
+    models.reserve(source.models.size());
+    for (const auto& record : source.models)
+    {
+        const auto match = std::ranges::lower_bound(source.dependencies, record.source, {},
+                                                    &prepared_dependency::source);
+        if (record.value)
+        {
+            models.push_back({record.source, match->revision, &*record.value});
+        }
+    }
+
     auto resolved = options;
     resolved.materials = materials;
+    resolved.model_schemas = models;
     return instance::build(source.view, resolved);
 }
 } // namespace atlas::ui_content

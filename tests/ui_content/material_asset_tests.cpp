@@ -190,12 +190,17 @@ TEST(ui_material_assets, PreparedViewLoadsCompleteMaterialClosureFromBinary)
     const material_instance replacement{base, {{ui::property::material_alpha, 0.25F}}, {}};
     const auto variant =
         data.add("override.xml", assets::asset_type::material, write_material_xml(replacement));
-    const auto authored = screen(variant, variant);
+    auto authored = screen(variant, variant);
+    const auto model = data.add(
+        "hud.xml", assets::asset_type::view_model,
+        R"(<ViewModel version="1" name="hud"><Fields><Field name="xp" type="integer" value="7"/></Fields></ViewModel>)");
+    authored.models = {{"left", model}, {"right", model}};
     const auto source = data.add("screen.xml", assets::asset_type::ui, write_xml(authored));
     const auto loose = data.mount(jobs);
     const auto cooked = prepare_view(source, {*loose});
-    EXPECT_EQ(cooked.dependencies.size(), 4U);
+    EXPECT_EQ(cooked.dependencies.size(), 5U);
     EXPECT_EQ(cooked.materials.size(), 2U);
+    EXPECT_EQ(cooked.models.size(), 1U);
     const auto bytes = encode_prepared(cooked);
     auto missing = cooked;
     missing.dependencies.erase(missing.dependencies.begin());
@@ -208,6 +213,7 @@ TEST(ui_material_assets, PreparedViewLoadsCompleteMaterialClosureFromBinary)
                  false);
     data.replace(base, "base.xml", "unavailable as XML", false);
     data.replace(variant, "override.xml", "unavailable as XML", false);
+    data.replace(model, "hud.xml", "unavailable as XML", false);
     const auto packed = data.mount(jobs);
     const auto decoded = load_prepared(source, {*packed});
     const auto xml = instance::build(authored, {*loose});
@@ -215,6 +221,13 @@ TEST(ui_material_assets, PreparedViewLoadsCompleteMaterialClosureFromBinary)
     EXPECT_EQ(prepared->texture("root"), image);
     EXPECT_EQ(prepared->tree().material(prepared->find("root")),
               xml->tree().material(xml->find("root")));
+    auto& left = prepared->model("left");
+    auto& right = prepared->model("right");
+    EXPECT_EQ(left.description().identity(), right.description().identity());
+    left.begin_frame(2);
+    left.set(left.description().field("xp"), std::int64_t{15});
+    left.flush();
+    EXPECT_EQ(right.integer(right.description().field("xp")), 7);
 
     data.replace(image, "icon.bin", "revised image", true);
     const auto stale = data.mount(jobs);
