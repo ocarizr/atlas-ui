@@ -35,8 +35,9 @@ components:
     paths:
     - libs/ui_content/**
     - tests/ui_content/**
+    - benchmarks/ui_content/**
     depends_on: [streaming, mvvm-content, ui-mvvm, ui-scripting]
-    build_targets: [atlas_ui_content, atlas_ui_content_tests]
+    build_targets: [atlas_ui_content, atlas_ui_content_tests, atlas_ui_prepared_benchmark]
     test_labels: [ui-content]
     build_requires: [streaming, mvvm-content, ui-mvvm, ui-scripting]
     vendors: [testing, content]

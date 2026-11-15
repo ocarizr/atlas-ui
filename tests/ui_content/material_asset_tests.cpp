@@ -1,5 +1,5 @@
 /** @file @brief Persistent materials composed through an isolated typed memory mount. */
-#include <atlas/ui_content/instance.hpp>
+#include <atlas/ui_content/prepared.hpp>
 #include <gtest/gtest.h>
 
 namespace atlas::ui_content::tests
@@ -33,14 +33,15 @@ struct material_assets
                                                              backing);
     }
 
-    /// @brief Replace a catalog record and backing route without changing persistent identity.
-    void revise(assets::asset_ref asset, const std::string& name, const std::string& bytes)
+    /// @brief Replace a representation with optional authored revision advancement.
+    void replace(assets::asset_ref asset, const std::string& name, const std::string& bytes,
+                 bool authored_change)
     {
         for (auto& record : draft.records)
         {
             if (record.reference == asset)
             {
-                ++record.revision;
+                record.revision += authored_change ? 1U : 0U;
                 record.byte_size = bytes.size();
             }
         }
@@ -49,7 +50,7 @@ struct material_assets
         {
             if (route.reference == asset)
             {
-                ++route.revision;
+                route.revision += authored_change ? 1U : 0U;
             }
         }
 
@@ -108,7 +109,7 @@ TEST(ui_material_assets, InheritsWithSparseTextureAndScalarOverrides)
     EXPECT_EQ(view->tree().material(root), base_style);
     EXPECT_TRUE(view->materials_current(*storage));
     defaults.defaults.uv_scale = {0.75F, 1};
-    data.revise(base, "template.xml", write_material_xml(defaults));
+    data.replace(base, "template.xml", write_material_xml(defaults), true);
     const auto replacement_mount = data.mount(jobs);
     EXPECT_FALSE(view->materials_current(*replacement_mount));
     const auto rebuilt = instance::build(definition, {*replacement_mount});
@@ -174,5 +175,49 @@ TEST(ui_material_assets, RejectsMalformedMaterialXml)
     {
         EXPECT_THROW((void)parse_material_xml({xml}), std::invalid_argument) << xml;
     }
+}
+
+/// @brief Cook a transitive override, then build from a mount without readable material XML.
+TEST(ui_material_assets, PreparedViewLoadsCompleteMaterialClosureFromBinary)
+{
+    jobs::job_system jobs{2};
+    material_assets data;
+    const auto image = data.add("icon.bin", assets::asset_type::texture, "image");
+    material_template style;
+    style.texture = image;
+    style.defaults.uv_scale = {0.5F, 1.F};
+    const auto base = data.add("base.xml", assets::asset_type::material, write_material_xml(style));
+    const material_instance replacement{base, {{ui::property::material_alpha, 0.25F}}, {}};
+    const auto variant =
+        data.add("override.xml", assets::asset_type::material, write_material_xml(replacement));
+    const auto authored = screen(variant, variant);
+    const auto source = data.add("screen.xml", assets::asset_type::ui, write_xml(authored));
+    const auto loose = data.mount(jobs);
+    const auto cooked = prepare_view(source, {*loose});
+    EXPECT_EQ(cooked.dependencies.size(), 4U);
+    EXPECT_EQ(cooked.materials.size(), 2U);
+    const auto bytes = encode_prepared(cooked);
+    auto missing = cooked;
+    missing.dependencies.erase(missing.dependencies.begin());
+    EXPECT_THROW((void)encode_prepared(missing), std::invalid_argument);
+    missing = cooked;
+    missing.materials.erase(missing.materials.begin());
+    EXPECT_THROW((void)encode_prepared(missing), std::invalid_argument);
+
+    data.replace(source, "screen.xml", {reinterpret_cast<const char*>(bytes.data()), bytes.size()},
+                 false);
+    data.replace(base, "base.xml", "unavailable as XML", false);
+    data.replace(variant, "override.xml", "unavailable as XML", false);
+    const auto packed = data.mount(jobs);
+    const auto decoded = load_prepared(source, {*packed});
+    const auto xml = instance::build(authored, {*loose});
+    const auto prepared = build_prepared(decoded, {*packed});
+    EXPECT_EQ(prepared->texture("root"), image);
+    EXPECT_EQ(prepared->tree().material(prepared->find("root")),
+              xml->tree().material(xml->find("root")));
+
+    data.replace(image, "icon.bin", "revised image", true);
+    const auto stale = data.mount(jobs);
+    EXPECT_THROW((void)build_prepared(decoded, {*stale}), std::invalid_argument);
 }
 } // namespace atlas::ui_content::tests
