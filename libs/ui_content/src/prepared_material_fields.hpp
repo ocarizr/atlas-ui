@@ -35,19 +35,19 @@ inline constexpr auto material_style_fields = [](auto& format, ui::material_styl
 inline constexpr auto material_record_fields = [](auto& format, prepared_material_record& record)
 {
     reference(format, record.source);
-    auto* base = std::get_if<material_template>(&record.value);
-    bool is_template = base != nullptr;
+    bool is_template = std::holds_alternative<material_template>(record.value);
     format.field(is_template);
     if (is_template)
     {
         if constexpr (std::remove_reference_t<decltype(format)>::reading)
         {
-            base = &record.value.template emplace<material_template>();
+            record.value.template emplace<material_template>();
         }
 
-        material_style_fields(format, base->defaults);
-        format.optional(base->shader, reference);
-        format.optional(base->texture, reference);
+        auto& base = std::get<material_template>(record.value);
+        material_style_fields(format, base.defaults);
+        format.optional(base.shader, reference);
+        format.optional(base.texture, reference);
         return;
     }
 
