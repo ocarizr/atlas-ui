@@ -1,7 +1,7 @@
 # GPU resources and transfers
 
 The renderer provides `resource_store`, a platform-neutral device-coordinator
-API for buffers, single-mip RGBA8 UNORM textures, shader-resource descriptors and
+API for buffers, typed 2D textures, shader-resource descriptors and
 bounded uploads. Native implementation remains selected by
 `ATLAS_TARGET_PLATFORM=windows` and `ATLAS_BUILD_WINDOWS_INTEGRATION`. There is no storage
 access or widget dependency. Resources integrate with
@@ -71,8 +71,9 @@ resources.collect();
 ```
 
 New resources have no initialized contents. Uploads must cover the exact entire
-buffer or tight RGBA mip; partial writes, extra bytes, mips, arrays and other pixel
-formats are outside this increment. The upload snapshots caller bytes into native
+buffer or tight mip chain. The texture format determines the byte width, and
+sampled textures pack their levels in ascending order with no gaps. The upload
+snapshots caller bytes into native
 staging before returning. Source buffers may then be released; command allocators,
 lists, staging and destination references remain pinned through the returned fence.
 Texture rows use native copy footprints rather than assuming a tightly packed GPU

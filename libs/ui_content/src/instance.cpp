@@ -37,6 +37,22 @@ std::optional<assets::asset_ref> instance::texture(std::string_view id) const
     return found == impl_->textures.end() ? std::nullopt : std::optional{found->second};
 }
 
+/// @brief Borrow immutable HLSL and keys; native compilation belongs to the renderer owner.
+std::span<const material_shader_source> instance::material_shaders() const
+{
+    return impl_->material_shaders;
+}
+
+/// @brief Reject a composition whose material dependency belongs to a superseded mount.
+bool instance::materials_current(const streaming::catalog_streamer& storage) const noexcept
+{
+    return std::ranges::all_of(impl_->material_dependencies,
+                               [&](const auto& dependency)
+                               {
+                                   return storage.accepts(dependency.second);
+                               });
+}
+
 /// @brief Resolve a named model without exposing its runtime schema slots in authoring data.
 mvvm::view_model& instance::model(std::string_view context)
 {

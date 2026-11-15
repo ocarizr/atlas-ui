@@ -33,9 +33,9 @@ class resource_backend
     virtual std::uint64_t transition(const std::shared_ptr<gpu_resource>& resource,
                                      resource_state before,
                                      resource_state after) = 0; ///< Submit explicit barrier.
-    virtual std::vector<std::byte> readback(
-        const std::shared_ptr<gpu_resource>& resource,
-        resource_state before) = 0; ///< Blocking diagnostic transfer restoring scheduled state.
+    virtual std::vector<std::byte>
+    readback(const std::shared_ptr<gpu_resource>& resource, resource_state before,
+             std::uint16_t mip) = 0; ///< Blocking diagnostic transfer restoring scheduled state.
     virtual std::uint64_t completed() const = 0; ///< Observe device removal and queue completion.
     virtual std::uint64_t issued() const = 0;    ///< Last known device-wide submission.
     virtual void wait(std::uint64_t value) = 0;  ///< Coordinator-only bounded wait.

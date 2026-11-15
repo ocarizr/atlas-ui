@@ -5,6 +5,8 @@
 
 namespace atlas::renderer::detail
 {
+DXGI_FORMAT native_format(texture_format format); ///< Map an explicit storage/view format.
+
 /// @brief Single owner of both the resource and its D3D12MA placement range.
 class native_resource final : public gpu_resource
 {
@@ -60,7 +62,7 @@ class native_resources final : public resource_backend
                              resource_state after) override;
     /// @brief Copy initialized GPU data to CPU bytes and restore the scheduled resource state.
     std::vector<std::byte> readback(const std::shared_ptr<gpu_resource>& resource,
-                                    resource_state before) override;
+                                    resource_state before, std::uint16_t mip) override;
     /// @brief Observe queue completion and reject device-removal sentinels.
     std::uint64_t completed() const override;
 
@@ -94,8 +96,8 @@ class native_resources final : public resource_backend
         context->drain_noexcept();
     }
 
-    transfer_batch begin(const std::shared_ptr<gpu_resource>&
-                             destination); ///< Admit recording resources before submission.
+    transfer_batch begin(const std::shared_ptr<gpu_resource>& destination,
+                         std::uint64_t upload_bytes = 0); ///< Admit a bounded transfer batch.
     std::uint64_t
     submit(transfer_batch batch); ///< Signal and retain with no post-execute allocation.
     com_ptr<D3D12MA::Allocation>
@@ -111,7 +113,7 @@ class native_resources final : public resource_backend
 };
 
 D3D12_RESOURCE_DESC buffer_desc(std::uint64_t size); ///< Describe a byte-addressed buffer.
-D3D12_RESOURCE_DESC texture_desc(texture_description description); ///< Describe one RGBA8 mip.
+D3D12_RESOURCE_DESC texture_desc(texture_description description); ///< Describe typed mip storage.
 D3D12_RESOURCE_STATES native_state(resource_state state,
                                    bool texture); ///< Translate portable scheduled states.
 void barrier(ID3D12GraphicsCommandList& commands, ID3D12Resource* resource,

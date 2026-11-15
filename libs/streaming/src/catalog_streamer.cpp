@@ -150,6 +150,13 @@ assets::asset_info catalog_streamer::describe(assets::asset_ref reference) const
     return impl_->metadata.resolve(reference);
 }
 
+/// @brief Use the same publication identity for metadata-only dependencies and reads.
+read_stamp catalog_streamer::stamp(assets::asset_ref reference) const
+{
+    const auto info = describe(reference);
+    return {info.reference, info.revision, impl_->generation};
+}
+
 /// @brief Check the logical extent before translating to the raw backing offset.
 std::future<void> catalog_streamer::read(typed_read_request request,
                                          typed_read_completion completion, read_options options)

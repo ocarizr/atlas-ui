@@ -153,7 +153,7 @@ class resource_store::impl
         found->charge = charge;
         if constexpr (std::is_same_v<Tag, texture_tag>)
         {
-            found->payload = static_cast<std::size_t>(description.width) * description.height * 4;
+            found->payload = description.payload_size();
             found->texture = true;
             found->description = description;
         }
@@ -244,9 +244,15 @@ class resource_store::impl
     }
 
     /// @brief Copy initialized GPU data to CPU bytes and restore the scheduled resource state.
-    template <class Tag> std::vector<std::byte> readback(resource_handle<Tag> handle)
+    template <class Tag>
+    std::vector<std::byte> readback(resource_handle<Tag> handle, std::uint16_t mip = 0)
     {
         auto& entry = get(handle);
+        if (mip >= entry.description.mip_levels)
+        {
+            throw std::invalid_argument("readback mip exceeds the allocated texture chain");
+        }
+
         if (!entry.initialized)
         {
             throw std::logic_error("resource must be fully initialized before readback");
@@ -254,7 +260,7 @@ class resource_store::impl
 
         const diagnostics::operation_scope scope{destinations,
                                                  {"resource.readback", "renderer.cpu_wait"}};
-        return backend->readback(entry.allocation, entry.state);
+        return backend->readback(entry.allocation, entry.state, mip);
     }
 
     bool submitting = false; ///< Coordinator-only transaction guard across joined recording.

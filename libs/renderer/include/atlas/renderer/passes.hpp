@@ -21,7 +21,8 @@ enum class shader_program : std::uint8_t
 {
     colored,  ///< Interpolated vertex color.
     textured, ///< Texture multiplied by interpolated color.
-    custom    ///< Trusted HLSL; b0 transform/tint, pixel t0 and s0 only.
+    custom,   ///< Trusted HLSL using the documented draw and material bindings.
+    coverage  ///< R8 linear coverage modulates glyph or mask opacity.
 };
 /// @brief Color composition policy, independent of UI concepts.
 enum class blend_mode : std::uint8_t
@@ -38,6 +39,14 @@ enum class depth_mode : std::uint8_t
     read_only   ///< Less-or-equal comparison without depth writes.
 };
 
+/// @brief Optional exact pixel resource contract for reusable material shader families.
+enum class pixel_resource_policy : std::uint8_t
+{
+    infer,                ///< Preserve the generic shader reflection behavior.
+    constants_only,       ///< Require 64 bytes at pixel b1 and forbid t0.
+    constants_and_texture ///< Require 16 bytes at pixel b1 and a texture at t0.
+};
+
 /// @brief Immutable pipeline creation input; no shader file access is performed.
 struct pipeline_description
 {
@@ -48,7 +57,12 @@ struct pipeline_description
     std::string source;                       ///< Custom shader source, bounded to 1 MiB.
     std::string vertex_entry = "vertex_main"; ///< Custom vertex entry identifier.
     std::string pixel_entry = "pixel_main";   ///< Custom pixel entry identifier.
-    void validate() const; ///< Reject unsupported enums and malformed shader inputs.
+    bool pixel_parameters = false;            ///< Opt in to sixteen float constants at pixel b1.
+    texture_format color_format = texture_format::rgba8_unorm; ///< Required attachment format.
+    pixel_resource_policy pixel_resources = pixel_resource_policy::infer; ///< Reflection policy.
+    bool builtin_vertex = false; ///< Use the fixed vertex shader with a custom pixel program.
+    void validate() const;       ///< Reject unsupported enums and malformed shader inputs.
+    bool operator==(const pipeline_description&) const = default; ///< Compare all cache inputs.
 };
 /// @brief Distinct identity for fence-retired graphics pipelines.
 struct pipeline_tag;
@@ -86,6 +100,7 @@ struct draw_packet
     std::array<float, 4> tint{1, 1, 1, 1};                   ///< b0 color multiplier.
     std::optional<pixel_rectangle> scissor;                  ///< Defaults to the full attachment.
     std::optional<pixel_viewport> viewport;                  ///< Defaults to the full attachment.
+    std::array<float, 16> pixel_parameters{};                ///< Optional custom shader b1 payload.
 };
 /// @brief Attachment initialization contract.
 enum class load_action : std::uint8_t

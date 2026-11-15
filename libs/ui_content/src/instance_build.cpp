@@ -1,6 +1,7 @@
 /** @file @brief Prepare a complete tree, model graph and shared-domain candidate. */
 #include "document_validation.hpp"
 #include "instance_state.hpp"
+#include "material_sources.hpp"
 #include "routes.hpp"
 
 namespace atlas::ui_content
@@ -85,16 +86,25 @@ void instance::impl::bind_properties(const element& node, ui::element_handle tar
 void instance::impl::bind_elements(const document& source, const construction& options)
 {
     std::set<assets::asset_id> registered;
+    detail::material_sources materials{options};
     for (const auto& node : source.elements)
     {
         try
         {
             const auto target = elements.at(node.id);
             bind_properties(node, target);
-            if (node.texture)
+            auto texture = node.texture;
+            if (node.material)
             {
-                (void)options.storage.describe(*node.texture);
-                textures.emplace(node.id, *node.texture);
+                const auto& material = materials.resolve(*node.material);
+                tree.set_material(target, material.style);
+                texture = material.texture;
+            }
+
+            if (texture)
+            {
+                (void)options.storage.describe(*texture);
+                textures.emplace(node.id, *texture);
             }
 
             if (node.interaction || !node.actions.empty() || node.script)
@@ -108,6 +118,9 @@ void instance::impl::bind_elements(const document& source, const construction& o
             throw std::invalid_argument("UI element " + node.id + ": " + error.what());
         }
     }
+
+    material_dependencies = std::move(materials.dependencies);
+    material_shaders = std::move(materials.shaders);
 }
 
 /// @brief Validate all inputs before the candidate can become the active UI.

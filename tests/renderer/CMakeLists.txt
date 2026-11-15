@@ -10,6 +10,7 @@ if(ATLAS_BUILD_WINDOWS_INTEGRATION)
         ../platform/windows/renderer/diagnostics_tests.cpp)
     target_sources(atlas_renderer_tests PRIVATE ../platform/windows/renderer/resource_transfer_tests.cpp
         ../platform/windows/renderer/pass_execution_tests.cpp
+        ../platform/windows/renderer/format_tests.cpp
         ../platform/windows/renderer/pass_validation_tests.cpp
         ../platform/windows/renderer/pass_shader_tests.cpp
         ../platform/windows/renderer/pass_presentation_tests.cpp

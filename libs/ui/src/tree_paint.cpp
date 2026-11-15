@@ -35,6 +35,11 @@ void element_tree::set_paint(element_handle target, const paint_style& style)
     const auto entity = impl_->slots[index].entity;
     auto& node = impl_->at(index);
     auto appearance = style;
+    if (appearance.material)
+    {
+        validate_material(*appearance.material);
+    }
+
     appearance.translation = {};
     appearance.scale = {1, 1};
     appearance.rotation = 0;
@@ -76,5 +81,19 @@ paint_style element_tree::paint(element_handle target) const
     style.scale = node.scale;
     style.rotation = node.rotation;
     return style;
+}
+
+/// @brief Resolve a material value into the existing sparse paint component.
+void element_tree::set_material(element_handle target, const material_style& value)
+{
+    auto style = paint(target);
+    style.material = value;
+    set_paint(target, style);
+}
+
+/// @brief Copy the material without exposing storage to animation or renderer callers.
+std::optional<material_style> element_tree::material(element_handle target) const
+{
+    return paint(target).material;
 }
 } // namespace atlas::ui

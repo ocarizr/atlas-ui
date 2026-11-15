@@ -13,21 +13,24 @@ struct native_pipeline final : gpu_pipeline
 {
     com_ptr<ID3D12RootSignature> root;  ///< b0 constants, pixel t0, static s0.
     com_ptr<ID3D12PipelineState> state; ///< Immutable graphics state.
+    bool pixel_parameters = false;      ///< Additional pixel constants in this root signature.
 };
 
 /// @brief Compiler output includes reflection-derived texture requirements.
 struct compiled_shader
 {
-    com_ptr<IDxcBlob> code; ///< DXIL executable bytes.
-    bool textured = false;  ///< Pixel shader reads the validated t0 binding.
+    com_ptr<IDxcBlob> code;                  ///< DXIL executable bytes.
+    bool textured = false;                   ///< Pixel shader reads the validated t0 binding.
+    std::uint32_t pixel_parameter_bytes = 0; ///< Reflected size of the optional pixel b1 binding.
 };
 
 /// @brief Named compiler inputs avoid interchangeable source/entry arguments.
 struct shader_input
 {
-    std::string_view source; ///< Borrowed HLSL source.
-    std::string_view entry;  ///< Validated entry identifier.
-    bool pixel = false;      ///< Pixel or vertex stage.
+    std::string_view source;       ///< Borrowed HLSL source.
+    std::string_view entry;        ///< Validated entry identifier.
+    bool pixel = false;            ///< Pixel or vertex stage.
+    bool pixel_parameters = false; ///< Pixel b1 opt-in.
 };
 
 compiled_shader

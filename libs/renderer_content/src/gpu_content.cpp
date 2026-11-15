@@ -1,14 +1,13 @@
 /** @file @brief Fenced texture ownership and exact-description pipeline reuse. */
 #include <algorithm>
 #include <atlas/renderer_content/gpu_content.hpp>
-#include <tuple>
 
 namespace atlas::renderer_content
 {
 /// @brief Validate before allocation; roll back all partial native admission on failure.
 texture_upload::texture_upload(renderer::resource_store& resources,
                                std::shared_ptr<const image_data> image,
-                               diagnostics::services destinations)
+                               diagnostics::services destinations, renderer::texture_format format)
     : resources_(resources), image_(std::move(image)), destinations_(std::move(destinations))
 {
     const diagnostics::operation_scope scope{destinations_,
@@ -18,10 +17,17 @@ texture_upload::texture_upload(renderer::resource_store& resources,
         throw std::invalid_argument("texture upload needs decoded pixels");
     }
 
+    if (format != renderer::texture_format::rgba8_unorm &&
+        format != renderer::texture_format::rgba8_srgb)
+    {
+        throw std::invalid_argument("decoded RGBA upload requires a linear or sRGB RGBA8 format");
+    }
+
     image_->validate();
     try
     {
-        binding_.texture = resources_.create_texture({image_->width, image_->height});
+        binding_.texture = resources_.create_texture(
+            {image_->width, image_->height, renderer::texture_role::sampled, format});
         completion_ = resources_.upload(binding_.texture, image_->pixels);
         binding_.view = resources_.create_view(binding_.texture);
     }
@@ -130,15 +136,10 @@ renderer::pipeline_handle pipeline_cache::get(const renderer::pipeline_descripti
     const diagnostics::operation_scope scope{destinations_,
                                              {"content.pipeline.get", "content.cpu"}};
     description.validate();
-    const auto key = [](const auto& value)
-    {
-        return std::tie(value.program, value.blend, value.depth, value.linear_sampling,
-                        value.source, value.vertex_entry, value.pixel_entry);
-    };
     const auto found = std::find_if(entries_.begin(), entries_.end(),
                                     [&](const auto& value)
                                     {
-                                        return key(value.description) == key(description);
+                                        return value.description == description;
                                     });
     if (found != entries_.end())
     {

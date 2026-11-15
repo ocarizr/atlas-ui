@@ -43,20 +43,80 @@ bool compatible(const renderer::draw_packet& a, const renderer::draw_packet& b)
     const auto& x = *a.scissor;
     const auto& y = *b.scissor;
     return a.pipeline == b.pipeline && a.texture == b.texture && x.left == y.left &&
-           x.top == y.top && x.right == y.right && x.bottom == y.bottom;
+           x.top == y.top && x.right == y.right && x.bottom == y.bottom && a.tint == b.tint &&
+           a.pixel_parameters == b.pixel_parameters;
+}
+
+/// @brief Resolve a prepared shader key before any buffer upload or native draw.
+renderer::pipeline_handle select_pipeline(const ui::material_style& material,
+                                          const paint_pipelines& pipelines)
+{
+    if (material.shader == 0)
+    {
+        return material.kind == ui::material_kind::shape ? pipelines.shape_material
+                                                         : pipelines.texture_material;
+    }
+
+    const auto found = pipelines.custom.find(material.shader);
+    if (found == pipelines.custom.end() || found->second.kind != material.kind)
+    {
+        throw std::invalid_argument("Unresolved or incompatible UI material shader");
+    }
+
+    return found->second.pipeline;
+}
+
+/// @brief Select the shader and pack the fixed parameter ABI for this material.
+bool apply_material(const ui::paint_quad& quad, const paint_pipelines& pipelines,
+                    renderer::draw_packet& draw, float phase)
+{
+    draw.pipeline = quad.texture == 0 ? pipelines.solid : pipelines.textured;
+    if (!quad.material)
+    {
+        return false;
+    }
+
+    const auto& material = *quad.material;
+    ui::validate_material(material);
+    draw.tint = material.tint;
+    draw.pipeline = select_pipeline(material, pipelines);
+    if (material.kind == ui::material_kind::texture)
+    {
+        if (quad.texture == 0)
+        {
+            throw std::invalid_argument("Texture material requires a resident texture key");
+        }
+
+        draw.pixel_parameters = {material.uv_offset[0], material.uv_offset[1], material.uv_scale[0],
+                                 material.uv_scale[1]};
+        return false;
+    }
+
+    if (quad.texture != 0)
+    {
+        throw std::invalid_argument("Shape material cannot sample a texture");
+    }
+
+    draw.pixel_parameters = {material.radius[0], material.radius[1], material.radius[2],
+                             material.radius[3], material.bevel,     material.scale,
+                             material.morph,     material.outline,   material.glow,
+                             material.reveal,    material.gradient,  material.phase + phase,
+                             material.unite};
+    return true;
 }
 } // namespace
 
 /// @brief Validate keys and compute all CPU vertices before any GPU resource allocation.
 void prepare_draws(paint_list list, renderer::texture_handle target,
                    renderer::surface_extent extent, std::span<const texture_binding> textures,
-                   renderer::pipeline_handle solid, renderer::pipeline_handle textured,
-                   std::pmr::memory_resource* memory, draw_preparation& output)
+                   const paint_pipelines& pipelines, std::pmr::memory_resource* memory,
+                   draw_preparation& output)
 {
     const auto viewport = list.viewport;
     (void)ui::intersect_clip(viewport, viewport);
     if (extent.width == 0 || extent.height == 0 || viewport.width <= 0 || viewport.height <= 0 ||
-        list.quads.size() > 65536 || textures.size() > 65536)
+        list.quads.size() > 65536 || textures.size() > 65536 ||
+        !std::isfinite(list.cosmetic_phase) || list.cosmetic_phase < 0 || list.cosmetic_phase > 1)
     {
         throw std::invalid_argument("invalid UI render extent or packet budget");
     }
@@ -91,7 +151,7 @@ void prepare_draws(paint_list list, renderer::texture_handle target,
         }
 
         renderer::draw_packet draw;
-        draw.pipeline = quad.texture == 0 ? solid : textured;
+        const bool shape = apply_material(quad, pipelines, draw, list.cosmetic_phase);
         if (quad.texture != 0)
         {
             const auto binding = std::lower_bound(bindings.begin(), bindings.end(), quad.texture,
@@ -110,8 +170,11 @@ void prepare_draws(paint_list list, renderer::texture_handle target,
         draw.first_vertex = static_cast<std::uint32_t>(vertices.size());
         draw.vertex_count = 6;
         draw.scissor = scissor(clip, viewport, extent);
-        for (const auto& value : quad.vertices)
+        constexpr std::array<std::array<float, 2>, 6> local{
+            {{0, 0}, {1, 0}, {0, 1}, {0, 1}, {1, 0}, {1, 1}}};
+        for (std::size_t index = 0; index < quad.vertices.size(); ++index)
         {
+            const auto& value = quad.vertices[index];
             vertices.push_back({{project((static_cast<double>(value.position.x) - viewport.x) /
                                              viewport.width * 2 -
                                          1),
@@ -119,7 +182,7 @@ void prepare_draws(paint_list list, renderer::texture_handle target,
                                                  viewport.height * 2),
                                  0},
                                 value.color,
-                                {value.uv.x, value.uv.y}});
+                                shape ? local[index] : std::array{value.uv.x, value.uv.y}});
         }
 
         if (!pass.draws.empty() && compatible(pass.draws.back(), draw))

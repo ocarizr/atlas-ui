@@ -113,6 +113,7 @@ void write_element(pugi::xml_node node, const element& source)
     attributes.paint = source.paint;
     attributes.visual = source.visual;
     attributes.texture = source.texture;
+    attributes.material = source.material;
     fields paint{node.append_child("paint"), false};
     paint_fields(paint, attributes);
     if (source.canvas)

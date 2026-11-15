@@ -16,8 +16,7 @@ constexpr std::size_t max_keys_per_track = 1024; ///< Upper bound on each curve'
 /// @brief Reject incomplete, unordered or unsafe data before playback can reach the command queue.
 void validate_track(const animation_track& track, animation_time duration)
 {
-    if (track.property == ui::property::visible ||
-        track.property > ui::property::canvas_y_anchor_max)
+    if (track.property == ui::property::visible || track.property > ui::property::material_union)
     {
         throw std::invalid_argument("Animation requires a supported numeric UI property");
     }
@@ -107,9 +106,21 @@ instance::impl::playback instance::impl::resolve(const instance& view, animation
             }
         }
 
-        if (track.property >= ui::property::canvas_x_offset_min && !tree.canvas_slot_for(target))
+        if (track.property >= ui::property::canvas_x_offset_min &&
+            track.property <= ui::property::canvas_y_anchor_max && !tree.canvas_slot_for(target))
         {
             throw std::invalid_argument("Animation canvas track requires a canvas parent");
+        }
+
+        if (ui::material_slot(track.property))
+        {
+            const auto material = tree.material(target);
+            if (!material ||
+                !ui::valid_material_slot(material->kind, track.property, track.keys.front().value))
+            {
+                throw std::invalid_argument(
+                    "Animation track requires a compatible material instance");
+            }
         }
 
         if (!targets.insert(key).second)

@@ -80,6 +80,8 @@ class catalog_streamer
 
     /// @brief Resolve typed metadata without exposing a path or a backing key.
     [[nodiscard]] assets::asset_info describe(assets::asset_ref reference) const;
+    /// @brief Capture typed revision and mount identity without acquiring payload bytes.
+    [[nodiscard]] read_stamp stamp(assets::asset_ref reference) const;
     /// @brief Validate logical range and revision before admitting the underlying read.
     std::future<void> read(typed_read_request request, typed_read_completion completion,
                            read_options options = {});

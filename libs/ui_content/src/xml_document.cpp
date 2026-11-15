@@ -85,9 +85,9 @@ pugi::xml_node root_of(const pugi::xml_document& xml)
             continue;
         }
 
-        if (root || node.type() != pugi::node_element || std::string_view{node.name()} != "ui")
+        if (root || node.type() != pugi::node_element)
         {
-            throw std::invalid_argument("Expected a single UI document root");
+            throw std::invalid_argument("Expected a single XML document root");
         }
 
         root = node;
@@ -95,7 +95,7 @@ pugi::xml_node root_of(const pugi::xml_document& xml)
 
     if (!root)
     {
-        throw std::invalid_argument("Missing UI document root");
+        throw std::invalid_argument("Missing XML document root");
     }
 
     return root;
@@ -179,25 +179,37 @@ class bounded_writer final : public pugi::xml_writer
 };
 } // namespace
 
+/// @brief Preserve strict entity and root handling for each authored document type.
+pugi::xml_node detail::read_root(pugi::xml_document& xml, std::string_view source,
+                                 std::size_t maximum)
+{
+    mvvm::validate_text(source, maximum);
+    validate_entities(source);
+    const auto parsed = xml.load_buffer(
+        source.data(), source.size(), pugi::parse_full | pugi::parse_fragment, pugi::encoding_utf8);
+    if (!parsed)
+    {
+        throw std::invalid_argument("XML byte " + std::to_string(parsed.offset) + ": " +
+                                    parsed.description());
+    }
+
+    return root_of(xml);
+}
+
 /// @brief Attach source identity to syntax and document-local validation failures.
 document parse_xml(xml_source source, const diagnostics::services& sinks)
 {
     const diagnostics::operation_scope scope{sinks, {"ui.content.parse", "ui.content"}};
     try
     {
-        mvvm::validate_text(source.bytes, detail::max_document_bytes);
-        validate_entities(source.bytes);
         pugi::xml_document xml;
-        const auto parsed =
-            xml.load_buffer(source.bytes.data(), source.bytes.size(),
-                            pugi::parse_full | pugi::parse_fragment, pugi::encoding_utf8);
-        if (!parsed)
+        const auto root = detail::read_root(xml, source.bytes, detail::max_document_bytes);
+        if (std::string_view{root.name()} != "ui")
         {
-            throw std::invalid_argument("XML byte " + std::to_string(parsed.offset) + ": " +
-                                        parsed.description());
+            throw std::invalid_argument("Expected UI document root");
         }
 
-        return read_document(root_of(xml));
+        return read_document(root);
     }
     catch (const std::invalid_argument& error)
     {

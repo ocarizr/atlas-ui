@@ -121,6 +121,36 @@ void layout_fields(fields& xml, ui::layout_style& data)
     xml.choice("vertical", data.vertical, alignments);
 }
 
+namespace
+{
+/// @brief Persist only explicitly selected materials and nondefault typed values.
+void material_fields(fields& xml, std::optional<ui::material_style>& material)
+{
+    if (xml.reading() && xml.node().attribute("material"))
+    {
+        material.emplace();
+    }
+
+    if (!material)
+    {
+        return;
+    }
+
+    xml.choice("material", material->kind, std::array{"texture", "shape"});
+    ui::material_style defaults;
+    for (auto index = static_cast<unsigned>(ui::property::material_red);
+         index <= static_cast<unsigned>(ui::property::material_union); ++index)
+    {
+        const auto slot = static_cast<ui::property>(index);
+        auto& value = ui::material_value(*material, slot);
+        xml.optional(ui::material_slot_name(slot), value,
+                     value != ui::material_value(defaults, slot));
+    }
+
+    ui::validate_material(*material);
+}
+} // namespace
+
 /// @brief Persist authored color, placement and texture identity without residency keys.
 void paint_fields(fields& xml, element& data)
 {
@@ -144,6 +174,13 @@ void paint_fields(fields& xml, element& data)
     xml.value("origin-x", data.visual.origin.x);
     xml.value("origin-y", data.visual.origin.y);
     xml.reference("texture", data.texture, assets::asset_type::texture);
+    xml.reference("material-asset", data.material, assets::asset_type::material);
+    material_fields(xml, paint.material);
+    if (paint.material &&
+        ((paint.material->kind == ui::material_kind::texture) != data.texture.has_value()))
+    {
+        throw std::invalid_argument("UI material and texture asset must use compatible kinds");
+    }
 }
 
 /// @brief Canvas slots preserve distinct per-axis anchors, offsets, pivots and allocation.

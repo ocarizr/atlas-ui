@@ -108,6 +108,8 @@ class instance::impl
     std::map<std::pair<std::uint32_t, ui::property>, bound_property>
         properties;                                                 ///< Reverse writes.
     std::map<std::string, assets::asset_ref, std::less<>> textures; ///< Persistent texture refs.
+    std::map<assets::asset_ref, streaming::read_stamp> material_dependencies; ///< Mounted inputs.
+    std::vector<material_shader_source> material_shaders; ///< Custom materials for GPU admission.
     std::shared_ptr<scripting::domain> domain; ///< Shared owner interpreter, created on demand.
     ui::input_session input;                   ///< Releases all retained element handlers first.
     diagnostics::services diagnostics;         ///< Optional composition and frame instrumentation.

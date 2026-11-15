@@ -21,4 +21,18 @@ TEST(resource_contract_tests, rejects_zero_capacity)
     limits.max_resources = 0;
     EXPECT_THROW(limits.validate(), std::invalid_argument);
 }
+
+/// @brief Reject invalid mip chains and incompatible role/format combinations.
+TEST(resource_contract_tests, bounds_format_and_mip_chain)
+{
+    const texture_description atlas{7, 3, texture_role::sampled, texture_format::r8_unorm, 3};
+    EXPECT_NO_THROW(atlas.validate());
+    EXPECT_EQ(atlas.payload_size(), 25U);
+    EXPECT_THROW(
+        (texture_description{7, 3, texture_role::sampled, texture_format::r8_unorm, 4}.validate()),
+        std::invalid_argument);
+    EXPECT_THROW((texture_description{7, 3, texture_role::color_target, texture_format::r8_unorm}
+                      .validate()),
+                 std::invalid_argument);
+}
 } // namespace atlas::renderer::tests

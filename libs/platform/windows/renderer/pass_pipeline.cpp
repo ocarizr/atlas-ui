@@ -1,5 +1,6 @@
 /** @file @brief Fixed-ABI colored/textured graphics pipelines and explicit blend/depth state. */
 #include "native_passes.hpp"
+#include "native_resources.hpp"
 
 namespace atlas::renderer::detail
 {
@@ -19,28 +20,58 @@ vertex_output vertex_main(vertex_input input) {
 }
 float4 pixel_main(vertex_output input) : SV_Target { return input.color; }
 float4 textured_main(vertex_output input) : SV_Target { return image.Sample(image_sampler,input.uv)*input.color; }
+float4 coverage_main(vertex_output input) : SV_Target {
+    return float4(input.color.rgb, input.color.a * image.Sample(image_sampler, input.uv).r);
+}
+float4 coverage_premultiplied_main(vertex_output input) : SV_Target {
+    float4 color = coverage_main(input);
+    return float4(color.rgb * color.a, color.a);
+}
 )";
 
+/// @brief Match texture and mask builtins to their alpha conventions.
+std::string_view pixel_entry(const pipeline_description& pipeline)
+{
+    switch (pipeline.program)
+    {
+        case shader_program::custom:
+            return pipeline.pixel_entry;
+        case shader_program::textured:
+            return "textured_main";
+        case shader_program::coverage:
+            return pipeline.blend == blend_mode::premultiplied_alpha ? "coverage_premultiplied_main"
+                                                                     : "coverage_main";
+        default:
+            return "pixel_main";
+    }
+}
+
 /// @brief Declare a stable root ABI instead of exposing native descriptors in public headers.
-com_ptr<ID3D12RootSignature> root_signature(native_device& context, bool linear)
+com_ptr<ID3D12RootSignature> root_signature(native_device& context,
+                                            const pipeline_description& pipeline)
 {
     D3D12_DESCRIPTOR_RANGE range{D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, 0};
-    D3D12_ROOT_PARAMETER parameters[2]{};
+    D3D12_ROOT_PARAMETER parameters[3]{};
     parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
     parameters[0].Constants = {0, 0, 20};
     parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
     parameters[1].DescriptorTable = {1, &range};
     parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    parameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    parameters[2].Constants = {1, 0, 16};
+    parameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_STATIC_SAMPLER_DESC sampler{};
-    sampler.Filter = linear ? D3D12_FILTER_MIN_MAG_MIP_LINEAR : D3D12_FILTER_MIN_MAG_MIP_POINT;
+    sampler.Filter =
+        pipeline.linear_sampling ? D3D12_FILTER_MIN_MAG_MIP_LINEAR : D3D12_FILTER_MIN_MAG_MIP_POINT;
     sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
     sampler.MaxAnisotropy = 1;
     sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
     sampler.MaxLOD = D3D12_FLOAT32_MAX;
     sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_ROOT_SIGNATURE_DESC description{
-        2, parameters, 1, &sampler, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT};
+        pipeline.pixel_parameters ? 3u : 2u, parameters, 1, &sampler,
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT};
     com_ptr<ID3DBlob> bytes, errors;
     check(D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1, &bytes, &errors),
           "serialize pass root signature");
@@ -58,17 +89,25 @@ std::shared_ptr<gpu_pipeline> create_pass_pipeline(native_device& context,
 {
     const bool custom = description.program == shader_program::custom;
     const std::string_view source = custom ? std::string_view{description.source} : builtin_shader;
+    const bool custom_vertex = custom && !description.builtin_vertex;
     const auto vertex_shader =
-        compile_pass_shader({source, custom ? description.vertex_entry : "vertex_main", false});
-    const auto pixel_shader = compile_pass_shader(
-        {source,
-         custom
-             ? description.pixel_entry
-             : (description.program == shader_program::textured ? "textured_main" : "pixel_main"),
-         true});
+        compile_pass_shader({custom_vertex ? source : builtin_shader,
+                             custom_vertex ? description.vertex_entry : "vertex_main", false});
+    const auto pixel_shader =
+        compile_pass_shader({source, pixel_entry(description), true, description.pixel_parameters});
+    const bool sampled =
+        description.pixel_resources == pixel_resource_policy::constants_and_texture;
+    if (description.pixel_resources != pixel_resource_policy::infer &&
+        (pixel_shader.pixel_parameter_bytes != (sampled ? 16U : 64U) ||
+         pixel_shader.textured != sampled))
+    {
+        throw std::invalid_argument("Pixel shader does not match the material bindings");
+    }
+
     auto output = std::make_shared<native_pipeline>();
     output->textured = pixel_shader.textured;
-    output->root = root_signature(context, description.linear_sampling);
+    output->pixel_parameters = description.pixel_parameters;
+    output->root = root_signature(context, description);
     const D3D12_INPUT_ELEMENT_DESC elements[]{{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
                                                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
                                               {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12,
@@ -106,7 +145,7 @@ std::shared_ptr<gpu_pipeline> create_pass_pipeline(native_device& context,
         description.depth == depth_mode::disabled ? DXGI_FORMAT_UNKNOWN : DXGI_FORMAT_D32_FLOAT;
     pipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     pipeline.NumRenderTargets = 1;
-    pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pipeline.RTVFormats[0] = native_format(description.color_format);
     pipeline.SampleDesc.Count = 1;
     check(context.gpu->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&output->state)),
           "create pass graphics pipeline");

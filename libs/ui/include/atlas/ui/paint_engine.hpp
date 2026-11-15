@@ -22,6 +22,7 @@ struct paint_quad
     layout_rect clip;          ///< Intersected viewport/ancestor clip in logical coordinates.
     std::uint64_t texture = 0; ///< Consumer-resolved resident key, not a native descriptor.
     std::array<paint_vertex, 6> vertices;               ///< Ordered triangle-list geometry.
+    std::optional<material_style> material{};           ///< Copied per-element shader values.
     bool operator==(const paint_quad&) const = default; ///< Exact deterministic output.
 }; ///< Painter order is back-to-front; iterate in reverse for front-to-back candidates.
 

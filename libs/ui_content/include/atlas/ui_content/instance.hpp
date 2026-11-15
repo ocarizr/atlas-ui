@@ -7,6 +7,7 @@
 #include <atlas/streaming/catalog_streamer.hpp>
 #include <atlas/ui_content/animation.hpp>
 #include <atlas/ui_content/document.hpp>
+#include <atlas/ui_content/material.hpp>
 
 namespace atlas::ui_content
 {
@@ -32,6 +33,7 @@ struct construction
     streaming::read_options reads{}; ///< Shared priority and cancellation for bootstrap.
     scripting::script_diagnostics_options script_diagnostics{}; ///< Explicit Lua opt-in.
     std::span<const scripting::service_definition> services{};  ///< Host capabilities at startup.
+    std::span<const prepared_material> materials{}; ///< Optional prepared authored materials.
 };
 
 /// @brief Acquire an authored UI document through a typed catalog mount.
@@ -51,7 +53,11 @@ class instance
     [[nodiscard]] ui::element_handle
     find(std::string_view id) const; ///< Resolve a live authored ID.
     [[nodiscard]] std::optional<assets::asset_ref>
-    texture(std::string_view id) const;                              ///< Image ref.
+    texture(std::string_view id) const; ///< Image ref.
+    [[nodiscard]] std::span<const material_shader_source>
+    material_shaders() const; ///< Borrow custom source for graphics-coordinator registration.
+    /// @brief Test material, template, shader and image dependency stamps against the active mount.
+    [[nodiscard]] bool materials_current(const streaming::catalog_streamer& storage) const noexcept;
     [[nodiscard]] mvvm::view_model& model(std::string_view context); ///< Borrow a live model.
     [[nodiscard]] ui::element_tree& tree();     ///< Borrow owner-affine UI state.
     [[nodiscard]] ui::input_session& input();   ///< Borrow owner-affine routing.

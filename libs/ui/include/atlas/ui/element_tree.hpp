@@ -65,6 +65,9 @@ class element_tree
     visual_style visual(element_handle target) const; ///< Return committed metadata by value.
     void set_paint(element_handle target, const paint_style& style); ///< Validate paint-only state.
     paint_style paint(element_handle target) const; ///< Return sparse metadata or its defaults.
+    void set_material(element_handle target,
+                      const material_style& value);                      ///< Copy resolved values.
+    std::optional<material_style> material(element_handle target) const; ///< Read instance values.
     void set_viewport(layout_rect viewport); ///< Changed bounds invalidate all computed geometry.
     void publish_layout(const layout_snapshot& result); ///< Atomically reject old/foreign inputs.
     std::optional<layout_geometry>
