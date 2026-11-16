@@ -1,5 +1,6 @@
 /** @file @brief Owner-phase menu navigation and Flow document tests. */
 #include <atlas/ui_content/flow.hpp>
+#include <atlas/ui_content/prepared.hpp>
 #include <gtest/gtest.h>
 
 namespace atlas::ui_content::tests
@@ -18,6 +19,18 @@ TEST(menu_flow, ParsesAndTraversesDeclarativeGraph)
     EXPECT_EQ(plan_flow_path(graph, "home", "settings"),
               (std::vector<std::string>{"open-settings"}));
     EXPECT_EQ(write_flow_xml(parse_flow_xml({write_flow_xml(graph)})), write_flow_xml(graph));
+    const auto id = [](std::uint64_t number, assets::asset_type type)
+    {
+        return assets::asset_ref{
+            {assets::parse_namespace("018d0b95cf2673c6a0d7dd8ce5d29b23"), number}, type};
+    };
+    const prepared_flow cooked{
+        {id(3, assets::asset_type::flow), 1},
+        graph,
+        {{id(1, assets::asset_type::ui), {{id(1, assets::asset_type::ui), 1}}},
+         {id(2, assets::asset_type::ui), {{id(2, assets::asset_type::ui), 1}}}}};
+    const auto bytes = encode_prepared(cooked);
+    EXPECT_EQ(write_flow_xml(decode_prepared_flow(bytes).graph), write_flow_xml(graph));
     auto broken = graph;
     broken.transitions.front().to = "missing";
     EXPECT_THROW(validate_flow(broken), std::invalid_argument);

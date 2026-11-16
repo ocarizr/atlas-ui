@@ -123,6 +123,35 @@ guard values, including activation of nested regions. A traversal test can
 submit each action and observe `committed` before its next step. Back and pop
 depend on runtime history and are exercised separately.
 
+#### Prepared menu navigation
+
+Use `prepare_flow` on an authored mount and `encode_prepared` to produce a
+versioned `AFLW` v1 record. Preparation resolves every distinct screen through
+the UI cooker, checks the authored focus and control IDs, and records each
+screen's exact typed dependency revisions. `flow_dependencies` returns the
+sorted union for validation or later packaging.
+
+Store the Flow record and each separately encoded prepared UI record under
+their original catalog IDs and authored revisions. A shared screen has one
+UI payload even when several menu IDs reference it. At runtime use
+`load_prepared_flow` and `build_prepared_flow` with the active mount. Each
+screen must match its recorded dependency contract before its normal owner
+publication. The prepared loader stages Lua and shader bytes through the
+streamer. Embedded ViewModel and material data are composed from the
+prepared UI record.
+
+The Flow codec uses the shared little-endian version, length and payload
+checksum envelope. It preserves declaration order, typed guard values and
+asset identities. Native ViewModel factories remain optional. Flow manager
+construction uses the validated graph directly.
+
+The Release benchmark includes 32 menus sharing one UI asset. On Windows x64
+with clang-cl and a Core Ultra 7 265KF, local median graph decode was 82.4 µs
+for XML and 29.7 µs for prepared Flow. Decode plus manager construction had
+a median of 104.8 µs for XML and 76.3 µs for prepared Flow. The prepared
+measurement includes mounted revision checks. Both measurements stop before
+screen streaming and composition.
+
 ### Prepared UI and materials
 
 `<atlas/ui_content/prepared.hpp>` exposes the typed preparation and construction

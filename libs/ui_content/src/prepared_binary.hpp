@@ -13,4 +13,6 @@ inline constexpr std::size_t max_prepared_dependencies = 32768;
 inline constexpr std::size_t max_prepared_materials = 8192;
 
 void validate_prepared(const prepared_view& source); ///< Verify the exact typed dependency closure.
+void validate_prepared_mount(std::span<const prepared_dependency> dependencies,
+                             const construction& options); ///< Verify mounted authored revisions.
 } // namespace atlas::ui_content::detail

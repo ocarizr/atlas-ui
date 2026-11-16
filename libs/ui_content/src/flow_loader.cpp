@@ -1,6 +1,8 @@
 /** @file @brief Asynchronous menu bootstrap over typed streamer buffers. */
 #include "document_validation.hpp"
 #include "material_validation.hpp"
+#include "prepared_binary.hpp"
+#include "prepared_flow_loader.hpp"
 #include <atlas/mvvm_content/document.hpp>
 #include <atlas/ui_content/flow.hpp>
 #include <chrono>
@@ -44,8 +46,9 @@ std::size_t limit(assets::asset_type type)
 class stream_load final : public flow_load
 {
   public:
-    stream_load(const construction& options, flow_load_request request)
-        : options_{options}, request_{std::move(request)},
+    stream_load(const construction& options, flow_load_request request,
+                std::shared_ptr<const prepared_flow_screen> contract = {})
+        : options_{options}, request_{std::move(request)}, contract_{std::move(contract)},
           propagate_{options.reads.cancellation, [source = stop_]() mutable
                      {
                          source.request_stop();
@@ -84,14 +87,19 @@ class stream_load final : public flow_load
             return {};
         }
 
+        options_.staged = std::span<const staged_asset>{ready_};
+        options_.navigation = request_.controls;
+        options_.navigate = request_.dispatch;
+        if (binary_view_)
+        {
+            return build_prepared(*binary_view_, options_);
+        }
+
         if (!source_)
         {
             throw std::logic_error("Flow screen has no authored document");
         }
 
-        options_.staged = std::span<const staged_asset>{ready_};
-        options_.navigation = request_.controls;
-        options_.navigate = request_.dispatch;
         return instance::build(*source_, options_);
     }
 
@@ -114,7 +122,10 @@ class stream_load final : public flow_load
     void begin(assets::asset_ref source)
     {
         const auto info = options_.storage.describe(source);
-        if (!info.byte_size || info.byte_size > limit(source.type) ||
+        const auto maximum = contract_ && source.type == assets::asset_type::ui
+                                 ? detail::max_prepared_bytes
+                                 : limit(source.type);
+        if (!info.byte_size || info.byte_size > maximum ||
             info.byte_size > max_bootstrap_bytes - admitted_)
         {
             throw std::length_error("Flow bootstrap exceeds its byte budget");
@@ -133,11 +144,39 @@ class stream_load final : public flow_load
             options_.reads);
     }
 
+    /// @brief Match an independently stored view against the Flow dependency contract.
+    void discover_prepared(const prepared_flow_screen& contract, std::string_view bytes)
+    {
+        auto view = decode_prepared(std::as_bytes(std::span{bytes}));
+        if (view.source != contract.source || view.dependencies != contract.dependencies)
+        {
+            throw std::invalid_argument("Prepared Flow screen violates its dependency contract");
+        }
+
+        detail::validate_prepared_mount(view.dependencies, options_);
+        for (const auto& asset : view.dependencies)
+        {
+            if (asset.source.type == assets::asset_type::script ||
+                asset.source.type == assets::asset_type::shader)
+            {
+                enqueue(asset.source);
+            }
+        }
+
+        binary_view_ = std::move(view);
+    }
+
     /// @brief Expand only sources that introduce additional composition dependencies.
     void discover(assets::asset_ref source, std::string_view bytes)
     {
         if (source.type == assets::asset_type::ui)
         {
+            if (contract_)
+            {
+                discover_prepared(*contract_, bytes);
+                return;
+            }
+
             source_ = parse_xml({bytes, assets::format_id(source.id)}, options_.diagnostics);
             for (const auto& model : source_->models)
             {
@@ -242,17 +281,20 @@ class stream_load final : public flow_load
 
     construction options_;      ///< Owner services, including the typed catalog mount.
     flow_load_request request_; ///< Owned view-specific control bindings.
-    std::stop_source stop_;     ///< Cancellation shared with every admitted read.
+    std::shared_ptr<const prepared_flow_screen> contract_; ///< Optional cooked dependency contract.
+    std::stop_source stop_; ///< Cancellation shared with every admitted read.
     std::stop_callback<std::function<void()>> propagate_; ///< Forward host cancellation.
     std::optional<document> source_;                      ///< Parsed owner-local candidate.
-    std::vector<assets::asset_ref> pending_;              ///< Deterministic discovery order.
-    std::set<assets::asset_ref> seen_;                    ///< Unique streamed payloads.
-    std::set<assets::asset_ref> prepared_;                ///< Visited prepared descriptors.
-    std::vector<staged_asset> ready_;                     ///< Retained exact revision buffers.
-    std::future<void> read_;         ///< At most one accepted request per screen candidate.
-    std::shared_ptr<delivery> slot_; ///< Worker-owned until the request completes.
-    std::size_t admitted_ = 0;       ///< Total logical bytes for this candidate.
-    std::size_t cursor_ = 0;         ///< Next admitted source.
+    std::optional<prepared_view>
+        binary_view_;                        ///< Decoded prepared UI in the same composition path.
+    std::vector<assets::asset_ref> pending_; ///< Deterministic discovery order.
+    std::set<assets::asset_ref> seen_;       ///< Unique streamed payloads.
+    std::set<assets::asset_ref> prepared_;   ///< Visited prepared descriptors.
+    std::vector<staged_asset> ready_;        ///< Retained exact revision buffers.
+    std::future<void> read_;                 ///< At most one accepted request per screen candidate.
+    std::shared_ptr<delivery> slot_;         ///< Worker-owned until the request completes.
+    std::size_t admitted_ = 0;               ///< Total logical bytes for this candidate.
+    std::size_t cursor_ = 0;                 ///< Next admitted source.
 };
 } // namespace
 
@@ -262,6 +304,25 @@ flow_loader make_flow_loader(const construction& options)
     return [options](flow_load_request request)
     {
         return std::make_unique<stream_load>(options, std::move(request));
+    };
+}
+
+/// @brief Keep each expected dependency record alive for all accepted screen requests.
+flow_loader detail::make_prepared_flow_loader(const construction& options,
+                                              std::vector<prepared_flow_screen> screens)
+{
+    auto records = std::make_shared<const std::vector<prepared_flow_screen>>(std::move(screens));
+    return [options, records = std::move(records)](flow_load_request request)
+    {
+        const auto found =
+            std::ranges::lower_bound(*records, request.source, {}, &prepared_flow_screen::source);
+        if (found == records->end() || found->source != request.source)
+        {
+            throw std::invalid_argument("No prepared Flow contract for requested screen");
+        }
+
+        auto contract = std::shared_ptr<const prepared_flow_screen>{records, &*found};
+        return std::make_unique<stream_load>(options, std::move(request), std::move(contract));
     };
 }
 } // namespace atlas::ui_content
