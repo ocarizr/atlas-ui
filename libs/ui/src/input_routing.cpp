@@ -80,13 +80,9 @@ void input_session::impl::set_focus(element_handle target)
 void input_session::focus(element_handle target)
 {
     impl_->open();
-    if (target.generation != 0)
+    if (target.generation != 0 && !can_focus(target))
     {
-        const auto* binding = impl_->find(target);
-        if (!binding || !binding->options.focusable || !impl_->eligible(target))
-        {
-            throw std::invalid_argument("UI focus needs a live enabled focusable target");
-        }
+        throw std::invalid_argument("UI focus needs a live enabled focusable target");
     }
 
     const impl::guard guard{impl_->busy};
@@ -100,6 +96,14 @@ void input_session::focus(element_handle target)
         impl_->fail();
         throw;
     }
+}
+
+/// @brief Resolve focus eligibility without dispatching callbacks or mutating focus.
+bool input_session::can_focus(element_handle target) const
+{
+    impl_->open();
+    const auto* binding = impl_->find(target);
+    return binding && binding->options.focusable && impl_->eligible(target);
 }
 
 /// @brief Validate the complete response before any of its ownership changes.

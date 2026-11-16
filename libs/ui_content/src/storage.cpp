@@ -1,6 +1,7 @@
 /** @file @brief Acquire authored UI, model and Lua bytes through the typed streamer. */
 #include "storage.hpp"
 #include "document_validation.hpp"
+#include <algorithm>
 
 namespace atlas::ui_content::detail
 {
@@ -13,6 +14,29 @@ std::string acquire(assets::asset_info asset, std::size_t maximum, const constru
     {
         throw std::invalid_argument("Invalid authored asset length: " +
                                     assets::format_id(asset.reference.id));
+    }
+
+    if (options.reads.cancellation.stop_requested())
+    {
+        throw jobs::job_cancelled{};
+    }
+
+    if (options.staged)
+    {
+        const auto found =
+            std::ranges::find_if(*options.staged,
+                                 [&](const auto& entry)
+                                 {
+                                     return entry.stamp.reference == asset.reference &&
+                                            entry.stamp.revision == asset.revision;
+                                 });
+        if (found == options.staged->end() || !found->bytes ||
+            found->bytes->size() != asset.byte_size || !options.storage.accepts(found->stamp))
+        {
+            throw std::runtime_error("Missing or stale staged UI asset");
+        }
+
+        return {reinterpret_cast<const char*>(found->bytes->data()), found->bytes->size()};
     }
 
     std::optional<streaming::read_result> result;

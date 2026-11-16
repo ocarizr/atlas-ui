@@ -3,6 +3,30 @@
 
 namespace atlas::ui::tests
 {
+/// @brief A modal suspension clears focus and disables without ending retained registrations.
+TEST_F(input_fixture, SuspendedInputCanResumeWithoutRestartingHandlers)
+{
+    const auto target = tree.create();
+    input.bind(target, handler, {.focusable = true});
+    begin();
+    input.focus(target);
+    input.process({});
+    finish();
+    input.suspend(2);
+    tree.apply(tree.commands().seal());
+    EXPECT_EQ(input.focused(), element_handle{});
+    EXPECT_EQ(count(event_kind::focus_lost), 1);
+    EXPECT_EQ(count(event_kind::disable), 1);
+    EXPECT_EQ(count(event_kind::end), 0);
+
+    begin(3);
+    EXPECT_TRUE(input.can_focus(target));
+    input.process({});
+    finish();
+    EXPECT_EQ(count(event_kind::start), 1);
+    EXPECT_EQ(count(event_kind::enable), 2);
+}
+
 /// @brief Initially disabled handlers start at first enable, not once per subsequent frame.
 TEST_F(input_fixture, StartEnableAndSystemStagesHaveStableOrder)
 {

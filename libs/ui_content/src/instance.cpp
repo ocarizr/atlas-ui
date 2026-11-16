@@ -37,6 +37,20 @@ std::optional<assets::asset_ref> instance::texture(std::string_view id) const
     return found == impl_->textures.end() ? std::nullopt : std::optional{found->second};
 }
 
+/// @brief A focus bookmark never retains live tree identity across reconstruction.
+std::string instance::authored_id(ui::element_handle element) const
+{
+    for (const auto& [name, target] : impl_->elements)
+    {
+        if (target == element && impl_->tree.contains(target))
+        {
+            return name;
+        }
+    }
+
+    return {};
+}
+
 /// @brief Borrow immutable HLSL and keys; native compilation belongs to the renderer owner.
 std::span<const material_shader_source> instance::material_shaders() const
 {

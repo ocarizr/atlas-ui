@@ -4,7 +4,7 @@
 namespace atlas::ui
 {
 /// @brief Stop every retained handler even when a previous cleanup notification throws.
-void input_session::shutdown(std::uint64_t frame)
+void input_session::close_lifecycle(std::uint64_t frame, bool terminal)
 {
     impl_->check();
     if (impl_->terminal)
@@ -27,7 +27,7 @@ void input_session::shutdown(std::uint64_t frame)
                                              {"ui.input.shutdown", "ui.dispatch"}};
     impl_->tree.commands().begin_frame(frame);
     impl_->stats = {frame, 0, 0, false, false};
-    impl_->terminal = true;
+    impl_->terminal = terminal;
     std::exception_ptr failure;
     const auto attempt = [&](auto action)
     {
@@ -71,7 +71,7 @@ void input_session::shutdown(std::uint64_t frame)
                 });
         }
 
-        if (binding.started && !binding.ended)
+        if (terminal && binding.started && !binding.ended)
         {
             binding.ended = true;
             attempt(
@@ -83,7 +83,11 @@ void input_session::shutdown(std::uint64_t frame)
         }
     }
 
-    impl_->bindings.clear();
+    if (terminal)
+    {
+        impl_->bindings.clear();
+    }
+
     impl_->stats.closed = true;
     impl_->stage = 0;
     if (failure)
@@ -91,5 +95,17 @@ void input_session::shutdown(std::uint64_t frame)
         impl_->fail();
         std::rethrow_exception(failure);
     }
+}
+
+/// @brief Release interaction and disable retained callbacks until the next begin-frame.
+void input_session::suspend(std::uint64_t frame)
+{
+    close_lifecycle(frame, false);
+}
+
+/// @brief Finish the lifecycle and release every registration.
+void input_session::shutdown(std::uint64_t frame)
+{
+    close_lifecycle(frame, true);
 }
 } // namespace atlas::ui

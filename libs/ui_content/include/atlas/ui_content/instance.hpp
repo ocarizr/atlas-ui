@@ -11,6 +11,15 @@
 
 namespace atlas::ui_content
 {
+struct flow_control; ///< Control route supplied by an authored Flow graph.
+
+/// @brief Immutable buffer acquired before a private UI composition.
+struct staged_asset
+{
+    streaming::read_stamp stamp;                         ///< Exact mount and revision.
+    std::shared_ptr<const streaming::asset_bytes> bytes; ///< Owned delivery buffer.
+};
+
 /// @brief Exact signature emitted by the existing ViewModel factory generator.
 using model_factory = std::unique_ptr<mvvm::view_model> (*)(
     mvvm::runtime_limits, std::shared_ptr<std::pmr::memory_resource>, const diagnostics::services&);
@@ -43,6 +52,9 @@ struct construction
     std::span<const scripting::service_definition> services{};  ///< Host capabilities at startup.
     std::span<const prepared_material> materials{}; ///< Optional prepared authored materials.
     std::span<const prepared_model_schema> model_schemas{}; ///< Optional prepared schemas.
+    std::optional<std::span<const staged_asset>> staged{};  ///< When set, all reads must be staged.
+    std::span<const flow_control> navigation{};       ///< Optional graph-authored control routes.
+    std::function<bool(std::string_view)> navigate{}; ///< Owner-only navigation admission.
 };
 
 /// @brief Acquire an authored UI document through a typed catalog mount.
@@ -61,6 +73,8 @@ class instance
 
     [[nodiscard]] ui::element_handle
     find(std::string_view id) const; ///< Resolve a live authored ID.
+    /// @brief Resolve a live focus handle to a durable ID for reconstructing a view.
+    [[nodiscard]] std::string authored_id(ui::element_handle element) const;
     [[nodiscard]] std::optional<assets::asset_ref>
     texture(std::string_view id) const; ///< Image ref.
     [[nodiscard]] std::span<const material_shader_source>
