@@ -115,3 +115,55 @@ The 32-item case fits one grain and stays serial. Timing includes output prepara
 admission and join, excluding reduction/destruction. Padded 64-byte-aligned outputs
 reduce boundary sharing in this probe. It is not a layout benchmark or production UI budget;
 calibrate policy with the actual kernel, hardware, toolchain and instrumentation.
+
+## Authored viewport readiness
+
+Build the `ui-content` component's `atlas_ui_readiness_benchmark` target.
+Run it without arguments in Release for 100 samples per case and per policy,
+after five warm-up frames. The probe alternates order between serial execution
+and a candidate with eight chunks, layout admission at 256 nodes and a subtree
+grain of 128, and paint admission at 128 surviving quads. It uses four workers
+at 1920×1080 logical units and reports the actual number of admitted jobs.
+`--smoke` runs the same assertions on smaller documents without timing gates.
+
+Each scenario serializes and reopens an authored document, then builds separate
+runtime instances with rounded SDF panels, a Lua tick and a ViewModel loaded
+through a typed, memory-backed streamer. The workloads cover small and dense
+idle trees, viewport resize, shape glow, clipped drawer motion and layout
+animation. The four dense mutation scenarios share the same tree shape.
+Frame timing starts with owner dispatch and ends after the new paint packet
+replaces the previous one. Each frame compares geometry, painter order and
+ViewModel behavior with the serial reference. Glow and drawer motion must
+preserve the layout revision. A separate memory pass counts requested PMR
+bytes and checks their retirement after each policy instance is destroyed.
+
+Run `--trace` in Debug or with `ATLAS_PROFILING=on` and redirect stdout to a
+Chrome trace JSON file. This is a short, separately instrumented capture.
+Release timings exclude startup, file I/O, font shaping, renderer upload,
+GPU execution and presentation. The memory pass covers the injected
+composition/layout/paint resource and excludes scheduler allocations, Lua
+allocations outside that resource, allocator overhead and whole-process RSS.
+Native editor tests cover authoring/persistence and preview ownership
+separately, including save cleanup and rejected replacement.
+
+Two Windows x64 runs on a Core Ultra 7 265KF with clang-cl 19.1.5 Release,
+profiling inactive and the jobs checker disabled produced these P95 ranges:
+
+| Workload | Nodes | Serial P95 | Candidate P95 |
+| --- | ---: | ---: | ---: |
+| Idle menu | 27 | 8.9–9.0 µs | 8.7–9.0 µs |
+| Idle preview | 2,329 | 1.55–1.64 ms | 1.69–1.71 ms |
+| Resize preview | 2,329 | 1.83–1.90 ms | 2.01–2.10 ms |
+| Shape glow | 2,329 | 1.04–1.16 ms | 1.12–1.15 ms |
+| Clipped drawer | 2,329 | 0.89–1.16 ms | 1.10–1.11 ms |
+| Layout reflow | 2,329 | 1.23–1.31 ms | 1.38–1.45 ms |
+
+The serial dense cases retained 1.96 MiB and peaked at 3.97 MiB through the
+injected resource. At most nine layout jobs and nine paint jobs were admitted
+per candidate frame. The candidate increased the dense frame PMR peak by 128
+bytes, excluding scheduler storage. Both visual animations arranged zero
+nodes after warm-up. The candidate did not consistently improve frame tails,
+and the serial policy remained faster at P95 in both resize and reflow runs.
+The reference budgets for repeating this probe on the same host are 25 µs P95
+for the small menu, 2.5 ms P95 for the dense cases, and 5 MiB peak requested
+PMR for a dense policy instance. These are local comparison budgets.
