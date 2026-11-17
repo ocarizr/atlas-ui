@@ -3,6 +3,7 @@
 #include "instance_state.hpp"
 #include "material_sources.hpp"
 #include "routes.hpp"
+#include <atlas/ui_content/flow.hpp>
 
 namespace atlas::ui_content
 {
@@ -85,6 +86,17 @@ void instance::impl::bind_properties(const element& node, ui::element_handle tar
 /// @brief Resolve texture references, input policies, model routes, and isolated Lua behaviors.
 void instance::impl::bind_elements(const document& source, const construction& options)
 {
+    std::set<std::string_view> navigation;
+    for (const auto& route : options.navigation)
+    {
+        if (!options.navigate || !elements.contains(route.element))
+        {
+            throw std::invalid_argument("Flow control does not resolve in its source screen");
+        }
+
+        navigation.insert(route.element);
+    }
+
     std::set<assets::asset_id> registered;
     detail::material_sources materials{options};
     for (const auto& node : source.elements)
@@ -107,7 +119,8 @@ void instance::impl::bind_elements(const document& source, const construction& o
                 textures.emplace(node.id, *texture);
             }
 
-            if (node.interaction || !node.actions.empty() || node.script)
+            if (node.interaction || !node.actions.empty() || node.script ||
+                navigation.contains(node.id))
             {
                 input.bind(target, detail::make_handler(node, models, domain, registered, options),
                            node.interaction.value_or(ui::interaction_options{}));

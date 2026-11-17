@@ -151,13 +151,16 @@ class input_session
     void late_tick(); ///< Broadcast after tick and any caller-owned sync point.
     void end_frame(); ///< Broadcast after late tick; caller seals/applies remaining commands.
     void focus(element_handle target); ///< During an open frame; empty clears focus.
-    element_handle focused() const;    ///< Owner-only observation outside callbacks.
-    element_handle captured() const;   ///< Primary-pointer capture, or empty.
-    element_handle hovered() const;    ///< Geometric hover, independent of capture.
+    [[nodiscard]] bool can_focus(element_handle target) const; ///< Check current input eligibility.
+    element_handle focused() const;  ///< Owner-only observation outside callbacks.
+    element_handle captured() const; ///< Primary-pointer capture, or empty.
+    element_handle hovered() const;  ///< Geometric hover, independent of capture.
     element_handle hit_test(layout_point point) const; ///< Half-open bounds and ancestor clips.
     void shutdown(std::uint64_t frame);  ///< New terminal command frame; disable/end exactly once.
+    void suspend(std::uint64_t frame);   ///< Release interaction and disable until the next frame.
     input_statistics statistics() const; ///< Serial owner observation.
   private:
+    void close_lifecycle(std::uint64_t frame, bool terminal); ///< Shared suspension and teardown.
     class impl; ///< Bounded handlers, immutable presentation and owner lifecycle state.
     std::unique_ptr<impl> impl_; ///< Tree and services must outlive synchronous calls.
 }; ///< No private pool, blocking worker or callbacks from jobs into mutable session state.

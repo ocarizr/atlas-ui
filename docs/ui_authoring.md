@@ -56,6 +56,102 @@ persistent texture reference for image residency.
 
 ## Construction and frames
 
+### Menu navigation
+
+`<atlas/ui_content/flow.hpp>` defines the Flow graph, its versioned XML and the
+viewport owner that publishes screen transitions. A flow asset uses the normal
+typed catalog. A screen points to a UI document by persistent asset ID. The graph
+supplies navigation controls alongside regular UI content.
+
+```xml
+<flow version="1">
+  <region id="viewport" initial="home"/>
+  <region id="tabs" owner="settings" initial="display"/>
+  <screen id="home" region="viewport" focus="settings_button"
+          asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000001"/>
+  <screen id="settings" region="viewport"
+          asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000002"/>
+  <screen id="display" region="tabs"
+          asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000003"/>
+  <parameter id="can_open" type="boolean" value="true"/>
+  <transition id="open_settings" from="home" to="settings" operation="push"
+              control="settings_button">
+    <guard parameter="can_open" type="boolean" value="true"/>
+  </transition>
+  <transition id="go_back" from="display" operation="back"/>
+</flow>
+```
+
+A transition can bind a source element to pointer-up or to a performed semantic
+input action using its numeric `action` attribute. A matching target-phase
+control queues the first admitted action and consumes that route before
+MVVM/Lua handlers. The host can also submit a transition ID. The source must
+own input, and an enabled edge with an exact typed guard must still pass when
+its candidate is ready. Parameters hold Boolean, integer, number or text values.
+
+Each region has a stack capped at 16 entries. `push` adds history, `replace` changes its top,
+and `pop` closes its top. `back` selects the nearest history in the source
+region or an active ancestor. `overlay` keeps the underlying views in their
+painter order and suspends their input, clearing focus, hover and capture.
+`reload` rebuilds the current screen at its existing history position. Hidden
+history entries retain authored IDs and focus bookmarks. Their view instances
+are reconstructed on return. Child regions start at their defaults when their
+owner screen is shown again after retirement. A transaction can present up to 32
+screens at once. Keep persistent application state
+outside those view instances.
+
+Create a manager with `load_flow` and `make_flow_loader` on the viewport
+coordinator and call `start()`. Call `advance(frame)` after closing previous UI
+input frames and before beginning the next one. Continue presenting the
+published views while it returns `loading`. The loader gathers UI, ViewModel,
+Lua, material and shader bootstrap data through nonblocking typed streamer
+reads. The owner composes each ready view. Texture GPU residency follows the
+normal host path. A failed or canceled candidate leaves the current history and
+presentation intact.
+
+Use `presentation()` in back-to-front order. Give input only to entries marked
+`input`, routing each packet to the appropriate viewport or tab region. Call
+`restore_focus(view)` after that view's input begin-frame and before dispatching
+input. Retiring a view delivers its terminal input lifecycle, then releases
+its subscriptions and pending scripting work. `failure()` exposes load and
+lifecycle errors. Call `shutdown(frame)` on the owner before releasing the mount.
+
+`validate_flow` checks typed references, region ownership, and structural
+reachability. `flow_dead_ends` reports screens with no enabled authored exit.
+`plan_flow_path` returns a shortest forward sequence under the declared initial
+guard values, including activation of nested regions. A traversal test can
+submit each action and observe `committed` before its next step. Back and pop
+depend on runtime history and are exercised separately.
+
+#### Prepared menu navigation
+
+Use `prepare_flow` on an authored mount and `encode_prepared` to produce a
+versioned `AFLW` v1 record. Preparation resolves every distinct screen through
+the UI cooker, checks the authored focus and control IDs, and records each
+screen's exact typed dependency revisions. `flow_dependencies` returns the
+sorted union for validation or later packaging.
+
+Store the Flow record and each separately encoded prepared UI record under
+their original catalog IDs and authored revisions. A shared screen has one
+UI payload even when several menu IDs reference it. At runtime use
+`load_prepared_flow` and `build_prepared_flow` with the active mount. Each
+screen must match its recorded dependency contract before its normal owner
+publication. The prepared loader stages Lua and shader bytes through the
+streamer. Embedded ViewModel and material data are composed from the
+prepared UI record.
+
+The Flow codec uses the shared little-endian version, length and payload
+checksum envelope. It preserves declaration order, typed guard values and
+asset identities. Native ViewModel factories remain optional. Flow manager
+construction uses the validated graph directly.
+
+The Release benchmark includes 32 menus sharing one UI asset. On Windows x64
+with clang-cl and a Core Ultra 7 265KF, local median graph decode was 82.4 µs
+for XML and 29.7 µs for prepared Flow. Decode plus manager construction had
+a median of 104.8 µs for XML and 76.3 µs for prepared Flow. The prepared
+measurement includes mounted revision checks. Both measurements stop before
+screen streaming and composition.
+
 ### Prepared UI and materials
 
 `<atlas/ui_content/prepared.hpp>` exposes the typed preparation and construction

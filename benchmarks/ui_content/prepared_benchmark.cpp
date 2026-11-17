@@ -9,6 +9,27 @@ namespace atlas::ui_content
 {
 namespace
 {
+/// @brief Reuse one UI asset across distinct menus to isolate the graph and contract costs.
+flow_document menu_graph(assets::asset_ref source)
+{
+    flow_document graph;
+    graph.regions.push_back({"main", "menu_0", ""});
+    for (std::size_t index = 0; index < 32; ++index)
+    {
+        const auto name = "menu_" + std::to_string(index);
+        graph.screens.push_back({name, "main", source});
+        if (index != 0)
+        {
+            graph.transitions.push_back({.id = "go_" + std::to_string(index),
+                                         .from = graph.screens.at(index - 1).id,
+                                         .to = name,
+                                         .operation = flow_operation::replace});
+        }
+    }
+
+    return graph;
+}
+
 /// @brief Keep the comparison reproducible and outside filesystem and GPU timing.
 class benchmark
 {
@@ -36,9 +57,12 @@ class benchmark
 
         xml_ = write_xml(document_value);
         const auto source = add(data, "menu.xml", assets::asset_type::ui, xml_);
+        flow_xml_ = write_flow_xml(menu_graph(source));
+        const auto flow_source = add(data, "flow.xml", assets::asset_type::flow, flow_xml_);
         mount_ = std::make_unique<streaming::catalog_streamer>(
             jobs_, assets::catalog::compile(std::move(data)), std::move(storage_));
         prepared_ = encode_prepared(prepare_view(source, {*mount_}));
+        flow_prepared_ = encode_prepared(prepare_flow(flow_source, {*mount_}));
     }
 
     /// @brief Verify semantic output and report decode plus construction separately.
@@ -75,9 +99,42 @@ class benchmark
         measure("prepared_decode", read_prepared, samples);
         measure("xml_decode_and_build", from_xml, samples);
         measure("prepared_decode_and_build", from_prepared, samples);
+        run_flow(options, samples);
     }
 
   private:
+    /// @brief Compare equally validated graph decodes and manager construction before screen I/O.
+    void run_flow(const construction& options, std::size_t samples) const
+    {
+        const auto authored = [&]
+        {
+            return parse_flow_xml({flow_xml_});
+        };
+        const auto prepared = [&]
+        {
+            return decode_prepared_flow(flow_prepared_);
+        };
+        if (write_flow_xml(prepared().graph) != write_flow_xml(authored()))
+        {
+            throw std::runtime_error("Prepared Flow benchmark mismatch");
+        }
+
+        const auto authored_manager = [&]
+        {
+            return std::make_unique<flow_manager>(authored(), make_flow_loader(options));
+        };
+        const auto prepared_manager = [&]
+        {
+            return build_prepared_flow(prepared(), options);
+        };
+        std::cout << "flow_xml_bytes=" << flow_xml_.size()
+                  << " flow_prepared_bytes=" << flow_prepared_.size() << '\n';
+        measure("flow_xml_decode", authored, samples);
+        measure("flow_prepared_decode", prepared, samples);
+        measure("flow_xml_decode_and_build", authored_manager, samples);
+        measure("flow_prepared_decode_and_build", prepared_manager, samples);
+    }
+
     /// @brief Compare identical material/view IDs across the two construction paths.
     assets::asset_ref add(assets::catalog_document& data, const char* name, assets::asset_type type,
                           const std::string& bytes)
@@ -122,6 +179,8 @@ class benchmark
     std::unique_ptr<streaming::catalog_streamer> mount_; ///< Typed source for both paths.
     std::string xml_;                                    ///< Authored UI source bytes.
     std::vector<std::byte> prepared_;                    ///< Equivalent typed binary bytes.
+    std::string flow_xml_;                 ///< Authored graph used for the Flow comparison.
+    std::vector<std::byte> flow_prepared_; ///< Graph and exact revisions under test.
 };
 } // namespace
 } // namespace atlas::ui_content

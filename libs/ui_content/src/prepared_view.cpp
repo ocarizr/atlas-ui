@@ -111,10 +111,13 @@ template <class Lookup> dependency_set collect(const prepared_view& source, cons
     return closure;
 }
 
+} // namespace
+
 /// @brief Require the exact positive authored revision from the currently mounted catalog.
-void validate_mount(const prepared_view& source, const construction& options)
+void detail::validate_prepared_mount(std::span<const prepared_dependency> dependencies,
+                                     const construction& options)
 {
-    for (const auto& required : source.dependencies)
+    for (const auto& required : dependencies)
     {
         if (options.reads.cancellation.stop_requested())
         {
@@ -124,12 +127,11 @@ void validate_mount(const prepared_view& source, const construction& options)
         const auto stamp = options.storage.stamp(required.source);
         if (stamp.revision != required.revision || !options.storage.accepts(stamp))
         {
-            throw std::invalid_argument("Stale prepared UI dependency: " +
+            throw std::invalid_argument("Stale prepared content dependency: " +
                                         assets::format_id(required.source.id));
         }
     }
 }
-} // namespace
 
 /// @brief Match the manifest against the closure implied by the decoded records.
 void detail::validate_prepared(const prepared_view& source)
@@ -238,7 +240,7 @@ prepared_view prepare_view(assets::asset_ref source, const construction& options
     }
 
     detail::validate_prepared(result);
-    validate_mount(result, options);
+    detail::validate_prepared_mount(result.dependencies, options);
     return result;
 }
 
@@ -265,7 +267,7 @@ std::unique_ptr<instance> build_prepared(const prepared_view& source, const cons
     const diagnostics::operation_scope scope{options.diagnostics,
                                              {"ui.prepared.build", "ui.content"}};
     detail::validate_prepared(source);
-    validate_mount(source, options);
+    detail::validate_prepared_mount(source.dependencies, options);
     if (!options.materials.empty() || !options.model_schemas.empty())
     {
         throw std::invalid_argument("Prepared UI already owns its materials and model schemas");

@@ -1,6 +1,7 @@
 /** @file @brief Validate and compose authored model actions and Lua behavior routes. */
 #include "routes.hpp"
 #include "storage.hpp"
+#include <atlas/ui_content/flow.hpp>
 #include <atlas/ui_scripting/event_handler.hpp>
 
 namespace atlas::ui_content::detail
@@ -15,6 +16,22 @@ class composite_handler final : public ui::input_handler
     ui::event_response on_event(const ui::routed_event& event,
                                 ui::command_buffer& commands) override
     {
+        if (event.phase == ui::route_phase::target && navigate)
+        {
+            for (const auto& route : navigation)
+            {
+                const bool matches =
+                    route.action == 0 ? event.kind == ui::event_kind::pointer_up
+                                      : event.kind == ui::event_kind::action && event.action &&
+                                            event.action->action == route.action &&
+                                            event.action->phase == input::action_phase::performed;
+                if (matches && navigate(route.transition))
+                {
+                    return {.stop = true};
+                }
+            }
+        }
+
         for (const auto& action : actions)
         {
             (void)action->on_event(event, commands);
@@ -25,6 +42,8 @@ class composite_handler final : public ui::input_handler
 
     std::vector<std::unique_ptr<ui_mvvm::action_handler>> actions; ///< Ordered model routes.
     std::unique_ptr<ui_scripting::event_handler> script; ///< One instance in the shared domain.
+    std::vector<flow_control> navigation; ///< Graph-authored actions on this element.
+    flow_dispatch navigate;               ///< Owner-only admission tied to one view generation.
 };
 
 /// @brief Each unique Lua source is acquired once per candidate and registered by persistent ID.
@@ -52,6 +71,19 @@ std::shared_ptr<ui::input_handler> make_handler(const element& node, const model
                                                 const construction& options)
 {
     auto handler = std::make_shared<composite_handler>();
+    for (const auto& route : options.navigation)
+    {
+        if (route.element == node.id)
+        {
+            handler->navigation.push_back(route);
+        }
+    }
+
+    if (!handler->navigation.empty())
+    {
+        handler->navigate = options.navigate;
+    }
+
     handler->actions.reserve(node.actions.size());
     for (const auto& action : node.actions)
     {
