@@ -177,8 +177,9 @@ class stream_load final : public flow_load
                 return;
             }
 
-            source_ = parse_xml({bytes, assets::format_id(source.id)}, options_.diagnostics);
-            for (const auto& model : source_->models)
+            const auto& authored = source_.emplace(
+                parse_xml({bytes, assets::format_id(source.id)}, options_.diagnostics));
+            for (const auto& model : authored.models)
             {
                 const auto native = std::ranges::any_of(options_.factories,
                                                         [&](const auto& entry)
@@ -196,7 +197,7 @@ class stream_load final : public flow_load
                 }
             }
 
-            for (const auto& element : source_->elements)
+            for (const auto& element : authored.elements)
             {
                 if (element.script)
                 {
