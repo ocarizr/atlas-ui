@@ -257,6 +257,7 @@ components:
     - content
   ui-renderer:
     paths:
+    - benchmarks/ui_renderer/**
     - libs/ui_renderer/**
     - tests/ui_renderer/**
     - tests/platform/windows/ui_renderer/**
@@ -267,6 +268,7 @@ components:
     build_targets:
     - atlas_ui_renderer
     - atlas_ui_renderer_tests
+    - atlas_ui_material_benchmark
     test_labels:
     - ui-renderer
     build_requires:

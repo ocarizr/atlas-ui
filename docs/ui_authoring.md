@@ -433,3 +433,48 @@ Material changes dirty paint without invalidating
 layout. Equal adjacent material constants still batch. Distinct
 constants split draws. Geometry upload currently resubmits six ordinary
 vertices per visible quad; the GPU applies analytic coverage inside it.
+
+### Material animation measurements
+
+Build the `ui-renderer` component's `atlas_ui_material_benchmark` target
+with native Direct3D 12 enabled. Use Release with `ATLAS_PROFILING=on` for
+fence-completed pass timestamps. The executable prefers hardware and reports
+the selected adapter. Pass `--warp` to measure the software adapter or
+`--smoke` to run the smaller WARP correctness workload used by CTest.
+
+The benchmark animates up to 192 translucent SDF cards in a 1920×1080
+offscreen target. It compares a grid of 192 cards, the same grid with
+staggered phases, and four layers over 48 cells against a single layer on
+those 48 cells. It alternates between sampling every card on the CPU and submitting
+a cached paint snapshot with one shared clock value. The shader evaluates
+that value plus each card's phase offset. Full-frame pixel comparisons cover
+cycle wrap and seeking back to an earlier time. One RGBA8 code value of
+rounding variation is allowed between the two paths.
+
+The report gives P50/P95/P99 for CPU packet preparation, CPU adapter
+submission and the fenced graphics pass. It also counts submitted draws,
+vertex upload bytes and rectangle coverage. Coverage is calculated from
+the verified aligned quads before shader evaluation. It counts repeated
+coverage over the same pixels even where the SDF produces transparent
+output. The GPU pass times include target clear and draws. Upload execution,
+readbacks, swap-chain presentation and synchronization waits are outside
+the reported GPU interval.
+
+Two clang-cl 19.1.5 Release runs on an RTX 5070 Ti used 64 measured
+frames per policy after six warm-up frames. The ranges show the P95 from
+each run in microseconds.
+
+| Workload | Draws | Vertex upload | Sampled CPU preparation | Shared CPU preparation | Shared GPU pass |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Uniform grid, 192 cards | 1 | 41,472 B | 56.9–58.7 | 0.1 | 8.54–8.90 |
+| Staggered grid, 192 cards | 192 | 41,472 B | 58.1 | 0.1 | 11.81–11.84 |
+| Four layers on 48 cells | 1 | 41,472 B | 54.0–58.5 | 0.1 | 8.48–8.61 |
+| Single layer on 48 cells | 1 | 10,368 B | 26.3–27.0 | 0.1 | 4.90–5.02 |
+
+Sharing the clock reuses the CPU paint snapshot. Both paths still upload
+the same vertices and split batches at the same material boundaries. In
+the uniform 192-card grid, shared GPU P50 matched sampled GPU P50 at
+8.51 µs. On WARP, shared GPU P95 rose from 1.14 ms for one layer to 2.28 ms
+for four layers over the same cells. The coverage count excludes any GPU
+work outside the submitted rectangle fragments and the timing includes
+the fixed target clear.
