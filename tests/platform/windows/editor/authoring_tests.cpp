@@ -79,4 +79,45 @@ TEST(editor_authoring, FailedReplacementRetiresTemporaryFile)
         EXPECT_EQ(item.path(), destination);
     }
 }
+
+/// @brief Verify a larger authored preview survives a rejected reopen after resize and sparse edit.
+TEST(editor_authoring, ResizedDensePreviewSurvivesRejectedReopen)
+{
+    streaming::tests::temporary_assets files;
+    jobs::job_system jobs{2};
+    const auto catalog =
+        assets::catalog::compile({assets::parse_namespace("018d0b95cf2673c6a0d7dd8ce5d29b23")});
+    streaming::catalog_streamer storage{jobs, catalog, {}};
+    auto source = new_document();
+    const auto parent = source.elements.front().id;
+    for (std::size_t row = 0; row < 128; ++row)
+    {
+        auto& node = source.elements.emplace_back();
+        node.id = "row_" + std::to_string(row);
+        node.parent = parent;
+        node.caption = node.id;
+        node.requested = {.width = 64, .height = 24, .width_fixed = true, .height_fixed = true};
+        node.paint.fill = true;
+    }
+
+    document_session session{std::move(source), {storage}};
+    editor_view view{session, jobs, files.path(), {}};
+    const window::window_state compact{960, 540, 1};
+    const window::window_state wide{1440, 900, 1};
+    ASSERT_TRUE(view.snapshot(compact, {}));
+    session.select("row_17");
+    ASSERT_TRUE(session.apply(edit_kind::wider));
+    ASSERT_TRUE(view.snapshot(wide, {}));
+    save_document(files.path(), session.document(), {});
+    const auto saved = ui_content::write_xml(session.document());
+    session.replace(open_document(files.path(), jobs, {}), true);
+    auto& published = session.preview();
+    auto rejected = session.document();
+    rejected.elements.back().parent = "missing";
+    EXPECT_THROW(session.replace(std::move(rejected), true), std::invalid_argument);
+    EXPECT_EQ(&session.preview(), &published);
+    EXPECT_EQ(ui_content::write_xml(session.document()), saved);
+    EXPECT_FALSE(session.dirty());
+    EXPECT_TRUE(view.snapshot(compact, {}));
+}
 } // namespace atlas::editor::tests
