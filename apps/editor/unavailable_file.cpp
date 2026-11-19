@@ -3,6 +3,12 @@
 
 namespace atlas::editor
 {
+/// @brief Report unavailable native persistence without opening any source.
+void write_editor_source(const std::filesystem::path&, std::string_view, bool)
+{
+    throw std::runtime_error("Editor byte storage is unavailable in this build");
+}
+
 /// @brief Match the native workspace adapter while retaining explicit unavailable outcomes.
 document_storage make_document_storage(jobs::job_system& jobs, diagnostics::services sinks)
 {

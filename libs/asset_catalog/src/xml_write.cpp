@@ -49,6 +49,11 @@ void write_record(pugi::xml_node root, const asset_record& record)
     attribute(node, "importer", record.importer);
     attribute(node, "importer-version", std::to_string(record.importer_version));
     attribute(node, "settings-version", std::to_string(record.settings_version));
+    if (!record.source_hash.empty())
+    {
+        attribute(node, "source-hash", record.source_hash);
+    }
+
     for (const auto& dependency : record.dependencies)
     {
         reference(element(node, "dependency"), dependency);

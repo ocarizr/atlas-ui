@@ -1,5 +1,6 @@
 /** @file @brief Private owner state shared by editor presentation and document commands. */
 #pragma once
+#include "asset_panel.hpp"
 #include "editor_view.hpp"
 #include "panel_scene.hpp"
 #include "tool_panel.hpp"
@@ -79,7 +80,9 @@ class editor_view::impl
     bool shell_visible = false;          ///< Authored shell owns input only when it is arranged.
     std::unique_ptr<tool_panel> active_tool; ///< Current independent contribution.
     std::size_t tool_index = 0;              ///< Zero displays the document preview.
-    ui::layout_rect tool_bounds;             ///< Last arranged contribution viewport.
+    std::unique_ptr<asset_panel>
+        assets;                  ///< Browser state references the host's durable repository.
+    ui::layout_rect tool_bounds; ///< Last arranged contribution viewport.
 };
 
 } // namespace atlas::editor

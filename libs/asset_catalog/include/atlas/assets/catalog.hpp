@@ -94,6 +94,7 @@ struct asset_record
     std::uint32_t settings_version{1};       ///< Version of the importer settings contract.
     std::vector<asset_ref> dependencies{};   ///< Required, typed dependency edges.
     std::vector<derived_product> products{}; ///< Named derived asset links.
+    std::string source_hash{}; ///< Optional 64-digit lowercase SHA-256 for source change detection.
     bool operator==(const asset_record&) const = default; ///< Exact metadata comparison.
 };
 

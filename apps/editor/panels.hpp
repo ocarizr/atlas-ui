@@ -10,24 +10,39 @@ inline constexpr std::size_t hierarchy_page_size = 12; ///< Rows shown per hiera
 /// @brief Named routes produced by editor controls.
 enum class control_kind : std::uint8_t
 {
-    none,            ///< Passive decoration.
-    select,          ///< Select by authored identity.
-    add_child,       ///< Append a generic leaf.
-    remove,          ///< Remove a subtree.
-    narrower,        ///< Reduce requested width.
-    wider,           ///< Increase requested width.
-    toggle_visible,  ///< Toggle authored visibility.
-    undo,            ///< Restore previous revision.
-    redo,            ///< Reapply a retained revision.
-    new_document,    ///< Replace with the generic initial document.
-    save,            ///< Persist the active document.
-    reopen,          ///< Reload the selected file.
-    previous,        ///< Browse the preceding hierarchy page.
-    next,            ///< Browse the next hierarchy page.
-    cycle_tool,      ///< Cycle preview and registered tool contributions.
-    cycle_document,  ///< Select the next independent session.
-    close_document,  ///< Preserve active edits to recovery before closing.
-    recover_document ///< Explicitly restore recovery without replacing the source file.
+    none,             ///< Passive decoration.
+    select,           ///< Select by authored identity.
+    add_child,        ///< Append a generic leaf.
+    remove,           ///< Remove a subtree.
+    narrower,         ///< Reduce requested width.
+    wider,            ///< Increase requested width.
+    toggle_visible,   ///< Toggle authored visibility.
+    undo,             ///< Restore previous revision.
+    redo,             ///< Reapply a retained revision.
+    new_document,     ///< Replace with the generic initial document.
+    save,             ///< Persist the active document.
+    reopen,           ///< Reload the selected file.
+    previous,         ///< Browse the preceding hierarchy page.
+    next,             ///< Browse the next hierarchy page.
+    cycle_tool,       ///< Cycle preview and registered tool contributions.
+    cycle_document,   ///< Select the next independent session.
+    close_document,   ///< Preserve active edits to recovery before closing.
+    recover_document, ///< Explicitly restore recovery without replacing the source file.
+    assets_toggle,    ///< Toggle the typed asset panel.
+    assets_type,      ///< Cycle the asset category.
+    assets_select,    ///< Select a stable asset ID.
+    assets_import,    ///< Import or register a source.
+    assets_move,      ///< Move a source preserving identity.
+    assets_relink,    ///< Replace a missing source.
+    assets_refresh,   ///< Detect changed bytes.
+    assets_remove,    ///< Remove unreferenced registration.
+    assets_undo,      ///< Undo an asset catalog edit.
+    assets_redo,      ///< Redo an asset catalog edit.
+    assets_cancel,    ///< Cancel source preparation.
+    assets_open,      ///< Open an authored UI asset.
+    assets_assign,    ///< Assign a typed element reference.
+    assets_next,      ///< Cycle the next page.
+    assets_settings   ///< Advance importer settings.
 };
 
 /// @brief Owned command materialized from a control after pointer release.

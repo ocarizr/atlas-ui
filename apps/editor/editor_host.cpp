@@ -1,5 +1,6 @@
 /** @file @brief Main-owned editor window, storage and joined render-thread lifecycle. */
 #include "editor_host.hpp"
+#include "asset_files.hpp"
 #include "document_file.hpp"
 #include "editor_graphics.hpp"
 #include "tool_registry.hpp"
@@ -18,9 +19,10 @@ struct launch_options
     std::vector<std::filesystem::path>
         files;            ///< Selected files, each owning an independent session.
     bool recover = false; ///< Restore the active document's checkpoint only by explicit request.
-    bool warp = false;    ///< Force software rendering.
-    bool smoke = false;   ///< Hidden bounded native render exercise.
-    bool help = false;    ///< Print command-line usage.
+    std::filesystem::path asset_root; ///< Optional explicit editor content origin.
+    bool warp = false;                ///< Force software rendering.
+    bool smoke = false;               ///< Hidden bounded native render exercise.
+    bool help = false;                ///< Print command-line usage.
 };
 
 /// @brief Parse editor options before touching native graphics or storage.
@@ -37,6 +39,10 @@ launch_options parse_options(int argc, char** argv)
         else if (argument == "--recover")
         {
             options.recover = true;
+        }
+        else if (argument == "--asset-root" && i + 1 < argc)
+        {
+            options.asset_root = argv[++i];
         }
         else if (argument == "--warp")
         {
@@ -149,7 +155,33 @@ void run(const launch_options& options, const diagnostics::services& sinks)
     jobs::job_system workers{policy};
     auto catalog =
         assets::catalog::compile({assets::parse_namespace("018d0b95cf2673c6a0d7dd8ce5d29b23")});
-    streaming::catalog_streamer preview_sources{workers, catalog, {}, {}, memory, sinks};
+    const auto asset_root = std::filesystem::absolute(
+        options.asset_root.empty() ? options.files.back().parent_path() / "editor_assets"
+                                   : options.asset_root);
+    std::unique_ptr<asset_repository> repository;
+    std::shared_ptr<streaming::catalog_streamer> preview_sources;
+    if (!options.smoke)
+    {
+        repository = open_asset_repository(asset_root, workers, sinks);
+        try
+        {
+            preview_sources =
+                mount_editor_assets(repository->snapshot(), asset_root, workers, sinks);
+        }
+        catch (const std::exception& error)
+        {
+            diagnostics::write(sinks, diagnostics::log_level::warning, "editor.assets",
+                               error.what());
+        }
+    }
+
+    if (!preview_sources)
+    {
+        preview_sources = std::make_shared<streaming::catalog_streamer>(
+            workers, catalog, streaming::storage_mount{}, streaming::streamer_limits{}, memory,
+            sinks);
+    }
+
     auto storage = make_document_storage(workers, sinks);
     if (options.smoke)
     {
@@ -159,7 +191,7 @@ void run(const launch_options& options, const diagnostics::services& sinks)
         };
     }
 
-    document_workspace workspace{{preview_sources, {}, memory, sinks}, std::move(storage)};
+    document_workspace workspace{{*preview_sources, {}, memory, sinks}, std::move(storage)};
     for (const auto& file : options.files)
     {
         const auto absolute = std::filesystem::absolute(file);
@@ -180,6 +212,11 @@ void run(const launch_options& options, const diagnostics::services& sinks)
                               workers,
                               sinks};
     editor_view view{workspace, workers, sinks, &tools};
+    if (repository)
+    {
+        view.bind_assets(*repository, asset_root);
+    }
+
     window::window window{{"Atlas Editor", 960, 540, !options.smoke}};
     const auto target = window.share_presentation();
     std::atomic<std::uint64_t> presented{0};
@@ -209,10 +246,10 @@ int run_editor(int argc, char** argv)
         const auto options = parse_options(argc, argv);
         if (options.help)
         {
-            (void)log->write(
-                diagnostics::log_level::info, "editor",
-                "Options: --document <file> (repeatable), --recover, --warp, --smoke-test, "
-                "--graphics-smoke-test");
+            (void)log->write(diagnostics::log_level::info, "editor",
+                             "Options: --document <file> (repeatable), --asset-root <directory>, "
+                             "--recover, --warp, --smoke-test, "
+                             "--graphics-smoke-test");
             return 0;
         }
 

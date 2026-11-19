@@ -12,7 +12,8 @@ namespace atlas::assets
 namespace
 {
 /// @brief Require one instance of every field and reject undeclared attributes.
-void attributes(pugi::xml_node node, std::initializer_list<const char*> required)
+void attributes(pugi::xml_node node, std::initializer_list<const char*> required,
+                const char* optional = nullptr)
 {
     std::size_t count = 0;
     for (auto attribute : node.attributes())
@@ -22,14 +23,16 @@ void attributes(pugi::xml_node node, std::initializer_list<const char*> required
                                  [&](std::string_view name)
                                  {
                                      return name == attribute.name();
-                                 }))
+                                 }) &&
+            (!optional || std::string_view{optional} != attribute.name()))
         {
             throw std::invalid_argument("Unknown catalog attribute: " +
                                         std::string{attribute.name()});
         }
     }
 
-    if (count != required.size())
+    const std::size_t extra = optional && node.attribute(optional) ? 1 : 0;
+    if (count != required.size() + static_cast<std::size_t>(extra))
     {
         throw std::invalid_argument("Missing or duplicate attributes on " +
                                     std::string{node.name()});
@@ -101,8 +104,10 @@ void read_links(pugi::xml_node node, asset_record& record)
 /// @brief Decode a complete record before adding it to the draft.
 asset_record read_record(pugi::xml_node node)
 {
-    attributes(node, {"id", "type", "root", "path", "revision", "byte-size", "importer",
-                      "importer-version", "settings-version"});
+    attributes(node,
+               {"id", "type", "root", "path", "revision", "byte-size", "importer",
+                "importer-version", "settings-version"},
+               "source-hash");
     asset_record record{reference(node),
                         {node.attribute("root").value(), node.attribute("path").value()},
                         number<std::uint64_t>(node, "revision"),
@@ -111,6 +116,7 @@ asset_record read_record(pugi::xml_node node)
                         number<std::uint32_t>(node, "importer-version"),
                         number<std::uint32_t>(node, "settings-version")};
     read_links(node, record);
+    record.source_hash = node.attribute("source-hash").value();
     return record;
 }
 

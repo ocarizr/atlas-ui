@@ -4,6 +4,21 @@
 
 namespace atlas::assets::tests
 {
+/// @brief Old catalogs omit the digest; new catalogs round-trip exact SHA-256 bytes.
+TEST(asset_catalog_xml, RetainsOptionalSourceDigest)
+{
+    catalog_document draft{parse_namespace("018d0b95cf2673c6a0d7dd8ce5d29b23")};
+    draft.records.push_back({{allocate_id(draft), asset_type::texture}, {"texture", "image.png"}});
+    EXPECT_TRUE(read_xml({write_xml(catalog::compile(draft))})
+                    .document()
+                    .records.front()
+                    .source_hash.empty());
+    draft.records.front().source_hash = std::string(64, 'a');
+    EXPECT_EQ(read_xml({write_xml(catalog::compile(draft))}).document(), draft);
+    draft.records.front().source_hash = "invalid";
+    EXPECT_THROW((void)catalog::compile(draft), std::invalid_argument);
+}
+
 /// @brief Canonical XML retains typed metadata, byte extents and import versions.
 TEST(asset_catalog_xml, CanonicalizesAssetOrderAndRetainsMetadata)
 {

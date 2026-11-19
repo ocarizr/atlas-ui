@@ -6,7 +6,8 @@
 
 namespace atlas::editor
 {
-class tool_registry; ///< Optional editor and project contributions.
+class tool_registry;    ///< Optional editor and project contributions.
+class asset_repository; ///< Optional writable editor content origin.
 
 /// @brief A retained render packet contains only portable CPU values.
 struct editor_frame final : render_host::frame_payload
@@ -30,6 +31,8 @@ class editor_view
     [[nodiscard]] bool preserve();
     /// @brief Checkpoint every 30 seconds using the supplied monotonic owner time.
     void autosave(std::chrono::steady_clock::time_point now);
+    /// @brief Attach type-oriented asset authoring before the first frame.
+    void bind_assets(asset_repository& repository, std::filesystem::path root);
     ~editor_view(); ///< Retire UI and input on the main owner.
     /// @brief Publish an updated immutable packet after dispatching native input.
     [[nodiscard]] std::shared_ptr<const editor_frame>
