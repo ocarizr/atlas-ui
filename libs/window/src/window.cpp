@@ -110,6 +110,14 @@ void window::request_close()
     impl_->publish();
 }
 
+/// @brief Republish an open endpoint before the render coordinator uses the restored window.
+void window::cancel_close()
+{
+    impl_->check();
+    impl_->backend->cancel_close();
+    impl_->publish();
+}
+
 /// @brief Throw an operation-specific diagnostic before continuing after a native failure.
 void window::wait_for_events(std::uint32_t timeout_ms)
 {

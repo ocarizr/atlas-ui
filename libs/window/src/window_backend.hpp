@@ -21,8 +21,14 @@ class window_backend
     virtual window_state state() const = 0; ///< Query physical client state.
     virtual void resize(std::uint32_t width, std::uint32_t height) = 0; ///< Resize client area.
     virtual void close() = 0;                                           ///< Hide and mark closed.
-    virtual void wait(std::uint32_t milliseconds) = 0;                  ///< Wait for messages.
-    virtual void* native_handle() const = 0; ///< Backend-only native handle.
+
+    virtual void cancel_close()
+    {
+        throw std::logic_error("This window backend cannot cancel close requests");
+    } ///< Cancel only through the native owner, never a presentation lease.
+
+    virtual void wait(std::uint32_t milliseconds) = 0; ///< Wait for messages.
+    virtual void* native_handle() const = 0;           ///< Backend-only native handle.
 };
 
 std::shared_ptr<window_backend>

@@ -10,6 +10,10 @@ coordinator wait when minimized or occluded. `request_close()` hides the window
 and marks it closed; it does not invalidate a handle retained by a presentation
 surface. Closing one client does not post a process-wide quit message.
 
+`cancel_close()` clears the close request, restores the initial visibility,
+and publishes the open state to presentation leases. An authoring application
+can call it on the owner thread when a final save or checkpoint fails.
+
 `take_input()` returns `atlas::input::event_batch` and drains up to 256 normalized primary-pointer/basic key packets after
 polling. Signed coordinates are physical client pixels. Overflow publishes an
 explicit source reset instead of silently dropping a release. Native dispatch

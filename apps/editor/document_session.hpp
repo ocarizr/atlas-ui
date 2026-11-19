@@ -28,6 +28,7 @@ class document_session
     [[nodiscard]] std::string_view selected() const noexcept; ///< Stable selected element ID.
     [[nodiscard]] ui::element_tree& preview(); ///< The isolated runtime tree used for presentation.
     [[nodiscard]] bool dirty() const noexcept; ///< Current revision differs from the last save.
+    [[nodiscard]] std::uint64_t revision_id() const noexcept; ///< Current immutable revision ID.
     [[nodiscard]] bool can_undo() const noexcept; ///< Whether an earlier edit remains retained.
     [[nodiscard]] bool can_redo() const noexcept; ///< Whether an undone edit remains retained.
     void select(std::string_view id);             ///< Selection alone creates no history entry.
@@ -35,6 +36,7 @@ class document_session
     bool undo();                   ///< Restore a retained authored revision and rebuild preview.
     bool redo();                   ///< Reapply a retained authored revision and rebuild preview.
     void replace(ui_content::document source, bool saved); ///< Publish valid replacement only.
+    void restore(ui_content::document source); ///< Restore recovery as an undoable dirty edit.
     void mark_saved() noexcept; ///< Record the current revision after persistence succeeds.
 
   private:

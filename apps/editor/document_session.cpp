@@ -122,6 +122,12 @@ bool document_session::dirty() const noexcept
     return current_.id != saved_;
 }
 
+/// @brief Repeated checkpoints can recognize the same authoring state without serializing it.
+std::uint64_t document_session::revision_id() const noexcept
+{
+    return current_.id;
+}
+
 /// @brief Query whether an earlier revision is retained.
 bool document_session::can_undo() const noexcept
 {
@@ -274,6 +280,18 @@ void document_session::replace(ui_content::document source, bool saved)
     undo_.clear();
     redo_.clear();
     saved_ = saved ? id : 0;
+}
+
+/// @brief Restore a valid checkpoint without losing the current edits or saved identity.
+void document_session::restore(ui_content::document source)
+{
+    auto ready = make_preview(source);
+    auto root = source.elements.front().id;
+    const auto id = allocate_revision();
+    retain(undo_, std::move(current_));
+    current_ = {std::move(source), std::move(root), id};
+    preview_ = std::move(ready);
+    redo_.clear();
 }
 
 /// @brief Mark only the last successfully saved revision.

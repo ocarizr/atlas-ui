@@ -8,8 +8,9 @@ to select software graphics.
 The hierarchy lists authored element IDs and highlights the selection. The
 inspector changes width and visibility, adds a generic painted leaf to a panel,
 and removes nonroot subtrees. Undo and Redo restore up to 32 retained revisions.
-New creates a generic document. Reopen replaces current edits with the saved file
-after successful validation. Save writes canonical [UI XML](ui_authoring.md)
+New creates a generic document in another session. Reopen captures unsaved
+edits in recovery and loads the saved file after successful validation.
+Save writes canonical [UI XML](ui_authoring.md)
 through a flushed sibling temporary file and replaces the destination.
 
 The editor owns the editable document and its history. Each successful edit
@@ -25,6 +26,41 @@ File bytes are read through the streamer. The Windows editor persistence
 boundary handles authoring writes. The game executable remains a separate
 consumer of the runtime libraries.
 
+## Documents and recovery
+
+Repeat `--document` to open several files in one editor window. Each of up
+to 32 documents owns its selection, dirty state, undo/redo history and runtime
+preview. The bottom bar shows the current filename. **Next document** cycles
+through open sessions. **New** creates an `untitled-N.xml` target beside
+the active document and rejects occupied source or recovery filenames.
+**Close** checkpoints dirty edits before retiring the current session.
+The window retains one document until application shutdown.
+
+Autosave checkpoints changed dirty revisions every 30 seconds and before
+normal window close. A document `view.xml` has an independent checkpoint
+`view.xml.atlas-recovery.xml`. Source and checkpoint writes use the same
+flushed sibling-temp replacement. Autosave preserves the document's dirty
+state. Repeated intervals skip unchanged revisions. Undoing to the saved
+revision retires a checkpoint created by the current session.
+
+**Recover** restores a checkpoint as an undoable dirty revision. Use
+`--recover --document view.xml` to start from recovery even when the source
+is malformed. With repeated document arguments, this option restores each
+selected file from its checkpoint. Save accepts the active content into
+the source file and removes its checkpoint. A checkpoint discovered on
+ordinary open is protected until Recover or Save resolves it. Closing an
+untouched session preserves that existing checkpoint.
+
+A checkpoint error keeps live sessions available and displays a message.
+The window retries pending close once per second, allowing storage to be
+fixed or a successful Save before shutdown. The workspace's explicit
+discard policy removes a checkpoint before retiring an owner. All these
+operations run on the editor owner after event callbacks return. Source
+reads use the streamer and join their delivery before returning. Persistence
+is synchronous in this implementation, so slow storage can pause the editor
+during autosave. Immutable render packets retain their own values through
+document switches and shutdown.
+
 ## Authored editor tools
 
 The editor loads its shared shell and tools from `content/editor_tools` beside
@@ -36,7 +72,8 @@ to native editor commands. Hierarchy rows and selection details come from the
 editor's live authoring state.
 
 Project tools go in `editor_tools` next to the document selected by
-`--document`. Give that directory a [typed catalog](assets.md#xml-catalog-v1)
+`--document`. With several documents, the last argument selects the tool
+origin for the window's lifetime. Give that directory a [typed catalog](assets.md#xml-catalog-v1)
 named `catalog.xml`, with logical root `tools` and exact byte lengths. Every
 UI entry is a selectable tool. Register referenced ViewModel XML and Lua files
 in the same catalog. The editor mounts the two origins independently and
@@ -51,7 +88,8 @@ tool. Each opened panel gets its own UI and Lua state. Lua can queue
 `add_child`, `remove`, `narrower`, `wider` and `toggle_visible` through
 `native.call("editor.command", command)` during input dispatch. The installed
 shell also has the document lifecycle commands New, Save, Reopen, Undo and
-Redo. These commands run on the editor owner after event routing finishes.
+Redo, and can queue `next_document`, `close_document`, and `recover`.
+These commands run on the editor owner after event routing finishes.
 
 Tool panels use solid geometry and authored captions. Each origin can
 register up to 16 contributed panels, and each panel can contain up to 256

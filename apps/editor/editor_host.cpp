@@ -15,10 +15,12 @@ namespace
 /// @brief Explicit document target and graphics preferences.
 struct launch_options
 {
-    std::filesystem::path file = "atlas-ui.xml"; ///< Existing file to open or future save target.
-    bool warp = false;                           ///< Force software rendering.
-    bool smoke = false;                          ///< Hidden bounded native render exercise.
-    bool help = false;                           ///< Print command-line usage.
+    std::vector<std::filesystem::path>
+        files;            ///< Selected files, each owning an independent session.
+    bool recover = false; ///< Restore the active document's checkpoint only by explicit request.
+    bool warp = false;    ///< Force software rendering.
+    bool smoke = false;   ///< Hidden bounded native render exercise.
+    bool help = false;    ///< Print command-line usage.
 };
 
 /// @brief Parse editor options before touching native graphics or storage.
@@ -30,7 +32,11 @@ launch_options parse_options(int argc, char** argv)
         const std::string_view argument = argv[i];
         if (argument == "--document" && i + 1 < argc)
         {
-            options.file = argv[++i];
+            options.files.emplace_back(argv[++i]);
+        }
+        else if (argument == "--recover")
+        {
+            options.recover = true;
         }
         else if (argument == "--warp")
         {
@@ -50,6 +56,11 @@ launch_options parse_options(int argc, char** argv)
         }
     }
 
+    if (options.files.empty())
+    {
+        options.files.emplace_back("atlas-ui.xml");
+    }
+
     return options;
 }
 
@@ -67,12 +78,25 @@ void render_frames(window::window& window, editor_view& view, render_host::rende
     {
         std::uint64_t frame = 1;
         const auto start = std::chrono::steady_clock::now();
+        auto close_retry = start;
+        bool pending_close = false;
         while (!loop.finished())
         {
             const auto state = window.poll_events();
-            if (state.close_requested || (smoke && presented.load(std::memory_order_relaxed) >= 3))
+            const auto now = std::chrono::steady_clock::now();
+            view.autosave(now);
+            pending_close |= state.close_requested;
+            const bool closing =
+                pending_close || (smoke && presented.load(std::memory_order_relaxed) >= 3);
+            if (closing && now >= close_retry)
             {
-                break;
+                if (smoke || view.preserve())
+                {
+                    break;
+                }
+
+                close_retry = now + std::chrono::seconds{1};
+                window.cancel_close();
             }
 
             const auto input = window.take_input();
@@ -94,6 +118,11 @@ void render_frames(window::window& window, editor_view& view, render_host::rende
     catch (...)
     {
         const auto error = std::current_exception();
+        if (!smoke)
+        {
+            (void)view.preserve();
+        }
+
         try
         {
             loop.stop_and_join(pump);
@@ -121,21 +150,36 @@ void run(const launch_options& options, const diagnostics::services& sinks)
     auto catalog =
         assets::catalog::compile({assets::parse_namespace("018d0b95cf2673c6a0d7dd8ce5d29b23")});
     streaming::catalog_streamer preview_sources{workers, catalog, {}, {}, memory, sinks};
-    auto path = std::filesystem::absolute(options.file);
-    const bool exists = !options.smoke && document_exists(path);
-    auto source = exists ? open_document(path, workers, sinks) : new_document();
-    document_session session{std::move(source), {preview_sources, {}, memory, sinks}};
-    if (exists)
+    auto storage = make_document_storage(workers, sinks);
+    if (options.smoke)
     {
-        session.mark_saved();
+        storage.read = [](const auto&) -> std::optional<ui_content::document>
+        {
+            return {};
+        };
     }
 
+    document_workspace workspace{{preview_sources, {}, memory, sinks}, std::move(storage)};
+    for (const auto& file : options.files)
+    {
+        const auto absolute = std::filesystem::absolute(file);
+        if (options.recover)
+        {
+            (void)workspace.open_recovery(absolute);
+        }
+        else
+        {
+            (void)workspace.open(absolute);
+        }
+    }
+
+    const auto path = workspace.path();
     const tool_registry tools{{installed_tools_root(), options.smoke
                                                            ? std::filesystem::path{}
                                                            : path.parent_path() / "editor_tools"},
                               workers,
                               sinks};
-    editor_view view{session, workers, std::move(path), sinks, &tools};
+    editor_view view{workspace, workers, sinks, &tools};
     window::window window{{"Atlas Editor", 960, 540, !options.smoke}};
     const auto target = window.share_presentation();
     std::atomic<std::uint64_t> presented{0};
@@ -167,7 +211,8 @@ int run_editor(int argc, char** argv)
         {
             (void)log->write(
                 diagnostics::log_level::info, "editor",
-                "Options: --document <file>, --warp, --smoke-test, --graphics-smoke-test");
+                "Options: --document <file> (repeatable), --recover, --warp, --smoke-test, "
+                "--graphics-smoke-test");
             return 0;
         }
 

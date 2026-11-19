@@ -65,6 +65,16 @@ class native_window final : public detail::window_backend
         ShowWindow(handle_, SW_HIDE);
     }
 
+    /// @brief Restore a window whose authoring owner rejected shutdown.
+    void cancel_close() override
+    {
+        state_.close_requested = false;
+        if (visible_)
+        {
+            ShowWindow(handle_, SW_SHOW);
+        }
+    }
+
     /// @brief Wait on the coordinator with a diagnostic deadline; CPU workers must not block here.
     void wait(std::uint32_t milliseconds) override
     {
@@ -84,13 +94,14 @@ class native_window final : public detail::window_backend
                                       LPARAM lparam) noexcept;
     HWND handle_ = nullptr; ///< Native handle, destroyed after the last surface releases it.
     window_state state_;    ///< Owner-thread snapshot.
+    bool visible_;          ///< Initial visibility restored after rejected shutdown.
     input::detail::native_input_state
         input_; ///< Fixed native queue, independent of UI implementation.
 };
 
 /// @brief Register the native window class and create a physical client with a validated UTF-8
 /// title.
-native_window::native_window(const window_options& options)
+native_window::native_window(const window_options& options) : visible_{options.visible}
 {
     static std::once_flag registration;
     std::call_once(registration,
