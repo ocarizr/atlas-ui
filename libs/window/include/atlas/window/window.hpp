@@ -73,6 +73,7 @@ class window
     share_presentation(); ///< Publish a lease for a dedicated graphics coordinator.
     void resize(std::uint32_t width, std::uint32_t height); ///< Set a nonzero client extent.
     void request_close(); ///< Mark closed and hide without invalidating retained surfaces.
+    void cancel_close();  ///< Cancel a close request and restore the configured window visibility.
     void
     wait_for_events(std::uint32_t timeout_ms = 100); ///< Sleep the coordinator, never a job worker.
   private:

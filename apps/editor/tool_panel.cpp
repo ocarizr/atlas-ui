@@ -24,9 +24,14 @@ class tool_panel::mailbox final : public scripting::synchronous_service
             std::pair{"narrower", control_kind::narrower}, std::pair{"wider", control_kind::wider},
             std::pair{"toggle_visible", control_kind::toggle_visible}};
         static constexpr std::array lifecycle{
-            std::pair{"new", control_kind::new_document}, std::pair{"save", control_kind::save},
-            std::pair{"reopen", control_kind::reopen}, std::pair{"undo", control_kind::undo},
-            std::pair{"redo", control_kind::redo}};
+            std::pair{"new", control_kind::new_document},
+            std::pair{"save", control_kind::save},
+            std::pair{"reopen", control_kind::reopen},
+            std::pair{"undo", control_kind::undo},
+            std::pair{"redo", control_kind::redo},
+            std::pair{"next_document", control_kind::cycle_document},
+            std::pair{"close_document", control_kind::close_document},
+            std::pair{"recover", control_kind::recover_document}};
         if (!accepting || commands.size() == 32)
         {
             throw std::logic_error("Editor commands require a bounded input phase");

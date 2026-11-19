@@ -197,4 +197,47 @@ void save_document(const std::filesystem::path& path, const ui_content::document
     pending_file candidate{path};
     candidate.publish(bytes, path);
 }
+
+/// @brief Removal failure leaves the checkpoint available for retry.
+void remove_document(const std::filesystem::path& path)
+{
+    if (!DeleteFileW(path.c_str()))
+    {
+        const auto error = GetLastError();
+        if (error != ERROR_FILE_NOT_FOUND && error != ERROR_PATH_NOT_FOUND)
+        {
+            fail("Remove editor recovery document");
+        }
+    }
+}
+
+/// @brief The application worker pool outlives the returned workspace services.
+document_storage make_document_storage(jobs::job_system& jobs, diagnostics::services sinks)
+{
+    return {[&jobs, sinks](const auto& path) -> std::optional<ui_content::document>
+            {
+                return document_exists(path) ? std::optional{open_document(path, jobs, sinks)}
+                                             : std::nullopt;
+            },
+            [sinks](const auto& path, const auto& source)
+            {
+                save_document(path, source, sinks);
+            },
+            [](const auto& path)
+            {
+                remove_document(path);
+            },
+            [](const std::filesystem::path& left, const std::filesystem::path& right)
+            {
+                const auto a =
+                    std::filesystem::weakly_canonical(std::filesystem::absolute(left)).native();
+                const auto b =
+                    std::filesystem::weakly_canonical(std::filesystem::absolute(right)).native();
+                return CompareStringOrdinal(a.c_str(), -1, b.c_str(), -1, TRUE) == CSTR_EQUAL;
+            },
+            [](const auto& path)
+            {
+                return document_exists(path);
+            }};
+}
 } // namespace atlas::editor

@@ -23,9 +23,10 @@ function(atlas_add_application target source output label argument)
         install(FILES "${PROJECT_SOURCE_DIR}/assets/renderer/checker.bmp" "${PROJECT_SOURCE_DIR}/assets/renderer/quad.hlsl"
             DESTINATION bin/content)
     elseif(label STREQUAL "editor")
-        target_sources(${target} PRIVATE apps/editor/document_session.cpp apps/editor/editor_host.cpp
+        target_sources(${target} PRIVATE apps/editor/document_session.cpp apps/editor/document_workspace.cpp
+            apps/editor/document_recovery.cpp apps/editor/editor_host.cpp
             apps/editor/editor_view.cpp apps/editor/editor_graphics.cpp apps/editor/panel_scene.cpp
-            apps/editor/panels.cpp apps/editor/tool_registry.cpp apps/editor/tool_panel.cpp)
+            apps/editor/panels.cpp apps/editor/tool_registry.cpp apps/editor/tool_panel.cpp apps/editor/editor_commands.cpp)
         target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/apps/common"
             "${PROJECT_SOURCE_DIR}/apps/editor")
         target_link_libraries(${target} PRIVATE atlas::ui_content atlas::ui_text atlas::renderer_jobs atlas::memory)
@@ -82,7 +83,10 @@ atlas_add_application(atlas_cook tools/cook/main.cpp atlas_cook tools --help)
 atlas_add_application(atlas_package tools/package/main.cpp atlas_package tools --help)
 if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
     add_executable(atlas_editor_tests "${PROJECT_SOURCE_DIR}/tests/editor/session_tests.cpp"
-        "${PROJECT_SOURCE_DIR}/apps/editor/document_session.cpp")
+        "${PROJECT_SOURCE_DIR}/apps/editor/document_session.cpp"
+        "${PROJECT_SOURCE_DIR}/apps/editor/document_workspace.cpp"
+        "${PROJECT_SOURCE_DIR}/apps/editor/document_recovery.cpp"
+        "${PROJECT_SOURCE_DIR}/tests/editor/workspace_tests.cpp")
     target_include_directories(atlas_editor_tests PRIVATE "${PROJECT_SOURCE_DIR}/apps/editor"
         "${PROJECT_SOURCE_DIR}/apps/common")
     target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_content GTest::gtest_main)
@@ -90,7 +94,8 @@ if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
         target_sources(atlas_editor_tests PRIVATE tests/platform/windows/editor/authoring_tests.cpp
             libs/platform/windows/editor/document_file.cpp apps/editor/editor_view.cpp
             apps/editor/panels.cpp apps/editor/panel_scene.cpp apps/editor/tool_registry.cpp
-            apps/editor/tool_panel.cpp tests/platform/windows/editor/tool_tests.cpp)
+            apps/editor/tool_panel.cpp apps/editor/editor_commands.cpp tests/platform/windows/editor/tool_tests.cpp
+            tests/platform/windows/editor/recovery_tests.cpp)
         add_dependencies(atlas_editor_tests atlas_editor_tools)
         target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_text)
         target_compile_definitions(atlas_editor_tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)

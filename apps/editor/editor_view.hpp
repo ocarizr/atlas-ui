@@ -1,6 +1,7 @@
 /** @file @brief Atlas UI editor chrome, input routing and immutable render handoff. */
 #pragma once
 #include "document_session.hpp"
+#include "document_workspace.hpp"
 #include <atlas/ui_text/paint.hpp>
 
 namespace atlas::editor
@@ -22,6 +23,13 @@ class editor_view
     /// @brief Retain one authored session and its selected file.
     editor_view(document_session& session, jobs::job_system& jobs, std::filesystem::path file,
                 const diagnostics::services& sinks, const tool_registry* tools = nullptr);
+    /// @brief Bind lifecycle commands to the active workspace session.
+    editor_view(document_workspace& workspace, jobs::job_system& jobs,
+                const diagnostics::services& sinks, const tool_registry* tools = nullptr);
+    /// @brief Save every dirty session to recovery; failure keeps the editor open.
+    [[nodiscard]] bool preserve();
+    /// @brief Checkpoint every 30 seconds using the supplied monotonic owner time.
+    void autosave(std::chrono::steady_clock::time_point now);
     ~editor_view(); ///< Retire UI and input on the main owner.
     /// @brief Publish an updated immutable packet after dispatching native input.
     [[nodiscard]] std::shared_ptr<const editor_frame>

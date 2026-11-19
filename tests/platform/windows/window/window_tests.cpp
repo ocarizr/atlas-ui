@@ -29,6 +29,7 @@ TEST(native_window_tests, close_is_local_and_foreign_thread_access_fails)
                            {
                                EXPECT_THROW(first.request_close(), std::logic_error);
                                EXPECT_THROW(first.take_input(), std::logic_error);
+                               EXPECT_THROW(first.cancel_close(), std::logic_error);
                            });
     task.get();
     EXPECT_FALSE(first.state().close_requested);
@@ -42,5 +43,19 @@ TEST(native_window_tests, rejects_invalid_utf8_title)
 {
     EXPECT_THROW(window(window_options{std::string(1, static_cast<char>(0xff))}),
                  std::system_error);
+}
+
+/// @brief Save failure can cancel a native close and restore the published presentation state.
+TEST(native_window_tests, cancelled_close_restores_owner_and_presentation_state)
+{
+    window target{{"Recoverable close", 80, 60, false}};
+    const auto lease = target.share_presentation();
+    target.request_close();
+    ASSERT_TRUE(lease.state().close_requested);
+    target.cancel_close();
+    EXPECT_FALSE(target.poll_events().close_requested);
+    EXPECT_FALSE(lease.state().close_requested);
+    target.resize(251, 139);
+    EXPECT_EQ(target.state().width, 251U);
 }
 } // namespace atlas::window::tests

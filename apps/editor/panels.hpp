@@ -10,21 +10,24 @@ inline constexpr std::size_t hierarchy_page_size = 12; ///< Rows shown per hiera
 /// @brief Named routes produced by editor controls.
 enum class control_kind : std::uint8_t
 {
-    none,           ///< Passive decoration.
-    select,         ///< Select by authored identity.
-    add_child,      ///< Append a generic leaf.
-    remove,         ///< Remove a subtree.
-    narrower,       ///< Reduce requested width.
-    wider,          ///< Increase requested width.
-    toggle_visible, ///< Toggle authored visibility.
-    undo,           ///< Restore previous revision.
-    redo,           ///< Reapply a retained revision.
-    new_document,   ///< Replace with the generic initial document.
-    save,           ///< Persist the active document.
-    reopen,         ///< Reload the selected file.
-    previous,       ///< Browse the preceding hierarchy page.
-    next,           ///< Browse the next hierarchy page.
-    cycle_tool      ///< Cycle preview and registered tool contributions.
+    none,            ///< Passive decoration.
+    select,          ///< Select by authored identity.
+    add_child,       ///< Append a generic leaf.
+    remove,          ///< Remove a subtree.
+    narrower,        ///< Reduce requested width.
+    wider,           ///< Increase requested width.
+    toggle_visible,  ///< Toggle authored visibility.
+    undo,            ///< Restore previous revision.
+    redo,            ///< Reapply a retained revision.
+    new_document,    ///< Replace with the generic initial document.
+    save,            ///< Persist the active document.
+    reopen,          ///< Reload the selected file.
+    previous,        ///< Browse the preceding hierarchy page.
+    next,            ///< Browse the next hierarchy page.
+    cycle_tool,      ///< Cycle preview and registered tool contributions.
+    cycle_document,  ///< Select the next independent session.
+    close_document,  ///< Preserve active edits to recovery before closing.
+    recover_document ///< Explicitly restore recovery without replacing the source file.
 };
 
 /// @brief Owned command materialized from a control after pointer release.
