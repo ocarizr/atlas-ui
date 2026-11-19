@@ -52,7 +52,9 @@ reference remap before their catalog changes can be combined.
 
 The central document is the authoritative source metadata. It owns type,
 locator, logical byte length, revision, importer and importer/settings versions,
-typed dependencies and named derived links. The catalog is independent of the
+typed dependencies and named derived links. An optional `source-hash` attribute
+stores a lowercase 64-digit SHA-256 fingerprint. Older records without a
+fingerprint remain readable. The editor populates it on import or refresh. The catalog is independent of the
 editor and accepts bytes acquired by the composition root. The editor can edit
 a draft and compile a complete replacement before saving or publishing it.
 

@@ -369,6 +369,7 @@ components:
     - application
     - renderer-jobs
     - ui-content
+    - mvvm-content
     - ui-text
     build_targets:
     - atlas_editor
@@ -380,6 +381,7 @@ components:
     - application
     - renderer-jobs
     - ui-content
+    - mvvm-content
     - ui-text
     vendors:
     - testing

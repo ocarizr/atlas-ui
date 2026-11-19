@@ -39,7 +39,7 @@ void editor_view::impl::cycle_tool()
 bool editor_view::impl::dispatch(std::span<const input::event> events)
 {
     auto commands = chrome->dispatch(events);
-    bool changed = false;
+    bool changed = assets && assets->visible && assets->keyboard(events);
     const auto route = [&](std::unique_ptr<tool_panel>& panel, bool is_shell)
     {
         try
@@ -67,7 +67,7 @@ bool editor_view::impl::dispatch(std::span<const input::event> events)
         route(shell, true);
     }
 
-    if (active_tool)
+    if (active_tool && !(assets && assets->visible))
     {
         route(active_tool, false);
     }
@@ -149,7 +149,7 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
     }
 
     tool_bounds = plan.preview;
-    if (active_tool)
+    if (active_tool && !(assets && assets->visible))
     {
         plan.tool = active_tool->paint(tool_bounds, layout, paint);
         active_tool->append_labels(plan.controls);
@@ -164,6 +164,18 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
              {0.14f, 0.21f, 0.30f, 1},
              title,
              {control_kind::cycle_tool, {}}});
+    }
+
+    if (assets)
+    {
+        plan.controls.push_back({{bounds.width - 80, bounds.height - 28, 72, 24},
+                                 {0.14F, 0.21F, 0.30F, 1},
+                                 "Assets",
+                                 {control_kind::assets_toggle, {}}});
+        if (assets->visible)
+        {
+            assets->append(plan);
+        }
     }
 
     chrome = std::make_unique<panel_scene>(plan, session().preview(), bounds, scale, layout, paint,
@@ -183,6 +195,13 @@ editor_view::editor_view(document_session& session, jobs::job_system& jobs,
 /// @brief Release main-owned input state after the render loop drains retained packets.
 editor_view::~editor_view() = default;
 
+/// @brief The application retains repository services through every panel callback and frame.
+void editor_view::bind_assets(asset_repository& repository, std::filesystem::path root)
+{
+    impl_->assets = std::make_unique<asset_panel>(repository, std::move(root));
+    impl_->chrome.reset();
+}
+
 /// @brief The workspace remains the sole owner of documents as selection changes.
 editor_view::editor_view(document_workspace& workspace, jobs::job_system& jobs,
                          const diagnostics::services& sinks, const tool_registry* tools)
@@ -199,6 +218,11 @@ std::shared_ptr<const editor_frame> editor_view::snapshot(const window::window_s
     const auto density = std::clamp(state.dpi_scale, 0.5f, 8.f);
     const ui::layout_rect bounds{0, 0, static_cast<float>(state.width) / density,
                                  static_cast<float>(state.height) / density};
+    if (impl_->assets && impl_->assets->poll(impl_->workspace, impl_->jobs, impl_->sinks))
+    {
+        impl_->chrome.reset();
+    }
+
     if (!impl_->chrome || bounds != impl_->viewport || density != impl_->density)
     {
         impl_->rebuild(bounds, density);

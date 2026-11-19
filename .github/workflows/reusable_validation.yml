@@ -370,6 +370,7 @@ jobs:
     - vendor-graphics
     - renderer-jobs
     - ui-content
+    - mvvm-content
     - ui-text
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'editor') }}
     uses: ./.github/workflows/reusable_build.yml

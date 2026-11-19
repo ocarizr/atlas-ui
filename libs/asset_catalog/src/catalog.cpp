@@ -152,6 +152,13 @@ void canonicalize_records(catalog_document& draft)
         }
 
         previous = id.local;
+        if (!record.source_hash.empty() &&
+            (record.source_hash.size() != 64 ||
+             record.source_hash.find_first_not_of("0123456789abcdef") != std::string::npos))
+        {
+            throw std::invalid_argument("Invalid SHA-256 source hash");
+        }
+
         (void)format_type(record.reference.type);
         if (!record.revision || !record.importer_version || !record.settings_version ||
             !token(record.source.root, 64) || !token(record.importer, 64))

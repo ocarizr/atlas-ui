@@ -72,14 +72,15 @@ document_workspace::entry& document_workspace::selected()
 
 /// @brief Construction failure leaves the old active session intact.
 std::uint64_t document_workspace::insert(std::filesystem::path path, ui_content::document source,
-                                         bool saved)
+                                         bool saved,
+                                         std::shared_ptr<streaming::catalog_streamer> assets)
 {
     if (entries_.size() == 32 || next_id_ == std::numeric_limits<std::uint64_t>::max())
     {
         throw std::overflow_error("Editor workspace capacity exhausted");
     }
 
-    auto view = std::make_unique<document_session>(std::move(source), options_);
+    auto view = std::make_unique<document_session>(std::move(source), options_, std::move(assets));
     if (saved)
     {
         view->mark_saved();
@@ -94,7 +95,8 @@ std::uint64_t document_workspace::insert(std::filesystem::path path, ui_content:
 }
 
 /// @brief Existing entries retain history when opened again.
-std::uint64_t document_workspace::open(std::filesystem::path path)
+std::uint64_t document_workspace::open(std::filesystem::path path,
+                                       std::shared_ptr<streaming::catalog_streamer> assets)
 {
     const diagnostics::operation_scope scope{options_.diagnostics,
                                              {"editor.document.open", "editor"}};
@@ -106,6 +108,11 @@ std::uint64_t document_workspace::open(std::filesystem::path path)
                                             });
     if (found != entries_.end())
     {
+        if (assets)
+        {
+            found->view->refresh_assets(std::move(assets));
+        }
+
         active_ = found->id;
         return active_;
     }
@@ -113,7 +120,8 @@ std::uint64_t document_workspace::open(std::filesystem::path path)
     auto source = storage_.read(path);
     const bool saved = source.has_value();
     const bool pending = exists(recovery_path(path));
-    const auto id = insert(std::move(path), source ? std::move(*source) : new_document(), saved);
+    const auto id = insert(std::move(path), source ? std::move(*source) : new_document(), saved,
+                           std::move(assets));
     selected().recovery_pending = pending;
     return id;
 }

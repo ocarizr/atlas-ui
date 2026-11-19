@@ -25,11 +25,13 @@ function(atlas_add_application target source output label argument)
     elseif(label STREQUAL "editor")
         target_sources(${target} PRIVATE apps/editor/document_session.cpp apps/editor/document_workspace.cpp
             apps/editor/document_recovery.cpp apps/editor/editor_host.cpp
+            apps/editor/asset_repository.cpp apps/editor/asset_transactions.cpp apps/editor/asset_analysis.cpp
+            apps/editor/asset_document.cpp apps/editor/asset_panel.cpp apps/editor/asset_panel_commands.cpp
             apps/editor/editor_view.cpp apps/editor/editor_graphics.cpp apps/editor/panel_scene.cpp
             apps/editor/panels.cpp apps/editor/tool_registry.cpp apps/editor/tool_panel.cpp apps/editor/editor_commands.cpp)
         target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/apps/common"
             "${PROJECT_SOURCE_DIR}/apps/editor")
-        target_link_libraries(${target} PRIVATE atlas::ui_content atlas::ui_text atlas::renderer_jobs atlas::memory)
+        target_link_libraries(${target} PRIVATE atlas::ui_content atlas::mvvm_content atlas::ui_text atlas::renderer_jobs atlas::memory)
         set(editor_assets "${PROJECT_SOURCE_DIR}/assets/editor_tools")
         set(editor_sources "${editor_assets}/commands.xml" "${editor_assets}/commands.lua"
             "${editor_assets}/shell.xml" "${editor_assets}/width.xml")
@@ -47,10 +49,13 @@ function(atlas_add_application target source output label argument)
         add_dependencies(${target} atlas_editor_tools)
         install(FILES ${editor_sources} "${editor_catalog}" DESTINATION bin/content/editor_tools)
         if(ATLAS_BUILD_WINDOWS_INTEGRATION)
-            target_sources(${target} PRIVATE libs/platform/windows/editor/document_file.cpp)
+            target_sources(${target} PRIVATE libs/platform/windows/editor/document_file.cpp
+                libs/platform/windows/editor/asset_files.cpp libs/platform/windows/editor/asset_acquisition.cpp
+                libs/platform/windows/editor/asset_dialog.cpp)
+            target_link_libraries(${target} PRIVATE bcrypt comdlg32)
             target_compile_definitions(${target} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
         else()
-            target_sources(${target} PRIVATE apps/editor/unavailable_file.cpp)
+            target_sources(${target} PRIVATE apps/editor/unavailable_file.cpp apps/editor/unavailable_assets.cpp)
         endif()
     endif()
     if(label STREQUAL "game" OR label STREQUAL "editor")
@@ -87,15 +92,22 @@ if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
         "${PROJECT_SOURCE_DIR}/apps/editor/document_workspace.cpp"
         "${PROJECT_SOURCE_DIR}/apps/editor/document_recovery.cpp"
         "${PROJECT_SOURCE_DIR}/tests/editor/workspace_tests.cpp")
+    target_sources(atlas_editor_tests PRIVATE apps/editor/asset_repository.cpp
+        apps/editor/asset_transactions.cpp apps/editor/asset_analysis.cpp apps/editor/asset_document.cpp
+        tests/editor/asset_repository_tests.cpp)
     target_include_directories(atlas_editor_tests PRIVATE "${PROJECT_SOURCE_DIR}/apps/editor"
         "${PROJECT_SOURCE_DIR}/apps/common")
-    target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_content GTest::gtest_main)
+    target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_content atlas::mvvm_content GTest::gtest_main)
     if(ATLAS_BUILD_WINDOWS_INTEGRATION)
         target_sources(atlas_editor_tests PRIVATE tests/platform/windows/editor/authoring_tests.cpp
             libs/platform/windows/editor/document_file.cpp apps/editor/editor_view.cpp
             apps/editor/panels.cpp apps/editor/panel_scene.cpp apps/editor/tool_registry.cpp
             apps/editor/tool_panel.cpp apps/editor/editor_commands.cpp tests/platform/windows/editor/tool_tests.cpp
-            tests/platform/windows/editor/recovery_tests.cpp)
+            tests/platform/windows/editor/recovery_tests.cpp tests/platform/windows/editor/asset_tests.cpp)
+        target_sources(atlas_editor_tests PRIVATE apps/editor/asset_panel.cpp apps/editor/asset_panel_commands.cpp
+            libs/platform/windows/editor/asset_files.cpp libs/platform/windows/editor/asset_acquisition.cpp
+            libs/platform/windows/editor/asset_dialog.cpp)
+        target_link_libraries(atlas_editor_tests PRIVATE bcrypt comdlg32)
         add_dependencies(atlas_editor_tests atlas_editor_tools)
         target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_text)
         target_compile_definitions(atlas_editor_tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)

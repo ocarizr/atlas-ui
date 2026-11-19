@@ -2,6 +2,7 @@
 #include "document_file.hpp"
 #include <Windows.h>
 #include <atomic>
+#include <limits>
 #include <optional>
 #include <system_error>
 
@@ -85,7 +86,8 @@ class pending_file
     pending_file& operator=(const pending_file&) = delete; ///< Single temporary path owner.
 
     /// @brief Flush complete XML before a same-directory atomic replacement.
-    void publish(std::string_view bytes, const std::filesystem::path& destination)
+    void publish(std::string_view bytes, const std::filesystem::path& destination,
+                 bool replace = true)
     {
         DWORD written = 0;
         if (!WriteFile(handle_, bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
@@ -110,7 +112,7 @@ class pending_file
 
         handle_ = INVALID_HANDLE_VALUE;
         if (!MoveFileExW(path_.c_str(), destination.c_str(),
-                         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+                         (replace ? MOVEFILE_REPLACE_EXISTING : 0) | MOVEFILE_WRITE_THROUGH))
         {
             fail("Replace UI document");
         }
@@ -194,8 +196,19 @@ void save_document(const std::filesystem::path& path, const ui_content::document
 {
     const diagnostics::operation_scope scope{sinks, {"editor.save", "editor"}};
     const auto bytes = ui_content::write_xml(source, sinks);
+    write_editor_source(path, bytes);
+}
+
+/// @brief The destination is replaced only after all acquired bytes are durable.
+void write_editor_source(const std::filesystem::path& path, std::string_view bytes, bool replace)
+{
+    if (bytes.size() > std::numeric_limits<DWORD>::max())
+    {
+        throw std::length_error("Editor write exceeds native byte capacity");
+    }
+
     pending_file candidate{path};
-    candidate.publish(bytes, path);
+    candidate.publish(bytes, path, replace);
 }
 
 /// @brief Removal failure leaves the checkpoint available for retry.

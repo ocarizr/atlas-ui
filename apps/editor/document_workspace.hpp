@@ -37,7 +37,8 @@ class document_workspace
     /// @brief Retain composition services and require a complete persistence adapter.
     document_workspace(ui_content::construction options, document_storage storage);
     /// @brief Load a private candidate or activate the existing owner for the normalized path.
-    [[nodiscard]] std::uint64_t open(std::filesystem::path path);
+    [[nodiscard]] std::uint64_t open(std::filesystem::path path,
+                                     std::shared_ptr<streaming::catalog_streamer> assets = {});
     /// @brief Create a fresh document only if neither an owner nor persistent data uses the path.
     [[nodiscard]] std::uint64_t create(std::filesystem::path path);
     /// @brief Restore a checkpoint even when the saved source is malformed.
@@ -55,6 +56,9 @@ class document_workspace
     [[nodiscard]] bool recover(); ///< Explicitly restore validated recovery as dirty authoring.
     void checkpoint_all(); ///< Persist every changed dirty revision, preserving earlier successes.
     void close(std::uint64_t id, close_policy policy); ///< Failure retains the selected session.
+    /// @brief Rebind each preview to the current immutable source snapshot.
+    void refresh_assets(const std::shared_ptr<streaming::catalog_streamer>& mount);
+    bool references_asset(assets::asset_ref reference) const; ///< Check every live history.
 
   private:
     /// @brief One stable owner of authoring, preview and persistence state.
@@ -71,7 +75,8 @@ class document_workspace
     entry& selected();             ///< Reject an empty workspace.
     const entry& selected() const; ///< Reject an empty workspace without mutation.
     /// @brief Build before publishing a newly allocated identity.
-    std::uint64_t insert(std::filesystem::path path, ui_content::document source, bool saved);
+    std::uint64_t insert(std::filesystem::path path, ui_content::document source, bool saved,
+                         std::shared_ptr<streaming::catalog_streamer> assets = {});
     void checkpoint(entry& item); ///< Successful persistence alone advances checkpoint state.
     /// @brief Respect backend-specific path identity.
     bool owns(const entry& item, const std::filesystem::path& path) const;

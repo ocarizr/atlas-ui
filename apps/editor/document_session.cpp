@@ -90,8 +90,9 @@ ui_content::document new_document()
 
 /// @brief Construct the initial preview and reserve all history slots.
 document_session::document_session(ui_content::document source,
-                                   const ui_content::construction& options)
-    : options_{options}
+                                   const ui_content::construction& options,
+                                   std::shared_ptr<streaming::catalog_streamer> assets)
+    : options_{options}, asset_mount_{std::move(assets)}
 {
     undo_.reserve(max_history);
     redo_.reserve(max_history);
@@ -149,20 +150,6 @@ void document_session::select(std::string_view id)
     }
 
     current_.selected = id;
-}
-
-/// @brief Rebuild the preview before publishing either authored or runtime state.
-std::unique_ptr<ui_content::instance>
-document_session::make_preview(const ui_content::document& source)
-{
-    const diagnostics::operation_scope scope{options_.diagnostics,
-                                             {"editor.preview.build", "editor"}};
-    if (source.elements.empty() || source.elements.size() > max_elements)
-    {
-        throw std::invalid_argument("Editor document must contain 1 to 256 elements");
-    }
-
-    return ui_content::instance::build(source, options_);
 }
 
 /// @brief Give history and save state stable identities without retaining an extra snapshot.

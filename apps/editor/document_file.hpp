@@ -10,6 +10,9 @@ namespace atlas::editor
                                                      diagnostics::services sinks);
 /// @brief Remove a workspace-owned recovery file, surfacing failures except absence.
 void remove_document(const std::filesystem::path& path);
+/// @brief Persist complete bytes through the editor's atomic write boundary.
+void write_editor_source(const std::filesystem::path& path, std::string_view bytes,
+                         bool replace = true);
 /// @brief Locate installed editor tools alongside the executable.
 [[nodiscard]] std::filesystem::path installed_tools_root();
 /// @brief Test whether the selected file exists, surfacing errors other than absence.

@@ -91,6 +91,11 @@ void editor_view::impl::execute(const control_action& action)
     try
     {
         status.clear();
+        if (assets && assets->execute(action, workspace, jobs, sinks))
+        {
+            return;
+        }
+
         if (execute_document(action.kind))
         {
             return;
