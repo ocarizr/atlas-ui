@@ -13,7 +13,21 @@ struct flow_region
     std::string id;      ///< Stable region name.
     std::string initial; ///< Initial screen in this region.
     std::string owner;   ///< Parent screen, empty for the single viewport region.
+    std::string host{};  ///< Stable parent panel hosting this region; empty only for legacy roots.
+    bool remember = false; ///< Retain lightweight submenu history when its owner is retired.
 };
+
+/// @brief Per-instance overrides inherit every unspecified popup default.
+struct popup_overrides
+{
+    std::optional<bool> modal{};           ///< Explicit input ownership override.
+    std::optional<bool> dismiss_outside{}; ///< Explicit outside dismissal override.
+    std::optional<bool> dismiss_back{};    ///< Explicit Back dismissal override.
+    bool operator==(const popup_overrides&) const = default; ///< Exact authored override values.
+};
+
+/// @brief Resolve only explicitly authored overrides without changing asset defaults.
+[[nodiscard]] popup_policy resolve_popup(popup_policy defaults, const popup_overrides& overrides);
 
 /// @brief Stable menu identity paired with a typed viewport asset.
 struct flow_screen
@@ -22,17 +36,20 @@ struct flow_screen
     std::string region;      ///< Owning region.
     assets::asset_ref asset; ///< Composed UI asset.
     std::string focus{};     ///< Optional authored default focus element.
+    popup_overrides popup{}; ///< Valid only for explicit popup assets.
 };
 
 /// @brief Authored history changes applied at the owner synchronization point.
 enum class flow_operation : std::uint8_t
 {
-    push,    ///< Add a screen to the region's history.
-    replace, ///< Replace the selected screen.
-    pop,     ///< Close the top entry of its own region.
-    back,    ///< Pop this region or the nearest ancestor with history.
-    overlay, ///< Present above the previous entry without giving it input.
-    reload   ///< Reconstruct the current screen and preserve its history position.
+    push,       ///< Add a screen to the region's history.
+    replace,    ///< Replace the selected screen.
+    pop,        ///< Close the top entry of its own region.
+    back,       ///< Pop this region or the nearest ancestor with history.
+    overlay,    ///< Present above the previous entry without giving it input.
+    reload,     ///< Reconstruct the current screen and preserve its history position.
+    exit_menu,  ///< Exit the owning menu without traversing its tabs.
+    close_popup ///< Close only the active popup presentation.
 }; ///< Operations execute only at an owner synchronization point.
 
 struct flow_parameter
@@ -121,10 +138,13 @@ enum class flow_status : std::uint8_t
 
 struct flow_presentation
 {
-    std::string_view region; ///< Borrowed region name.
-    std::string_view screen; ///< Borrowed screen name.
-    instance* view;          ///< Borrowed live composition until the next publication.
-    bool input;              ///< Host should dispatch input only to foreground compositions.
+    std::string_view region;    ///< Borrowed region name.
+    std::string_view screen;    ///< Borrowed screen name.
+    instance* view;             ///< Borrowed live composition until the next publication.
+    bool input;                 ///< Host should dispatch input only to foreground compositions.
+    std::string_view host{};    ///< Stable submenu host ID in the parent composition.
+    instance* parent = nullptr; ///< Borrowed parent composition for host layout/clip integration.
+    std::optional<popup_policy> popup{}; ///< Effective popup policy, absent for regular screens.
 }; ///< Ordered back to front, including child regions.
 
 /// @brief Own independent viewport navigation and publish complete owner-thread transitions.
@@ -137,7 +157,11 @@ class flow_manager
     flow_manager(const flow_manager&) = delete;            ///< Mutable history has a single owner.
     flow_manager& operator=(const flow_manager&) = delete; ///< Own independent menu state.
     void start(); ///< Queue initial screens, or retry initialization after failure.
-    [[nodiscard]] bool request(std::string_view transition);      ///< Queue one named action.
+    [[nodiscard]] bool request(std::string_view transition); ///< Queue one named action.
+    /// @brief Queue a history return scoped to the active source's owning menu.
+    [[nodiscard]] bool exit_menu(std::string_view source);
+    /// @brief Queue explicit closing of the active popup without a destination edge.
+    [[nodiscard]] bool close_popup(std::string_view source);
     void set_parameter(std::string_view name, mvvm::value value); ///< Update a typed guard value.
     void cancel(); ///< Drop candidate generations and preserve the published state.
     [[nodiscard]] flow_status advance(std::uint64_t frame); ///< Poll and publish between frames.

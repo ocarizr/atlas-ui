@@ -1,4 +1,5 @@
 /** @file @brief Strict XML serialization for viewport Flow graphs. */
+#include "flow_versions.hpp"
 #include "storage.hpp"
 #include "xml_fields.hpp"
 #include <atlas/ui_content/flow.hpp>
@@ -52,6 +53,8 @@ void region_fields(detail::fields& fields, flow_region& value)
     fields.value("id", value.id, true);
     fields.value("initial", value.initial, true);
     fields.optional("owner", value.owner, !value.owner.empty());
+    fields.optional("host", value.host, !value.host.empty());
+    fields.optional("remember", value.remember, value.remember);
 }
 
 /// @brief Decode typed, persistent UI identities without paths.
@@ -59,7 +62,32 @@ void screen_fields(detail::fields& fields, flow_screen& value)
 {
     fields.value("id", value.id, true);
     fields.value("region", value.region, true);
-    fields.reference("asset", value.asset, assets::asset_type::ui);
+    auto kind = std::string{assets::format_type(value.asset.type)};
+    fields.optional("asset-type", kind, value.asset.type != assets::asset_type::ui);
+    if (fields.reading())
+    {
+        value.asset.type = assets::parse_type(kind);
+    }
+
+    fields.reference("asset", value.asset, value.asset.type);
+    const auto policy = [&](const char* name, std::optional<bool>& item)
+    {
+        if (fields.reading())
+        {
+            if (fields.node().attribute(name))
+            {
+                item = false;
+                fields.value(name, *item);
+            }
+        }
+        else if (item)
+        {
+            fields.value(name, *item);
+        }
+    };
+    policy("modal", value.popup.modal);
+    policy("dismiss-outside", value.popup.dismiss_outside);
+    policy("dismiss-back", value.popup.dismiss_back);
     fields.optional("focus", value.focus, !value.focus.empty());
 }
 
@@ -89,7 +117,8 @@ void edge_fields(detail::fields& fields, flow_transition& value)
     }
 
     fields.choice("operation", value.operation,
-                  std::array{"push", "replace", "pop", "back", "overlay", "reload"});
+                  std::array{"push", "replace", "pop", "back", "overlay", "reload", "exit_menu",
+                             "close_popup"});
     fields.optional("enabled", value.enabled, !value.enabled);
     fields.optional("control", value.control, !value.control.empty());
     fields.optional("action", value.action, value.action != 0);
@@ -178,9 +207,10 @@ flow_document parse_flow_xml(xml_source source)
     std::string version;
     fields.value("version", version, true);
     fields.finish();
-    if (std::string_view{root.name()} != "flow" || version != "1")
+    if (std::string_view{root.name()} != "flow" || (version != "1" && version != "2"))
     {
-        throw std::invalid_argument(std::string{source.name} + ": Expected Flow XML version 1");
+        throw std::invalid_argument(std::string{source.name} +
+                                    ": Expected Flow XML version 1 or 2");
     }
 
     flow_document result;
@@ -219,6 +249,11 @@ flow_document parse_flow_xml(xml_source source)
         }
     }
 
+    if (version == "1" && detail::flow_v2(result))
+    {
+        throw std::invalid_argument("Flow presentation extensions require XML version 2");
+    }
+
     validate_flow(result);
     return result;
 }
@@ -229,7 +264,7 @@ std::string write_flow_xml(const flow_document& source)
     validate_flow(source);
     pugi::xml_document tree;
     auto root = tree.append_child("flow");
-    root.append_attribute("version").set_value("1");
+    root.append_attribute("version").set_value(detail::flow_v2(source) ? "2" : "1");
     write_records(root, "region", source.regions, region_fields);
     write_records(root, "screen", source.screens, screen_fields);
     write_records(root, "parameter", source.parameters, parameter_fields);

@@ -45,7 +45,7 @@ instance::impl::impl(const document& source, const construction& options)
             {.max_nodes = source.elements.size(), .max_bindings = source.elements.size()},
             options.memory,
             options.diagnostics},
-      diagnostics{options.diagnostics}
+      diagnostics{options.diagnostics}, presentation{source.presentation}
 {
     for (const auto& service : options.services)
     {

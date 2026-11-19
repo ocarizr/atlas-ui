@@ -63,6 +63,67 @@ template <class Index> const auto& require(const Index& values, const std::strin
     return *found->second;
 }
 
+/// @brief Each typed submenu region resolves a unique panel in its parent presentation.
+template <class Index>
+void validate_region_presentation(const flow_region& region, const Index& screens,
+                                  std::set<std::pair<std::string, std::string>>& hosts)
+{
+    if (!region.host.empty() && (!valid_id(region.host) || region.owner.empty() ||
+                                 !hosts.emplace(region.owner, region.host).second))
+    {
+        throw std::invalid_argument("Invalid or duplicate Flow submenu host");
+    }
+
+    if (require(screens, region.initial).asset.type == assets::asset_type::popup)
+    {
+        throw std::invalid_argument("A Flow region cannot start with a popup");
+    }
+}
+
+/// @brief Reusable widgets are never graph destinations and popup options stay popup-only.
+template <class Index>
+void validate_screen_presentation(const flow_screen& screen, const Index& regions)
+{
+    const auto& owner = require(regions, screen.region);
+    const bool submenu = screen.asset.type == assets::asset_type::submenu;
+    const bool explicit_menu = screen.asset.type == assets::asset_type::menu;
+    if (!assets::is_ui(screen.asset.type) || screen.asset.type == assets::asset_type::widget ||
+        (submenu && (owner.owner.empty() || owner.host.empty())) ||
+        (explicit_menu && !owner.owner.empty()) ||
+        (screen.asset.type != assets::asset_type::popup && screen.popup != popup_overrides{}) ||
+        (!screen.focus.empty() && !valid_id(screen.focus)))
+    {
+        throw std::invalid_argument("Flow screen requires a UI asset and valid focus ID");
+    }
+}
+
+/// @brief Explicit presentation kinds constrain route operations without changing legacy graphs.
+template <class Index>
+void validate_transition_presentation(const flow_transition& edge, const Index& screens)
+{
+    const auto& from = require(screens, edge.from);
+    const bool forward = !edge.to.empty();
+    if (forward)
+    {
+        const auto type = require(screens, edge.to).asset.type;
+        if ((type == assets::asset_type::popup && edge.operation != flow_operation::overlay) ||
+            (type != assets::asset_type::ui && type != assets::asset_type::popup &&
+             edge.operation == flow_operation::overlay))
+        {
+            throw std::invalid_argument("Popup destinations require an overlay route");
+        }
+    }
+
+    if ((edge.operation == flow_operation::close_popup &&
+         from.asset.type != assets::asset_type::ui &&
+         from.asset.type != assets::asset_type::popup) ||
+        (edge.operation == flow_operation::exit_menu &&
+         from.asset.type == assets::asset_type::popup))
+    {
+        throw std::invalid_argument("Close operation differs from its presentation scope");
+    }
+}
+
 /// @brief Follow only explicit forward edges and implicit nested initial activation.
 auto walk(const flow_document& source, std::string_view from, bool check_guards)
 {
@@ -135,6 +196,7 @@ void validate_flow(const flow_document& source)
     const auto parameters = index(source.parameters);
     (void)index(source.transitions);
     const flow_region* root = nullptr;
+    std::set<std::pair<std::string, std::string>> hosts;
     for (const auto& region : source.regions)
     {
         if (require(screens, region.initial).region != region.id)
@@ -142,6 +204,7 @@ void validate_flow(const flow_document& source)
             throw std::invalid_argument("Initial screen must belong to its flow region");
         }
 
+        validate_region_presentation(region, screens, hosts);
         if (region.owner.empty())
         {
             if (root)
@@ -171,11 +234,7 @@ void validate_flow(const flow_document& source)
     for (const auto& screen : source.screens)
     {
         (void)require(regions, screen.region);
-        if (screen.asset.type != assets::asset_type::ui ||
-            (!screen.focus.empty() && !valid_id(screen.focus)))
-        {
-            throw std::invalid_argument("Flow screen requires a UI asset and valid focus ID");
-        }
+        validate_screen_presentation(screen, regions);
 
         (void)assets::format_id(screen.asset.id);
     }
@@ -191,7 +250,7 @@ void validate_flow(const flow_document& source)
         const bool forward = edge.operation == flow_operation::push ||
                              edge.operation == flow_operation::replace ||
                              edge.operation == flow_operation::overlay;
-        if (edge.operation > flow_operation::reload || forward == edge.to.empty() ||
+        if (edge.operation > flow_operation::close_popup || forward == edge.to.empty() ||
             (forward && edge.from == edge.to) ||
             (forward && require(screens, edge.to).region != from.region) ||
             (!edge.control.empty() && !valid_id(edge.control)) ||
@@ -200,6 +259,7 @@ void validate_flow(const flow_document& source)
             throw std::invalid_argument("Invalid flow transition: " + edge.id);
         }
 
+        validate_transition_presentation(edge, screens);
         if (edge.guard)
         {
             validate_value(edge.guard->equals);

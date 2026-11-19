@@ -70,11 +70,33 @@ struct element
     std::optional<assets::asset_ref> material{}; ///< Persistent material template or override.
 };
 
+/// @brief Popup defaults shared by source assets and optional Flow-instance overrides.
+struct popup_policy
+{
+    bool modal = true; ///< Suspend lower input; modeless pointer routing belongs to the host.
+    bool dismiss_outside = false; ///< Outside dismissal must consume the gesture.
+    bool dismiss_back = true;     ///< Permit the semantic Back action to close this popup.
+    bool operator==(const popup_policy&) const = default; ///< Exact policy equality.
+};
+
+/// @brief Authored presentation type independent of transient views or graph node identities.
+struct presentation_options
+{
+    assets::asset_type type = assets::asset_type::ui; ///< Legacy UI remains valid and unchanged.
+    popup_policy popup{}; ///< Meaningful only for explicit popup assets.
+    bool operator==(const presentation_options&) const = default; ///< Source/prepared equivalence.
+};
+
+/// @brief Validate the UI family, popup-only options and an optional catalog type contract.
+void validate_presentation(presentation_options options,
+                           std::optional<assets::asset_type> expected = {});
+
 /// @brief Ordered authoring data shared by parsed XML and prepared/native sources.
 struct document
 {
-    std::vector<model_context> models; ///< Named ViewModel instances.
-    std::vector<element> elements;     ///< Parent-before-child order preserves sibling order.
+    std::vector<model_context> models;   ///< Named ViewModel instances.
+    std::vector<element> elements;       ///< Parent-before-child order preserves sibling order.
+    presentation_options presentation{}; ///< Stable authored kind and popup defaults.
 };
 
 /// @brief Borrowed XML payload and diagnostic identity.

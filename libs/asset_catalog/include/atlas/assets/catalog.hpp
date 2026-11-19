@@ -41,17 +41,24 @@ struct asset_id
 /// @brief Stable v1 type vocabulary persisted using lowercase names.
 enum class asset_type : std::uint8_t
 {
-    ui,          ///< Authored UI document.
-    view_model,  ///< ViewModel document.
-    flow,        ///< Menu flow document.
-    script,      ///< Behavior source or module.
-    texture,     ///< Image or texture resource.
-    shader,      ///< Shader source or bytecode.
-    material,    ///< Material document.
-    video,       ///< Video resource.
-    audio,       ///< Audio resource.
-    localization ///< Localization data.
+    ui,           ///< Authored UI document.
+    view_model,   ///< ViewModel document.
+    flow,         ///< Menu flow document.
+    script,       ///< Behavior source or module.
+    texture,      ///< Image or texture resource.
+    shader,       ///< Shader source or bytecode.
+    material,     ///< Material document.
+    video,        ///< Video resource.
+    audio,        ///< Audio resource.
+    localization, ///< Localization data.
+    menu,         ///< Top-level authored menu presentation.
+    submenu,      ///< Content mounted in a menu-owned region.
+    popup,        ///< Overlay presentation with input and dismissal policy.
+    widget        ///< Reusable UI composition, not a Flow destination.
 };
+
+/// @brief Recognize legacy UI and explicit presentation assets without treating media as UI.
+[[nodiscard]] bool is_ui(asset_type type) noexcept;
 
 /// @brief Read the exact v1 serialized name of a recognized asset type.
 [[nodiscard]] asset_type parse_type(std::string_view name);

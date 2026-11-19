@@ -11,7 +11,8 @@ namespace
 constexpr std::string_view digits = "0123456789abcdef"; ///< Canonical lowercase hexadecimal digits.
 constexpr auto types = std::to_array<std::string_view>(
     {"ui", "view_model", "flow", "script", "texture", "shader", "material", "video", "audio",
-     "localization"}); ///< Stable v1 vocabulary in enumeration order.
+     "localization", "menu", "submenu", "popup",
+     "widget"}); ///< Stable v1 vocabulary in enumeration order.
 
 /// @brief Reject uppercase, whitespace and nonhex input before decoding.
 std::uint8_t nibble(char digit)
@@ -113,6 +114,13 @@ std::string format_id(asset_id id)
     }
 
     return text;
+}
+
+/// @brief Keep the original ten wire tags stable while appending authored UI kinds.
+bool is_ui(asset_type type) noexcept
+{
+    return type == asset_type::ui || type == asset_type::menu || type == asset_type::submenu ||
+           type == asset_type::popup || type == asset_type::widget;
 }
 
 /// @brief Read the persisted vocabulary without guessing from file extensions.

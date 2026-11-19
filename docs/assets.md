@@ -48,6 +48,18 @@ edges, duplicated IDs and case-insensitive duplicate source locators. Concurrent
 authoring branches that allocate the same ordinal need an explicit ID and
 reference remap before their catalog changes can be combined.
 
+### UI presentation kinds
+
+The original ten asset tags keep their numeric values. `menu`, `submenu`,
+`popup` and `widget` are appended UI-family kinds recognized by `assets::is_ui`.
+Each has its own exact typed reference and source-root category in the editor.
+They share the UI document implementation; video and other media are not UI
+asset kinds. Legacy `ui` remains valid and is not silently reclassified.
+Older readers reject unknown new kind names; new readers retain legacy input.
+Typed UI source metadata must match its catalog kind before import/load can
+publish. Updating a display name/path preserves the reference; intentionally
+converting its kind requires updating affected typed references together.
+
 ### XML catalog v1
 
 The central document is the authoritative source metadata. It owns type,

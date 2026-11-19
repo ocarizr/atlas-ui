@@ -30,6 +30,7 @@ TEST(menu_flow, ParsesAndTraversesDeclarativeGraph)
         {{id(1, assets::asset_type::ui), {{id(1, assets::asset_type::ui), 1}}},
          {id(2, assets::asset_type::ui), {{id(2, assets::asset_type::ui), 1}}}}};
     const auto bytes = encode_prepared(cooked);
+    EXPECT_EQ(std::to_integer<unsigned>(bytes.at(4)), 1U);
     EXPECT_EQ(write_flow_xml(decode_prepared_flow(bytes).graph), write_flow_xml(graph));
     auto broken = graph;
     broken.transitions.front().to = "missing";

@@ -186,4 +186,21 @@ TEST_F(native_assets_test, MissingTypeFolderCanBeRelinkedWithoutChangingIdentity
     EXPECT_EQ(repository->snapshot().document().records.front().reference, record.reference);
     EXPECT_FALSE(repository->browse(record.reference.type).front().missing);
 }
+
+/// @brief Import interprets explicit UI types and rejects a catalog/source role disagreement.
+TEST_F(native_assets_test, ImportsTypedMenuAndRejectsWrongPresentationKind)
+{
+    write_editor_source(files.path(), "<ui version='2' kind='menu'><element id='root'/></ui>");
+    auto repository = open_asset_repository(root, workers, {});
+    repository->begin({files.path(), {"menu", "settings.xml"}, assets::asset_type::menu});
+    ASSERT_TRUE(finish(*repository));
+    const auto record = repository->snapshot().document().records.front();
+    EXPECT_EQ(record.reference.type, assets::asset_type::menu);
+    auto reopened = open_asset_repository(root, workers, {});
+    EXPECT_EQ(reopened->snapshot().document().records.front().reference, record.reference);
+    repository->begin({files.path(), {"popup", "incorrect.xml"}, assets::asset_type::popup});
+    EXPECT_THROW(finish(*repository), std::invalid_argument);
+    EXPECT_FALSE(document_exists(root / "popup/incorrect.xml"));
+    EXPECT_EQ(repository->snapshot().document().records.size(), 1U);
+}
 } // namespace atlas::editor::tests

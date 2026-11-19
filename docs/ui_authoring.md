@@ -1,6 +1,6 @@
 # UI authoring documents
 
-`atlas::ui_content` reads and writes viewport UI XML v1 and constructs an
+`atlas::ui_content` reads and writes viewport UI XML v1/v2 and constructs an
 owner-thread UI instance from a typed asset catalog. `parse_xml` returns
 editable data. `instance::build` validates the native layout rules and
 compiles bindings and behaviors into a private candidate. `write_xml` returns
@@ -21,6 +21,39 @@ canonical UTF-8 bytes for the host's persistence boundary.
   </element>
 </ui>
 ```
+
+## Typed presentations
+
+Legacy `<ui version="1">` documents retain catalog type `ui`. Explicit
+presentations use XML v2 with `kind="menu"`, `kind="submenu"`, `kind="popup"`
+or `kind="widget"`, matching the catalog reference type. Each kind uses the
+same element, layout, binding and scripting contracts. A typed source cannot
+silently load through a legacy or differently typed reference.
+
+A menu is a top-level Flow destination. A submenu belongs to a parent-owned
+region with a named panel host. A popup is opened through an overlay route.
+A widget is a reusable UI source and is rejected as a Flow destination.
+`instance::presentation()` retains the authored defaults without retaining
+source XML.
+
+```xml
+<ui version="2" kind="popup" modal="true"
+    dismiss-outside="false" dismiss-back="true">
+  <element id="popup_content" panel="overlay"/>
+</ui>
+```
+
+Popup flags are valid only on popup sources. Defaults are modal, no outside
+click dismissal, and Back dismissal enabled. A Flow screen may override each
+flag independently; an absent override inherits the asset value, including
+future changes to that default. Presentation kind and modality are separate.
+
+Legacy source and prepared payloads remain supported: unchanged UI v1 sources
+retain prepared `AUIP` v2 encoding; explicit presentations use `AUIP` v3. Both
+versions retain full signature/extent/checksum validation. Converting a legacy
+asset to an explicit kind requires an intentional catalog/source/reference
+update with the same persistent asset ID; loading does not perform that
+migration automatically.
 
 ## Identity and validation
 
@@ -123,10 +156,61 @@ guard values, including activation of nested regions. A traversal test can
 submit each action and observe `committed` before its next step. Back and pop
 depend on runtime history and are exercised separately.
 
+#### Typed regions and scoped history
+
+Flow XML v2 adds `asset-type` on screens, `host` and `remember` on regions,
+popup policy overrides on popup screens, and `exit_menu`/`close_popup`
+operations. The writer retains v1 for graphs without these extensions.
+
+```xml
+<flow version="2">
+  <region id="viewport" initial="home"/>
+  <region id="tabs" owner="settings" initial="audio" host="content" remember="true"/>
+  <screen id="home" region="viewport" asset-type="menu"
+          asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000001"/>
+  <screen id="settings" region="viewport" asset-type="menu"
+          asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000002"/>
+  <screen id="audio" region="tabs" asset-type="submenu"
+          asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000003"/>
+  <transition id="open_settings" from="home" to="settings" operation="push"/>
+  <transition id="exit_settings" from="settings" operation="exit_menu"/>
+</flow>
+```
+
+The host ID resolves to a live panel in the parent composition. Typed submenus
+require a parent and nonempty host; missing or leaf hosts reject the private
+candidate without replacing published views. Preparation validates the same
+host contract. `flow_presentation` exposes the parent instance and host ID for
+host layout/clip/input integration; it does not automatically paint a child
+inside that panel. The native editor does not yet consume these region-host
+records as a complete Flow preview.
+
+`exit_menu(source_screen)` returns through the owning menu history directly,
+skipping submenu tab history. It rejects a root without return history and
+cannot replace popup close semantics. `close_popup(source_screen)` closes the
+active popup/overlay while preserving its underlying menu. Both operations
+can also be declared as graph transitions. They change navigation only;
+application or ViewModel mutations are not undone.
+
+A region defaults to `remember="false"`, preserving legacy reset behavior.
+With `remember="true"`, retiring its owner saves lightweight screen IDs,
+focus names and nested region bookmarks. Returning to that existing history
+entry reconstructs its selected submenus; a fresh menu entry starts from its
+initial submenu. Bookmarks do not retain view instances, input handles or Lua
+VMs. Overlay entries are not included in remembered submenu history.
+
+The presentation exposes effective popup flags to its host. Explicit popup
+sources must open as overlays and cannot be a region's initial presentation.
+The current manager conservatively marks only the foreground branch for
+input; full modeless routing, outside-click consumption and automatic semantic
+Back handling require a host that implements those policies. The flags alone
+do not provide those input behaviors.
+
 #### Prepared menu navigation
 
 Use `prepare_flow` on an authored mount and `encode_prepared` to produce a
-versioned `AFLW` v1 record. Preparation resolves every distinct screen through
+versioned `AFLW` record: v1 for legacy graphs and v2 for typed region/popup
+metadata. Preparation resolves every distinct screen through
 the UI cooker, checks the authored focus and control IDs, and records each
 screen's exact typed dependency revisions. `flow_dependencies` returns the
 sorted union for validation or later packaging.

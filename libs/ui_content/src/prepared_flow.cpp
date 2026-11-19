@@ -34,6 +34,10 @@ bool view_dependency(assets::asset_ref screen, assets::asset_ref reference)
     switch (reference.type)
     {
         case assets::asset_type::ui:
+        case assets::asset_type::menu:
+        case assets::asset_type::submenu:
+        case assets::asset_type::popup:
+        case assets::asset_type::widget:
             return reference == screen;
         case assets::asset_type::view_model:
         case assets::asset_type::script:
@@ -107,6 +111,21 @@ void validate_screen_controls(const flow_document& graph, const prepared_view& v
                 throw std::invalid_argument("Prepared Flow focus element is missing: " +
                                             screen.focus);
             }
+        }
+    }
+
+    for (const auto& region : graph.regions)
+    {
+        if (!menus.contains(region.owner) || region.host.empty())
+        {
+            continue;
+        }
+
+        const auto host = std::ranges::find(view.view.elements, region.host, &element::id);
+        if (host == view.view.elements.end() ||
+            std::holds_alternative<ui::leaf_layout>(host->panel))
+        {
+            throw std::invalid_argument("Prepared Flow submenu host is missing or not a panel");
         }
     }
 

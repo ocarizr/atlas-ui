@@ -113,6 +113,7 @@ class instance::impl
     std::shared_ptr<scripting::domain> domain; ///< Shared owner interpreter, created on demand.
     ui::input_session input;                   ///< Releases all retained element handlers first.
     diagnostics::services diagnostics;         ///< Optional composition and frame instrumentation.
+    presentation_options presentation;         ///< Retained authored type and popup defaults.
     std::optional<playback> animation; ///< Clock and resolved tracks owned by this instance.
     std::vector<player> players;       ///< Bounded live clips in creation order.
     std::map<std::string, state_group, std::less<>> animation_states; ///< Named state groups.

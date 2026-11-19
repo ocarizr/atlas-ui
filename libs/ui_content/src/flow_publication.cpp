@@ -58,6 +58,7 @@ bool flow_manager::impl::poll()
             (void)ready->find(authored);
         }
 
+        validate_view(pending, *ready);
         entry.session = std::make_shared<detail::flow_session>(
             detail::flow_session{pending.generation, std::move(ready)});
         entry.focus_pending = true;
