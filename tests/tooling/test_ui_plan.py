@@ -47,6 +47,7 @@ def test_command_changes_do_not_select_unrelated_consumers(ui_configuration, pat
         "ui-images",
         "ui-text",
         "game",
+        "editor-flow",
         "editor",
     }
 
@@ -64,6 +65,7 @@ def test_authoring_restores_only_its_composition_inputs(ui_configuration):
     """Keep XML composition independent of apps, renderer, and IPC."""
     assert select_components(ui_configuration, ["libs/ui_content/src/instance.cpp"]) == {
         "ui-content",
+        "editor-flow",
         "editor",
     }
     plan = plan_components(ui_configuration, {"ui-content"})

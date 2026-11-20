@@ -165,3 +165,6 @@ incremental import implementation. Catalog writes are synchronous on the
 owner, outside event callbacks; slow storage can pause publication. Loading
 and acquisition errors appear in the panel, with diagnostics for failures and
 profile scopes for opening, preparation, inspection and publication.
+
+See [Flow graph documents](editor_flow.md) for the independent graph-document,
+history, runtime-candidate and recovery contracts.
