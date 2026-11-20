@@ -23,7 +23,7 @@ function(atlas_add_application target source output label argument)
         install(FILES "${PROJECT_SOURCE_DIR}/assets/renderer/checker.bmp" "${PROJECT_SOURCE_DIR}/assets/renderer/quad.hlsl"
             DESTINATION bin/content)
     elseif(label STREQUAL "editor")
-        target_sources(${target} PRIVATE apps/editor/document_session.cpp apps/editor/document_workspace.cpp
+        target_sources(${target} PRIVATE apps/editor/flow_file.cpp apps/editor/document_session.cpp apps/editor/document_workspace.cpp
             apps/editor/document_recovery.cpp apps/editor/editor_host.cpp
             apps/editor/asset_repository.cpp apps/editor/asset_transactions.cpp apps/editor/asset_analysis.cpp
             apps/editor/asset_document.cpp apps/editor/asset_panel.cpp apps/editor/asset_panel_commands.cpp
@@ -31,7 +31,7 @@ function(atlas_add_application target source output label argument)
             apps/editor/panels.cpp apps/editor/tool_registry.cpp apps/editor/tool_panel.cpp apps/editor/editor_commands.cpp)
         target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/apps/common"
             "${PROJECT_SOURCE_DIR}/apps/editor")
-        target_link_libraries(${target} PRIVATE atlas::ui_content atlas::mvvm_content atlas::ui_text atlas::renderer_jobs atlas::memory)
+        target_link_libraries(${target} PRIVATE atlas::editor_flow atlas::ui_content atlas::mvvm_content atlas::ui_text atlas::renderer_jobs atlas::memory)
         set(editor_assets "${PROJECT_SOURCE_DIR}/assets/editor_tools")
         set(editor_sources "${editor_assets}/commands.xml" "${editor_assets}/commands.lua"
             "${editor_assets}/shell.xml" "${editor_assets}/width.xml")
@@ -97,9 +97,9 @@ if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
         tests/editor/asset_repository_tests.cpp)
     target_include_directories(atlas_editor_tests PRIVATE "${PROJECT_SOURCE_DIR}/apps/editor"
         "${PROJECT_SOURCE_DIR}/apps/common")
-    target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_content atlas::mvvm_content GTest::gtest_main)
+    target_link_libraries(atlas_editor_tests PRIVATE atlas::editor_flow atlas::ui_content atlas::mvvm_content GTest::gtest_main)
     if(ATLAS_BUILD_WINDOWS_INTEGRATION)
-        target_sources(atlas_editor_tests PRIVATE tests/platform/windows/editor/authoring_tests.cpp
+        target_sources(atlas_editor_tests PRIVATE apps/editor/flow_file.cpp tests/platform/windows/editor/flow_recovery_tests.cpp tests/platform/windows/editor/authoring_tests.cpp
             libs/platform/windows/editor/document_file.cpp apps/editor/editor_view.cpp
             apps/editor/panels.cpp apps/editor/panel_scene.cpp apps/editor/tool_registry.cpp
             apps/editor/tool_panel.cpp apps/editor/editor_commands.cpp tests/platform/windows/editor/tool_tests.cpp

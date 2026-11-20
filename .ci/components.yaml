@@ -31,6 +31,13 @@ components:
     test_labels: [ui-scripting]
     build_requires: [scripting, ui]
     vendors: [testing, content]
+  editor-flow:
+    paths: [libs/editor_flow/**, tests/editor_flow/**]
+    depends_on: [ui-content]
+    build_targets: [atlas_editor_flow, atlas_editor_flow_tests]
+    test_labels: [editor-flow]
+    build_requires: [ui-content]
+    vendors: [testing, content]
   ui-content:
     paths:
     - libs/ui_content/**
@@ -368,6 +375,7 @@ components:
     depends_on:
     - application
     - renderer-jobs
+    - editor-flow
     - ui-content
     - mvvm-content
     - ui-text
@@ -380,6 +388,7 @@ components:
     build_requires:
     - application
     - renderer-jobs
+    - editor-flow
     - ui-content
     - mvvm-content
     - ui-text

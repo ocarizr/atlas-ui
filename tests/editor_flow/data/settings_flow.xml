@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<flow-authoring version="1" id="settings_flow">
+  <region id="viewport" initial="home" owner="" host="" remember="false"/>
+  <region id="tabs" initial="audio" owner="home" host="tab_host" remember="true"/>
+  <screen id="home" region="viewport" focus="button" asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000001" asset-type="menu"/>
+  <screen id="audio" region="tabs" focus="" asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000002" asset-type="submenu"/>
+  <screen id="video" region="tabs" focus="" asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000003" asset-type="submenu"/>
+  <screen id="popup" region="viewport" focus="" asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000004" asset-type="popup" modal="true" dismiss-outside="false" dismiss-back="true"/>
+  <parameter id="enabled" type="0" value="true"/>
+  <parameter id="count" type="1" value="-9223372036854775808"/>
+  <parameter id="scale" type="2" value="1.25"/>
+  <parameter id="caption" type="3" value="Settings &amp; controls"/>
+  <transition id="switch_tab" from="audio" to="video" enabled="true" control="tab_button" action="7" operation="1">
+    <guard parameter="enabled" type="0" value="true"/>
+  </transition>
+  <transition id="open_popup" from="home" to="popup" enabled="true" control="button" action="0" operation="4"/>
+  <transition id="close_popup" from="popup" to="" enabled="true" control="close" action="0" operation="7"/>
+  <layout kind="1" id="tabs" label="Settings tabs" x="10.25" y="-20.5"/>
+  <layout kind="2" id="home" label="Settings" x="0" y="0"/>
+  <layout kind="3" id="switch_tab" label="Select graphics" x="200" y="0"/>
+  <selection kind="3" id="switch_tab"/>
+</flow-authoring>

@@ -181,6 +181,16 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['ui-scripting']) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  editor-flow:
+    needs: [plan, vendor-testing, vendor-content, ui-content]
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'editor-flow') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: editor-flow
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['editor-flow']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   ui-content:
     needs: [plan, vendor-testing, vendor-content, streaming, mvvm-content, ui-mvvm, ui-scripting]
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'ui-content') }}
@@ -369,6 +379,7 @@ jobs:
     - application
     - vendor-graphics
     - renderer-jobs
+    - editor-flow
     - ui-content
     - mvvm-content
     - ui-text
@@ -593,6 +604,7 @@ jobs:
     - renderer-content
     - render-host
     - renderer-readiness
+    - editor-flow
     - ui
     - ui-renderer
     - ui-images
