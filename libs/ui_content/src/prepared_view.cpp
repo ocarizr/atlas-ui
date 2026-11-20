@@ -17,7 +17,7 @@ using dependency_set = std::set<assets::asset_ref>; ///< Sorted exact authoring 
 /// @brief Require a supported UI or material asset identity before storage admission.
 void require_type(assets::asset_ref source, assets::asset_type expected)
 {
-    if (source.type != expected)
+    if (expected == assets::asset_type::ui ? !assets::is_ui(source.type) : source.type != expected)
     {
         throw std::invalid_argument("Incompatible prepared UI asset type");
     }
@@ -74,6 +74,7 @@ template <class Lookup> dependency_set collect(const prepared_view& source, cons
 {
     require_type(source.source, assets::asset_type::ui);
     detail::validate(source.view);
+    validate_presentation(source.view.presentation, source.source.type);
     dependency_set closure{source.source};
     for (const auto& model : source.view.models)
     {

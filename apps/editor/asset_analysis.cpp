@@ -46,9 +46,11 @@ std::vector<assets::asset_ref> inspect_asset(assets::asset_type type,
 {
     const std::string_view text{reinterpret_cast<const char*>(bytes.data()), bytes.size()};
     std::vector<assets::asset_ref> refs;
-    if (type == assets::asset_type::ui)
+    if (assets::is_ui(type))
     {
-        return asset_references(ui_content::parse_xml({text}));
+        const auto source = ui_content::parse_xml({text});
+        ui_content::validate_presentation(source.presentation, type);
+        return asset_references(source);
     }
 
     if (type == assets::asset_type::view_model)

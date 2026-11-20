@@ -42,7 +42,7 @@ tool_registry::tool_registry(const tool_roots& roots, jobs::job_system& jobs,
             std::optional<tool_entry> shell;
             for (const auto& record : records)
             {
-                if (record.reference.type != assets::asset_type::ui)
+                if (!assets::is_ui(record.reference.type))
                 {
                     continue;
                 }

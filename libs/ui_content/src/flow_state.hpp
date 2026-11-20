@@ -13,6 +13,8 @@ struct flow_session
     std::unique_ptr<instance> view; ///< Owner-affine composition.
 };
 
+struct flow_bookmarks; ///< Immutable lightweight child history, never a retained view.
+
 struct flow_entry
 {
     std::size_t screen;   ///< Index into the immutable graph.
@@ -20,7 +22,29 @@ struct flow_entry
     std::shared_ptr<flow_session> session{}; ///< Null for inactive reconstructible history.
     std::string focus{};       ///< Authored bookmark independent of session identities.
     bool focus_pending = true; ///< The host restores focus after preparing presentation.
+    std::shared_ptr<const flow_bookmarks> children{}; ///< Retained submenu identities and focus.
 }; ///< A bounded history entry owns live state only while presented.
+
+/// @brief A saved child entry contains no instance, Lua state or input handle.
+struct flow_bookmark_entry
+{
+    std::size_t screen;                             ///< Stable index in the immutable graph.
+    std::string focus;                              ///< Durable authored focus ID.
+    std::shared_ptr<const flow_bookmarks> children; ///< Deeper remembered regions.
+};
+
+/// @brief One region's bounded stack restored with newly composed views.
+struct flow_region_bookmark
+{
+    std::size_t region;                     ///< Stable region index.
+    std::vector<flow_bookmark_entry> stack; ///< Lightweight history only.
+};
+
+/// @brief Parent-owned navigation state, independent of application/model state.
+struct flow_bookmarks
+{
+    std::vector<flow_region_bookmark> regions; ///< Direct remembered child regions.
+};
 
 using flow_stacks = std::vector<std::vector<flow_entry>>; ///< One bounded history per region.
 
@@ -35,6 +59,8 @@ struct flow_command
 {
     std::string transition;   ///< Authored action, empty only for start.
     std::uint64_t origin = 0; ///< Zero means an explicit host request.
+    std::string source{};     ///< Nonempty for destination-free scoped exit actions.
+    flow_operation operation = flow_operation::exit_menu; ///< Built-in exit vocabulary.
 }; ///< At most one outstanding command per viewport.
 
 struct flow_admission
@@ -76,6 +102,18 @@ class flow_manager::impl
     [[nodiscard]] bool plan(const detail::flow_command& command);  ///< Build a private transaction.
     [[nodiscard]] bool apply_transition(detail::flow_candidate& next,
                                         const detail::flow_command& command); ///< Resolve route.
+    /// @brief Apply a destination-free scoped close against foreground ownership.
+    [[nodiscard]] bool apply_exit(detail::flow_candidate& next, std::string_view source,
+                                  flow_operation operation);
+    /// @brief Capture only durable child identities and focus before tentative navigation.
+    void capture_history(detail::flow_stacks& state) const;
+    /// @brief Recursively snapshot direct remembered regions without keeping view instances.
+    [[nodiscard]] std::shared_ptr<const detail::flow_bookmarks>
+    bookmark(const detail::flow_stacks& state, const detail::flow_entry& entry) const;
+    /// @brief Resolve loaded popup defaults and screen-instance overrides.
+    [[nodiscard]] std::optional<popup_policy> popup(const detail::flow_entry& entry) const;
+    /// @brief Validate loaded presentation kinds and parent host elements before publication.
+    void validate_view(const detail::flow_pending& pending, instance& view) const;
     void load_view(detail::flow_candidate& next, detail::flow_position position); ///< Admit I/O.
     [[nodiscard]] bool poll();         ///< Complete all required loads without blocking on I/O.
     void publish(std::uint64_t frame); ///< Swap complete history, then retire outgoing views.

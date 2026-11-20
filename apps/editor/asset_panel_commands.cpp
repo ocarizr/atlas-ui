@@ -96,7 +96,9 @@ bool asset_panel::execute(const control_action& action, document_workspace* docu
             visible = !visible;
             return true;
         case control_kind::assets_type:
-            type_ = static_cast<assets::asset_type>((static_cast<unsigned>(type_) + 1) % 10);
+            type_ = static_cast<assets::asset_type>(
+                (static_cast<unsigned>(type_) + 1) %
+                (static_cast<unsigned>(assets::asset_type::widget) + 1));
             selected_.reset();
             page_ = 0;
             break;
@@ -136,7 +138,7 @@ bool asset_panel::execute(const control_action& action, document_workspace* docu
             break;
         case control_kind::assets_open:
         {
-            if (!documents || selected().type != assets::asset_type::ui)
+            if (!documents || !assets::is_ui(selected().type))
             {
                 throw std::invalid_argument("Open requires a UI asset and document workspace");
             }

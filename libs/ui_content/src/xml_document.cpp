@@ -1,5 +1,6 @@
 /** @file @brief Parse and save versioned viewport UI without opening files. */
 #include "document_validation.hpp"
+#include "presentation_xml.hpp"
 #include "xml_fields.hpp"
 
 namespace atlas::ui_content
@@ -111,16 +112,8 @@ void model_fields(detail::fields& xml, model_context& model)
 /// @brief Enforce the version and per-document limits while converting the source.
 document read_document(pugi::xml_node root)
 {
-    detail::fields header{root, true};
-    std::string version;
-    header.value("version", version, true);
-    header.finish();
-    if (version != "1")
-    {
-        throw std::invalid_argument("Unsupported UI XML version: " + version);
-    }
-
     document result;
+    result.presentation = detail::read_presentation(root);
     for (auto node : root.children())
     {
         if (node.type() == pugi::node_comment)
@@ -228,7 +221,7 @@ std::string write_xml(const document& source, const diagnostics::services& sinks
     detail::validate(source);
     pugi::xml_document xml;
     auto root = xml.append_child("ui");
-    root.append_attribute("version").set_value("1");
+    detail::write_presentation(root, source.presentation);
     for (auto model : source.models)
     {
         detail::fields fields{root.append_child("model"), false};

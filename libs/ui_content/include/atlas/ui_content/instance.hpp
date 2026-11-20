@@ -71,6 +71,8 @@ class instance
     instance(const instance&) = delete;            ///< A mutable composition has one owner.
     instance& operator=(const instance&) = delete; ///< A mutable composition has one owner.
 
+    /// @brief Return immutable authored presentation defaults.
+    [[nodiscard]] presentation_options presentation() const;
     [[nodiscard]] ui::element_handle
     find(std::string_view id) const; ///< Resolve a live authored ID.
     /// @brief Resolve a live focus handle to a durable ID for reconstructing a view.

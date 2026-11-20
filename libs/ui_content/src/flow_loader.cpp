@@ -28,6 +28,10 @@ std::size_t limit(assets::asset_type type)
     switch (type)
     {
         case assets::asset_type::ui:
+        case assets::asset_type::menu:
+        case assets::asset_type::submenu:
+        case assets::asset_type::popup:
+        case assets::asset_type::widget:
             return detail::max_document_bytes;
         case assets::asset_type::material:
             return detail::max_material_bytes;
@@ -122,9 +126,8 @@ class stream_load final : public flow_load
     void begin(assets::asset_ref source)
     {
         const auto info = options_.storage.describe(source);
-        const auto maximum = contract_ && source.type == assets::asset_type::ui
-                                 ? detail::max_prepared_bytes
-                                 : limit(source.type);
+        const auto maximum = contract_ && assets::is_ui(source.type) ? detail::max_prepared_bytes
+                                                                     : limit(source.type);
         if (!info.byte_size || info.byte_size > maximum ||
             info.byte_size > max_bootstrap_bytes - admitted_)
         {
@@ -169,7 +172,7 @@ class stream_load final : public flow_load
     /// @brief Expand only sources that introduce additional composition dependencies.
     void discover(assets::asset_ref source, std::string_view bytes)
     {
-        if (source.type == assets::asset_type::ui)
+        if (assets::is_ui(source.type))
         {
             if (contract_)
             {
@@ -179,6 +182,7 @@ class stream_load final : public flow_load
 
             const auto& authored = source_.emplace(
                 parse_xml({bytes, assets::format_id(source.id)}, options_.diagnostics));
+            validate_presentation(authored.presentation, source.type);
             for (const auto& model : authored.models)
             {
                 const auto native = std::ranges::any_of(options_.factories,

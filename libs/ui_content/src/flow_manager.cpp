@@ -196,9 +196,24 @@ std::vector<flow_presentation> flow_manager::presentation() const
         const auto& entry = impl_->current.at(position.region).at(position.index);
         if (entry.session)
         {
-            result.push_back({impl_->graph.regions.at(position.region).id,
-                              impl_->graph.screens.at(entry.screen).id, entry.session->view.get(),
-                              position.input});
+            const auto& region = impl_->graph.regions.at(position.region);
+            instance* parent = nullptr;
+            if (!region.owner.empty())
+            {
+                const auto owner =
+                    impl_->region(impl_->graph.screens.at(impl_->screen(region.owner)).region);
+                const auto& stack = impl_->current.at(owner);
+                const auto found = std::ranges::find(stack, impl_->screen(region.owner),
+                                                     &detail::flow_entry::screen);
+                if (found != stack.end() && found->session)
+                {
+                    parent = found->session->view.get();
+                }
+            }
+
+            result.push_back({region.id, impl_->graph.screens.at(entry.screen).id,
+                              entry.session->view.get(), position.input, region.host, parent,
+                              impl_->popup(entry)});
         }
     }
 

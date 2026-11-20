@@ -105,7 +105,8 @@ The **Assets** button opens the type-oriented Atlas UI browser. Set
 default is `editor_assets` beside the last `--document` path. A fresh workspace
 gets its own persistent namespace and `catalog.xml`, with directories named
 `ui`, `view_model`, `flow`, `script`, `texture`, `shader`, `material`, `video`,
-`audio` and `localization`. Logical subdirectories refine each type. Installed
+`audio`, `localization`, `menu`, `submenu`, `popup` and `widget`. Logical
+subdirectories refine each type. Installed
 editor tools keep their separate namespace and mount; this browser writes only
 to the selected content workspace. External project descriptors and add-on
 registration remain separate integration work.
@@ -121,7 +122,8 @@ marked in the list.
 root is registered in place; an external file is copied into that root using
 its filename. Import dependencies first: UI, material and flow XML are parsed
 on a ready job to extract typed references, and ViewModel XML is validated.
-The full catalog must validate before publication. Other types are registered
+The full catalog must validate before publication. Explicit menu/submenu/popup/widget
+sources also validate their XML presentation kind against the selected category. Other types are registered
 as raw sources; registration does not decode images, compile shaders or execute
 scripts. Source acquisition and hashing use the streamer and the application's
 shared job pool, with one accepted import at a time. **Cancel** invalidates its

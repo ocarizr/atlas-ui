@@ -1,6 +1,7 @@
 /** @file @brief Version and integrity envelope for typed UI binary content. */
 #include "document_validation.hpp"
 #include "prepared_ui_fields.hpp"
+#include "prepared_versions.hpp"
 #include <atlas/mvvm_content/detail/prepared_definition.hpp>
 #include <atlas/mvvm_content/detail/prepared_envelope.hpp>
 
@@ -14,7 +15,8 @@ constexpr mvvm_content::detail::signature magic{std::byte{'A'}, std::byte{'U'}, 
 constexpr std::uint16_t wire_version = 2; ///< Add the embedded ViewModel definition table.
 
 /// @brief Encode the typed UI and its exact catalog closure in v2 field order.
-template <bool Reading> void serialize(detail::binary<Reading>& format, prepared_view& source)
+template <bool Reading>
+void serialize(detail::binary<Reading>& format, prepared_view& source, bool presentation)
 {
     detail::reference(format, source.source);
     format.sequence(source.dependencies, detail::max_prepared_dependencies,
@@ -53,6 +55,12 @@ template <bool Reading> void serialize(detail::binary<Reading>& format, prepared
                         detail::reference(archive, model.source);
                     });
     format.sequence(source.view.elements, detail::max_elements, detail::prepared_element_fields);
+    if (presentation)
+    {
+        format.choice(source.view.presentation.type, assets::asset_type::widget);
+        auto& policy = source.view.presentation.popup;
+        format.fields(policy.modal, policy.dismiss_outside, policy.dismiss_back);
+    }
 }
 } // namespace
 
@@ -62,16 +70,24 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
     detail::validate_prepared(source);
     auto copy = source;
     detail::binary<false> payload;
-    serialize(payload, copy);
-    return mvvm_content::detail::seal_prepared(payload, magic, wire_version);
+    const bool presentation = source.view.presentation.type != assets::asset_type::ui;
+    serialize(payload, copy, presentation);
+    return mvvm_content::detail::seal_prepared(payload, magic,
+                                               presentation ? std::uint16_t{3} : wire_version);
 }
 
 /// @brief Reject incorrect extent, version and checksum before decoding typed records.
 prepared_view decode_prepared(std::span<const std::byte> bytes)
 {
-    detail::binary<true> archive{mvvm_content::detail::open_prepared(bytes, magic, wire_version)};
+    const auto version = detail::prepared_version(bytes);
+    if (version != wire_version && version != 3)
+    {
+        throw std::invalid_argument("Unsupported prepared UI version");
+    }
+
+    detail::binary<true> archive{mvvm_content::detail::open_prepared(bytes, magic, version)};
     prepared_view result;
-    serialize(archive, result);
+    serialize(archive, result, version == 3);
     if (!archive.exhausted())
     {
         throw std::invalid_argument("Trailing prepared UI payload");

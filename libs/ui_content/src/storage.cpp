@@ -77,7 +77,7 @@ namespace atlas::ui_content
 /// @brief Source context is a persistent ID; catalog paths never enter the document API.
 document load(assets::asset_ref source, const construction& options)
 {
-    if (source.type != assets::asset_type::ui)
+    if (!assets::is_ui(source.type))
     {
         throw std::invalid_argument("UI document load requires a UI asset");
     }
@@ -85,6 +85,8 @@ document load(assets::asset_ref source, const construction& options)
     const auto name = assets::format_id(source.id);
     const auto text =
         detail::acquire(options.storage.describe(source), detail::max_document_bytes, options);
-    return parse_xml({text, name}, options.diagnostics);
+    auto result = parse_xml({text, name}, options.diagnostics);
+    validate_presentation(result.presentation, source.type);
+    return result;
 }
 } // namespace atlas::ui_content

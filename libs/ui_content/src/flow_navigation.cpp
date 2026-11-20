@@ -54,28 +54,6 @@ flow_manager::impl::visible(const detail::flow_stacks& state) const
     return result;
 }
 
-/// @brief A newly active nested region begins at its authored default screen.
-void flow_manager::impl::populate(detail::flow_stacks& state, std::size_t selected) const
-{
-    auto& stack = state.at(selected);
-    if (stack.empty())
-    {
-        stack.push_back({screen(graph.regions.at(selected).initial)});
-    }
-
-    for (std::size_t index = first_visible(stack); index < stack.size(); ++index)
-    {
-        const auto& owner = graph.screens.at(stack.at(index).screen).id;
-        for (std::size_t child = 0; child < graph.regions.size(); ++child)
-        {
-            if (graph.regions.at(child).owner == owner)
-            {
-                populate(state, child);
-            }
-        }
-    }
-}
-
 /// @brief Resolve an authored region without retaining references across transactions.
 std::size_t flow_manager::impl::region(std::string_view name) const
 {
@@ -135,6 +113,9 @@ bool apply_operation(std::vector<detail::flow_entry>& stack, flow_operation kind
             }
             stack.pop_back();
             return true;
+        case flow_operation::exit_menu:
+        case flow_operation::close_popup:
+            return false;
         case flow_operation::reload:
             stack.back().session.reset();
             stack.back().focus_pending = true;
@@ -169,11 +150,28 @@ bool apply_operation(std::vector<detail::flow_entry>& stack, flow_operation kind
 bool flow_manager::impl::apply_transition(detail::flow_candidate& next,
                                           const detail::flow_command& command)
 {
+    if (!command.source.empty())
+    {
+        return apply_exit(next, command.source, command.operation);
+    }
+
     const auto found =
         std::ranges::find(graph.transitions, command.transition, &flow_transition::id);
     if (found == graph.transitions.end() || !enabled(*found))
     {
         return false;
+    }
+
+    if (found->operation == flow_operation::exit_menu ||
+        found->operation == flow_operation::close_popup)
+    {
+        if (!apply_exit(next, found->from, found->operation))
+        {
+            return false;
+        }
+
+        next.edge = &*found;
+        return true;
     }
 
     const auto source = screen(found->from);
@@ -255,7 +253,9 @@ void flow_manager::impl::load_view(detail::flow_candidate& next, detail::flow_po
 bool flow_manager::impl::plan(const detail::flow_command& command)
 {
     detail::flow_candidate next{current, {}, nullptr};
-    if (!command.transition.empty() && !apply_transition(next, command))
+    capture_history(next.stacks);
+    if ((!command.transition.empty() || !command.source.empty()) &&
+        !apply_transition(next, command))
     {
         return false;
     }

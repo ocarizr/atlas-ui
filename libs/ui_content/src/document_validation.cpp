@@ -157,6 +157,7 @@ void add_element(const element& node, locations& seen, const model_names& models
 /// @brief Validate all document-local names before resolving any external assets.
 void validate(const document& source)
 {
+    validate_presentation(source.presentation);
     if (source.elements.empty() || source.elements.size() > max_elements ||
         source.models.size() > max_models)
     {
