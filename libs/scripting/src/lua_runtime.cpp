@@ -212,7 +212,15 @@ int lua_vm::execute()
             return luaL_error(state, "behavior must return a handler table");
         }
 
-        self.handlers_ = luaL_ref(state, LUA_REGISTRYINDEX);
+        if (self.bindings && self.bindings->registry)
+        {
+            lua_pop(state, 1);
+        }
+        else
+        {
+            self.handlers_ = luaL_ref(state, LUA_REGISTRYINDEX);
+        }
+
         return 0;
     }
 
@@ -239,12 +247,18 @@ int lua_vm::execute()
     lua_rawgeti(state, LUA_REGISTRYINDEX, host->director);
     lua_pushvalue(state, 1);
     lua_pushlstring(state, self.name_.data(), self.name_.size());
+    const bool registered = self.bindings && self.bindings->registry;
+    if (registered)
+    {
+        push_callable_context();
+    }
+
     for (const auto& argument : self.arguments_)
     {
         self.push(argument);
     }
 
-    lua_call(state, static_cast<int>(self.arguments_.size()) + 2, LUA_MULTRET);
+    lua_call(state, static_cast<int>(self.arguments_.size()) + (registered ? 3 : 2), LUA_MULTRET);
     if (lua_gettop(state) > 33)
     {
         return luaL_error(state, "behavior result limit exhausted");

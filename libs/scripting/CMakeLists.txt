@@ -10,6 +10,11 @@ target_sources(atlas_scripting PRIVATE src/domain_messages.cpp)
 target_sources(atlas_scripting PRIVATE src/lua_environment.cpp src/session_admission.cpp)
 target_sources(atlas_scripting PRIVATE src/session_limits.cpp)
 target_sources(atlas_scripting PRIVATE src/lua_diagnostics.cpp)
+target_sources(atlas_scripting PRIVATE src/callable_schema.cpp src/callable_context.cpp
+    src/domain_callable_registry.cpp src/domain_callable_binding.cpp src/domain_callable_execution.cpp
+    src/domain_callable_conditions.cpp src/domain_callable_work.cpp src/lua_callables.cpp
+    src/lua_callable_parameters.cpp src/callable_generation.cpp)
+
 target_include_directories(atlas_scripting PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 if(ATLAS_ENABLE_LUA_DEBUGGER)
     target_sources(atlas_scripting PRIVATE src/debugger.cpp src/debugger_hooks.cpp src/debugger_transport.cpp)

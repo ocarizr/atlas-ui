@@ -43,6 +43,7 @@ void domain::begin_frame(std::uint64_t frame)
     }
 
     impl_->frame = frame;
+    impl_->callables.calls = 0;
 }
 
 /// @brief Direct dispatch validates generation and activation before entering the director.

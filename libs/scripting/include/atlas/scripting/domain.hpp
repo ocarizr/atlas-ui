@@ -3,6 +3,7 @@
  * @brief Shared owner-thread Lua domains with catalog sources and validated instances.
  */
 #pragma once
+#include <atlas/scripting/callables.hpp>
 #include <atlas/scripting/session.hpp>
 
 namespace atlas::scripting
@@ -95,6 +96,33 @@ class domain
         std::shared_ptr<mvvm::view_model> model); ///< Register before creating dependent instances.
     void register_source(source_asset source); ///< Admit immutable monotonically versioned bytes.
     void register_service(service_definition service); ///< Register a typed project capability.
+    /// @brief Register a bounded native producer; duplicate IDs never override another origin.
+    void register_action(callable_origin origin, callable_descriptor descriptor,
+                         native_action action);
+    /// @brief Register a bounded native predicate with only a read capability.
+    void register_condition(callable_origin origin, callable_descriptor descriptor,
+                            native_condition condition);
+    /// @brief Discover/replace a module atomically from registered immutable source snapshots.
+    void load_callable_module(callable_module module);
+    /// @brief Retire a registration and invalidate its bound work without reusing its generation.
+    void remove_callable(std::string_view id);
+    /// @brief Copy bounded inspector metadata; discovery does not execute registered functions.
+    [[nodiscard]] std::vector<callable_descriptor> callable_descriptors() const;
+    /// @brief Resolve names once; execution uses exact registration/context generation tokens.
+    [[nodiscard]] callable_binding bind_callable(std::string_view id, std::string_view context);
+    [[nodiscard]] bool
+    callable_current(callable_binding binding) const; ///< Owner-only validity check.
+    void invoke_action(callable_binding binding,
+                       std::span<const mvvm::value> arguments = {}); ///< Stage then admit.
+    [[nodiscard]] bool
+    evaluate_condition(callable_binding binding,
+                       std::span<const mvvm::value> arguments = {}); ///< Exact boolean or throw.
+    [[nodiscard]] condition_evaluation
+    evaluate_conditions(const condition_node& expression); ///< Fail-closed bounded AND/NOT.
+    [[nodiscard]] std::vector<callable_work>
+    take_callable_requests(); ///< Transfer ready owned work descriptions.
+    [[nodiscard]] std::vector<callable_result>
+    take_callable_results(); ///< Drain ready deterministic prefixes.
     instance_handle
     create(behavior_spec spec); ///< Append one isolated instance in registration order.
     instance_handle reload(instance_handle instance); ///< Transactional fresh script state; retire

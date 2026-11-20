@@ -266,3 +266,6 @@ The [Lua reference manual](https://lua.org/manual/5.5/manual.html) describes the
 protected API, instruction hooks and C++ error mechanism. The pinned
 [vcpkg Lua port](https://github.com/microsoft/vcpkg/tree/d4c0a46cb8f63e5c9fa007d13baf1cb3e43bf7e3/ports/lua)
 defines the C++ binding target used by this library.
+
+See [actions and navigation conditions](scripting_callables.md) for typed contributor
+registries, generated Lua categories, outgoing guards and value-only work transport.

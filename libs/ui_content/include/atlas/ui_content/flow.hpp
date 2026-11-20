@@ -76,6 +76,10 @@ struct flow_transition
     std::uint32_t action{}; ///< Zero means pointer-up; otherwise a performed semantic action.
 }; ///< Declaration order breaks ties between bindings on one control.
 
+/// @brief Owner-only outgoing condition evaluation; false denies and exceptions fail the
+/// transaction.
+using flow_guard_evaluator = std::function<bool(const flow_transition&)>;
+
 struct flow_document
 {
     std::vector<flow_region> regions;         ///< Parent relationships form a rooted tree.
@@ -151,8 +155,8 @@ struct flow_presentation
 class flow_manager
 {
   public:
-    explicit flow_manager(flow_document graph, flow_loader loader,
-                          diagnostics::services sinks = {}); ///< One owner per viewport.
+    explicit flow_manager(flow_document graph, flow_loader loader, diagnostics::services sinks = {},
+                          flow_guard_evaluator guards = {}); ///< One owner per viewport.
     ~flow_manager(); ///< Cancel pending work and release compositions on the owner.
     flow_manager(const flow_manager&) = delete;            ///< Mutable history has a single owner.
     flow_manager& operator=(const flow_manager&) = delete; ///< Own independent menu state.

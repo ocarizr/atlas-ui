@@ -86,15 +86,18 @@ bool flow_manager::impl::enabled(const flow_transition& edge) const
         return false;
     }
 
-    if (!edge.guard)
+    if (edge.guard)
     {
-        return true;
+        const auto found =
+            std::ranges::find(graph.parameters, edge.guard->parameter, &flow_parameter::id);
+        if (parameters.at(static_cast<std::size_t>(found - graph.parameters.begin())) !=
+            edge.guard->equals)
+        {
+            return false;
+        }
     }
 
-    const auto found =
-        std::ranges::find(graph.parameters, edge.guard->parameter, &flow_parameter::id);
-    return parameters.at(static_cast<std::size_t>(found - graph.parameters.begin())) ==
-           edge.guard->equals;
+    return !guards || guards(edge);
 }
 
 namespace
@@ -157,7 +160,7 @@ bool flow_manager::impl::apply_transition(detail::flow_candidate& next,
 
     const auto found =
         std::ranges::find(graph.transitions, command.transition, &flow_transition::id);
-    if (found == graph.transitions.end() || !enabled(*found))
+    if (found == graph.transitions.end() || !found->enabled)
     {
         return false;
     }
@@ -165,7 +168,7 @@ bool flow_manager::impl::apply_transition(detail::flow_candidate& next,
     if (found->operation == flow_operation::exit_menu ||
         found->operation == flow_operation::close_popup)
     {
-        if (!apply_exit(next, found->from, found->operation))
+        if (!apply_exit(next, found->from, found->operation) || !enabled(*found))
         {
             return false;
         }
@@ -185,6 +188,11 @@ bool flow_manager::impl::apply_transition(detail::flow_candidate& next,
                                         (command.origin == 0 ||
                                          entry.session->generation == command.origin);
                              }))
+    {
+        return false;
+    }
+
+    if (!enabled(*found))
     {
         return false;
     }
