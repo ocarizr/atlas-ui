@@ -28,6 +28,7 @@ class work_request
     ///< Thread-safe single acceptance; false after duplicate, cancellation or stale generation.
   private:
     friend class session; ///< Only admitted session requests receive transport access.
+    friend class domain;  ///< Registered actions use the same generation-safe transport.
     std::weak_ptr<detail::mailbox> destination_; ///< Does not extend VM/session lifetime.
     std::uint64_t ticket_ = 0; ///< Immutable transport identity, independent of public metadata.
 };

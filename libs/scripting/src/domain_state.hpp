@@ -1,5 +1,6 @@
 /** @file @brief Private domain registry with ordered instances and immutable source revisions. */
 #pragma once
+#include "callable_state.hpp"
 #include "session_state.hpp"
 #include <atlas/scripting/domain.hpp>
 #include <map>
@@ -42,6 +43,19 @@ class domain::impl
     std::uint64_t identity = 0, sequence = 0, frame = 0; ///< Nonreused identity and frame policies.
     bool busy = false, closed = false;                   ///< Domain-wide reentry/lifetime guard.
     const std::thread::id owner = std::this_thread::get_id(); ///< Immutable coordinator affinity.
+    detail::callable_state callables; ///< Bounded metadata and owner-affine execution contexts.
+    detail::callable_entry& callable(callable_binding binding); ///< Require an exact live binding.
+    detail::callable_context&
+    callable_context(callable_binding binding); ///< Require a live model context.
+    detail::callable_context&
+    bind_callable_context(std::size_t entry, std::string_view model); ///< Lazy context creation.
+    void retire_callables(const std::shared_ptr<detail::callable_module_state>&
+                              module); ///< Cancel old generation contexts.
+    void admit_callable(detail::callable_context& context, callable_binding binding,
+                        detail::call_scope& scope); ///< Transactional model/work publication.
+    [[nodiscard]] bool
+    run_condition(callable_binding binding,
+                  std::span<const mvvm::value> arguments); ///< Already-guarded predicate dispatch.
     void check() const;                 ///< Reject reentry, shutdown and foreign callers.
     entry& get(instance_handle handle); ///< Validate every identity component before VM access.
     std::shared_ptr<const detail::execution_bindings>

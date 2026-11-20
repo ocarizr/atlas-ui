@@ -93,7 +93,8 @@ class flow_manager::impl
 {
   public:
     /// @brief Validate once and retain the owner, graph and loader.
-    impl(flow_document graph, flow_loader factory, diagnostics::services sinks);
+    impl(flow_document graph, flow_loader factory, diagnostics::services sinks,
+         flow_guard_evaluator guards);
 
     void check() const; ///< Reject cross-thread access or reentrant calls at publication.
     [[nodiscard]] std::size_t region(std::string_view name) const; ///< Validated graph index.
@@ -125,8 +126,9 @@ class flow_manager::impl
     /// @brief Select initial screens in newly opened child regions.
     void populate(detail::flow_stacks& state, std::size_t root) const;
 
-    flow_document graph;                               ///< Validated immutable authoring.
-    flow_loader loader;                                ///< Owner composition service.
+    flow_document graph;         ///< Validated immutable authoring.
+    flow_guard_evaluator guards; ///< Borrowed predicates execute only before outgoing publication.
+    flow_loader loader;          ///< Owner composition service.
     diagnostics::services diagnostics;                 ///< Optional phase profiling.
     std::shared_ptr<detail::flow_admission> admission; ///< Weak control-routing target.
     detail::flow_stacks current;                       ///< Current screen and per-region history.

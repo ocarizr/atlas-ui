@@ -1,6 +1,7 @@
 add_executable(atlas_scripting_tests session_tests.cpp failure_tests.cpp observer_tests.cpp boundary_tests.cpp resource_tests.cpp diagnostics_tests.cpp)
 target_sources(atlas_scripting_tests PRIVATE domain_tests.cpp domain_observer_tests.cpp domain_catalog_tests.cpp)
-target_sources(atlas_scripting_tests PRIVATE domain_service_tests.cpp)
+target_sources(atlas_scripting_tests PRIVATE domain_service_tests.cpp callable_native_tests.cpp
+    callable_lua_tests.cpp callable_condition_tests.cpp callable_work_tests.cpp callable_schema_tests.cpp)
 target_sources(atlas_scripting_tests PRIVATE domain_message_tests.cpp)
 target_sources(atlas_scripting_tests PRIVATE domain_failure_tests.cpp)
 target_sources(atlas_scripting_tests PRIVATE domain_namespace_tests.cpp)

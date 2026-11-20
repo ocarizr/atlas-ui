@@ -133,6 +133,13 @@ void domain::shutdown()
         entry.behavior->shutdown();
     }
 
+    for (auto& [id, context] : impl_->callables.contexts)
+    {
+        context->mail->close();
+    }
+
+    impl_->callables.contexts.clear();
+    impl_->callables.entries.clear();
     impl_->entries.clear();
     impl_->messages.clear();
     impl_->contexts.clear();

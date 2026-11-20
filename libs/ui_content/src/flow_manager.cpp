@@ -29,9 +29,11 @@ class sync_guard
 } // namespace
 
 /// @brief Validate topology before admitting the first navigation command.
-flow_manager::impl::impl(flow_document source, flow_loader factory, diagnostics::services sinks)
-    : graph{std::move(source)}, loader{std::move(factory)}, diagnostics{std::move(sinks)},
-      admission{std::make_shared<detail::flow_admission>()}, current(graph.regions.size())
+flow_manager::impl::impl(flow_document source, flow_loader factory, diagnostics::services sinks,
+                         flow_guard_evaluator evaluator)
+    : graph{std::move(source)}, guards{std::move(evaluator)}, loader{std::move(factory)},
+      diagnostics{std::move(sinks)}, admission{std::make_shared<detail::flow_admission>()},
+      current(graph.regions.size())
 {
     validate_flow(graph);
     if (!loader)
@@ -63,8 +65,10 @@ void flow_manager::impl::check() const
 }
 
 /// @brief Retain graph and load policy in one independent viewport owner.
-flow_manager::flow_manager(flow_document graph, flow_loader loader, diagnostics::services sinks)
-    : impl_{std::make_unique<impl>(std::move(graph), std::move(loader), std::move(sinks))}
+flow_manager::flow_manager(flow_document graph, flow_loader loader, diagnostics::services sinks,
+                           flow_guard_evaluator guards)
+    : impl_{std::make_unique<impl>(std::move(graph), std::move(loader), std::move(sinks),
+                                   std::move(guards))}
 {
 }
 
@@ -165,6 +169,12 @@ flow_status flow_manager::advance(std::uint64_t frame)
         if (!impl_->poll())
         {
             return flow_status::loading;
+        }
+
+        if (candidate && candidate->edge && !impl_->enabled(*candidate->edge))
+        {
+            impl_->clear_candidate();
+            return flow_status::rejected;
         }
 
         impl_->publish(frame);

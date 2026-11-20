@@ -83,6 +83,11 @@ int lua_vm::initialize_environment()
     }
 
     lua_setglobal(state, "model");
+    if (bindings && bindings->registry)
+    {
+        initialize_callables();
+    }
+
     if (bindings && bindings->source)
     {
         lua_newtable(state);
@@ -91,7 +96,7 @@ int lua_vm::initialize_environment()
         lua_setglobal(state, "require");
     }
 
-    if (bindings && bindings->service)
+    if (bindings && bindings->service && !bindings->registry)
     {
         lua_newtable(state);
         lua_pushcfunction(state, service_native);

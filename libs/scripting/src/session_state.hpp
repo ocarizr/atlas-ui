@@ -11,6 +11,8 @@
 
 namespace atlas::scripting::detail
 {
+struct callable_registration; ///< Bounded descriptor collector for registry module loading.
+struct call_scope;            ///< Borrowed native capability for one registered invocation.
 /// @brief Apply the same bounded execution policy to standalone and domain interpreters.
 void validate_limits(session_limits limits);
 
@@ -99,6 +101,8 @@ struct module_source
 /// @brief Optional project-provided capabilities; no storage or native SDK implementation here.
 struct execution_bindings
 {
+    std::shared_ptr<callable_registration>
+        registry{}; ///< Present only for isolated callable modules.
     std::function<module_source(std::string_view)> source; ///< Snapshot-scoped catalog lookup.
     std::function<std::vector<mvvm::value>(std::string_view, std::span<const mvvm::value>)>
         service; ///< Validated synchronous project service.
@@ -150,7 +154,8 @@ class lua_vm
     std::uint64_t next_request = 0; ///< Committed request identity before this call.
     std::uint32_t remaining = 0;    ///< Per-call instruction budget.
     std::size_t staged_text = 0;    ///< Aggregate command/request text in the current call.
-    bool loading = false;           ///< Initialization cannot produce commands/work.
+    call_scope* callable_scope = nullptr; ///< Nonnull only inside a registered invocation.
+    bool loading = false;                 ///< Initialization cannot produce commands/work.
     bool privileged = false; ///< Only trusted debugger initialization bypasses script quotas.
     struct debug_state;      ///< Optional source, transport and Lua registry references.
     std::shared_ptr<debug_state> debugger;          ///< Absent in normal sessions.
@@ -172,8 +177,15 @@ class lua_vm
     bool found_ = false;                     ///< Protected lookup result.
     int handlers_ = LUA_NOREF;               ///< Registry-owned returned table.
     int environment_ = LUA_NOREF, loaded_ = LUA_NOREF; ///< Per-instance globals and module state.
-    int modules_ = LUA_NOREF;                    ///< Private per-instance catalog module cache.
-    std::vector<std::string> imports_;           ///< Bounded dependency stack for cycle detection.
+    int modules_ = LUA_NOREF;          ///< Private per-instance catalog module cache.
+    std::vector<std::string> imports_; ///< Bounded dependency stack for cycle detection.
+    void initialize_callables(); ///< Install registration tables without model/service access.
+    void
+    push_callable_context(); ///< Inject scoped model/read/work capabilities as the first argument.
+    static int callable_native(lua_State* state); ///< Protected descriptor/context bridge.
+    int
+    register_callable(bool condition); ///< Parse metadata and retain the implementation function.
+    int invoke_callable_context(int operation);  ///< Read or stage through the active capability.
     static int module_native(lua_State* state);  ///< Protected catalog loader bridge.
     static int service_native(lua_State* state); ///< Protected project service bridge.
     int call_service();             ///< Validate bounded scalar input/output around a service.
