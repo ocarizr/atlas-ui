@@ -3,12 +3,22 @@
  * @brief Typed container policies, separate from common element sizing and child slots.
  */
 #pragma once
+#include <atlas/ui/layout_types.hpp>
 #include <atlas/ui/stack_layout.hpp>
 #include <cstdint>
 #include <variant>
 
 namespace atlas::ui
 {
+/// @brief One content subtree; enabled axes measure independently of its natural extent.
+struct scroll_layout
+{
+    bool horizontal = false; ///< Allow horizontal overflow; otherwise use normal slot sizing.
+    bool vertical = true;    ///< Allow vertical overflow.
+    layout_point offset{}; ///< Finite requested logical position, clamped in the published result.
+    bool operator==(const scroll_layout&) const = default; ///< Exact authored state equality.
+};
+
 struct leaf_layout
 {
     bool operator==(const leaf_layout&) const = default; ///< Intrinsic content without children.
@@ -55,6 +65,7 @@ struct canvas_layout
     bool operator==(const canvas_layout&) const = default; ///< Exact policy equality.
 }; ///< Free placement with canvas-specific child slots.
 
-using panel_layout = std::variant<overlay_layout, leaf_layout, size_box_layout, horizontal_layout,
-                                  vertical_layout, canvas_layout>; ///< Closed typed policies.
+using panel_layout =
+    std::variant<overlay_layout, leaf_layout, size_box_layout, horizontal_layout, vertical_layout,
+                 canvas_layout, scroll_layout>; ///< Closed typed policies.
 } // namespace atlas::ui

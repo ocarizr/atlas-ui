@@ -4,6 +4,7 @@ target_sources(atlas_ui PRIVATE src/input_session.cpp src/input_frames.cpp src/i
 target_sources(atlas_ui PRIVATE src/element_tree.cpp src/tree_hierarchy.cpp src/tree_application.cpp)
 target_sources(atlas_ui PRIVATE src/tree_snapshot.cpp src/frame_executor.cpp src/frame_work.cpp)
 add_library(atlas::ui ALIAS atlas_ui)
+target_sources(atlas_ui PRIVATE src/layout_scroll.cpp)
 target_sources(atlas_ui PRIVATE src/image_fit.cpp)
 target_sources(atlas_ui PRIVATE src/tree_paint.cpp src/paint_engine.cpp src/paint_prepare.cpp src/paint_transform.cpp src/paint_jobs.cpp)
 target_sources(atlas_ui PRIVATE src/paint_order.cpp)

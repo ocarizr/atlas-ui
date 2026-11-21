@@ -16,6 +16,7 @@ Named phases reuse an injected jobs dispatcher with joined outputs and sequentia
 fallback. Constrained measure/arrange produces immutable layout geometry; the library
 does not draw UI. See [layout contracts](../../docs/ui_layout.md),
 [sibling boundary relationships](../../docs/ui_boundaries.md),
+[scroll viewports](../../docs/ui_scrolling.md),
 [frame execution](../../docs/ui_frames.md) and [UI delivery tracking](https://github.com/ocarizr/atlas-ui/issues/27).
 
 ```cpp

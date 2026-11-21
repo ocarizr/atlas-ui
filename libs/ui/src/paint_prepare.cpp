@@ -66,6 +66,20 @@ layout_rect clip_border(layout_rect inherited, layout_rect hull, const paint_tra
 
     return intersect_clip(inherited, hull);
 }
+
+/// @brief The owner has already painted; apply its inner clip and offset only to descendants.
+void scroll_children(paint_transform& transform, layout_rect& clip,
+                     const std::optional<scroll_geometry>& scroll)
+{
+    if (!scroll)
+    {
+        return;
+    }
+
+    clip = clip_border(clip, transform.bounds(scroll->viewport), transform);
+    transform.x -= transform.xx * scroll->offset.x + transform.xy * scroll->offset.y;
+    transform.y -= transform.yx * scroll->offset.x + transform.yy * scroll->offset.y;
+}
 } // namespace
 
 /// @brief Resolve inherited state iteratively after stable stacking links have been prepared.
@@ -156,6 +170,8 @@ void prepare_paint(const element_snapshot& input, const layout_snapshot& geometr
             }
 
             const auto begin = stack.size();
+            scroll_children(current.transform, current.clip, geometry.find_scroll(node.target));
+
             for (auto child = first[current.index]; child != none; child = next[child])
             {
                 stack.push_back(

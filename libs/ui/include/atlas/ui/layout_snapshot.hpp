@@ -17,11 +17,14 @@ class layout_snapshot_data; ///< Private allocator-retaining output storage.
 class layout_snapshot
 {
   public:
-    layout_snapshot() = default;                         ///< Empty session/revision-zero result.
-    std::uint64_t session() const noexcept;              ///< Captured tree identity.
-    std::uint64_t revision() const noexcept;             ///< Captured geometry-input revision.
-    layout_rect viewport() const noexcept;               ///< Captured logical viewport.
-    std::span<const layout_item> items() const noexcept; ///< Ascending live slot order.
+    layout_snapshot() = default;                           ///< Empty session/revision-zero result.
+    std::uint64_t session() const noexcept;                ///< Captured tree identity.
+    std::uint64_t revision() const noexcept;               ///< Captured geometry-input revision.
+    layout_rect viewport() const noexcept;                 ///< Captured logical viewport.
+    std::span<const layout_item> items() const noexcept;   ///< Ascending live slot order.
+    std::span<const scroll_item> scrolls() const noexcept; ///< Sparse scroll-owner metadata.
+    std::optional<scroll_geometry>
+    find_scroll(element_handle target) const; ///< Reject stale, foreign or non-scroll identities.
     std::optional<layout_geometry>
     find(element_handle target) const; ///< Reject stale/foreign identities.
   private:

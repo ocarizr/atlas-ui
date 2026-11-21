@@ -65,6 +65,28 @@ layout_rect place(const layout_node& node, layout_extent desired, slot_rect slot
     return {x, y, width, height};
 }
 
+/// @brief Enabled axes preserve natural extent and leading alignment without infinite slots.
+layout_rect place_scroll(layout_node node, layout_extent desired, slot_rect slot,
+                         const scroll_layout& scroll)
+{
+    const auto margin = node.style.margin;
+    if (scroll.horizontal)
+    {
+        slot.width =
+            std::max(slot.width, static_cast<double>(desired.width) + margin.left + margin.right);
+        node.style.horizontal = layout_alignment::start;
+    }
+
+    if (scroll.vertical)
+    {
+        slot.height =
+            std::max(slot.height, static_cast<double>(desired.height) + margin.top + margin.bottom);
+        node.style.vertical = layout_alignment::start;
+    }
+
+    return place(node, desired, slot);
+}
+
 /// @brief Resolve all main-axis sizes before assigning disjoint child slots.
 void arrange_children(const arrange_input& input, arranged_branch& result, std::uint32_t index,
                       stack_workspace& scratch, const std::stop_token& stop)
@@ -79,6 +101,7 @@ void arrange_children(const arrange_input& input, arranged_branch& result, std::
         std::max(0., static_cast<double>(border.height) - padding.top - padding.bottom)};
     const auto flow = describe_flow(value.panel);
     const bool canvas = std::holds_alternative<canvas_layout>(value.panel);
+    const auto* scroll = std::get_if<scroll_layout>(&value.panel);
     const auto spacing = prepare_stack({*input.measured, result, flow.horizontal, stop}, index,
                                        flow.horizontal ? content.width : content.height, scratch);
     double cursor = spacing.leading;
@@ -114,7 +137,9 @@ void arrange_children(const arrange_input& input, arranged_branch& result, std::
         }
         else
         {
-            result.items[child].geometry.bounds = place(nodes[child], desired, slot, flow);
+            result.items[child].geometry.bounds =
+                scroll ? place_scroll(nodes[child], desired, slot, *scroll)
+                       : place(nodes[child], desired, slot, flow);
         }
     }
 }

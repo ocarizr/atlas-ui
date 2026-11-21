@@ -8,6 +8,14 @@
 
 namespace atlas::ui
 {
+/// @brief Lightweight logical or normalized position without native SDK types.
+struct layout_point
+{
+    float x = 0; ///< Horizontal coordinate, according to the owning contract.
+    float y = 0; ///< Vertical coordinate, according to the owning contract.
+    bool operator==(const layout_point&) const = default; ///< Compare coordinates.
+};
+
 /// @brief Finite nonnegative logical extents, independent of physical pixels.
 struct layout_extent
 {
@@ -79,5 +87,23 @@ struct layout_item
     element_handle target;    ///< Exact captured identity.
     layout_geometry geometry; ///< Owned numeric output without registry pointers.
     bool operator==(const layout_item&) const = default; ///< Compare identity and geometry.
+};
+
+/// @brief Immutable scroll presentation in untransformed logical layout coordinates.
+struct scroll_geometry
+{
+    layout_rect viewport{}; ///< Content clip inside owner padding, before ancestor transforms.
+    layout_extent extent{}; ///< Content outer extent, including margins and its own padding.
+    layout_point offset{};  ///< Effective finite clamped position; disabled axes are zero.
+    layout_point range{};   ///< Maximum offset on each enabled axis.
+    bool operator==(const scroll_geometry&) const = default; ///< Compare published state.
+};
+
+/// @brief Sparse output allocated only for scroll owners, in ascending live-slot order.
+struct scroll_item
+{
+    element_handle target;    ///< Generation/session-bearing viewport identity.
+    scroll_geometry geometry; ///< Retained values without live tree references.
+    bool operator==(const scroll_item&) const = default; ///< Exact identity and value equality.
 };
 } // namespace atlas::ui

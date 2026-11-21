@@ -4,6 +4,25 @@
 
 namespace atlas::ui
 {
+/// @brief Scroll metadata is sparse and retains the same lifetime as numeric geometry.
+std::span<const scroll_item> layout_snapshot::scrolls() const noexcept
+{
+    return data_ ? std::span<const scroll_item>{data_->scrolls} : std::span<const scroll_item>{};
+}
+
+/// @brief Exact identity prevents old viewport handles from aliasing recycled nodes.
+std::optional<scroll_geometry> layout_snapshot::find_scroll(element_handle target) const
+{
+    const auto values = scrolls();
+    const auto found = std::lower_bound(values.begin(), values.end(), target.index,
+                                        [](const scroll_item& value, std::uint32_t index)
+                                        {
+                                            return value.target.index < index;
+                                        });
+    return found != values.end() && found->target == target ? std::optional{found->geometry}
+                                                            : std::nullopt;
+}
+
 /// @brief Only completed calculations construct nonempty publication packets.
 layout_snapshot::layout_snapshot(std::shared_ptr<const detail::layout_snapshot_data> data)
     : data_(std::move(data))

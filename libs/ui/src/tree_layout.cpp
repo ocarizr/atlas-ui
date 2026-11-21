@@ -23,7 +23,9 @@ void element_tree::impl::validate_parent(std::uint32_t parent) const
 
     const auto& value = at(parent);
     if (std::holds_alternative<leaf_layout>(value.panel) ||
-        (std::holds_alternative<size_box_layout>(value.panel) && value.first != none))
+        ((std::holds_alternative<size_box_layout>(value.panel) ||
+          std::holds_alternative<scroll_layout>(value.panel)) &&
+         value.first != none))
     {
         throw std::invalid_argument("UI layout container child capacity exceeded");
     }

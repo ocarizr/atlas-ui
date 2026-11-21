@@ -29,6 +29,10 @@ child slots and general visual origins have separate APIs and storage.
 | `horizontal_layout` | Natural outer widths are summed; cross-axis height is the maximum |
 | `vertical_layout` | Natural outer heights are summed; cross-axis width is the maximum |
 | `canvas_layout` | Anchors/offsets with per-axis desired/stretch child placement |
+| `scroll_layout` | One clipped content subtree, with independent viewport size and programmatic offset |
+
+See [scroll viewports](ui_scrolling.md) for finite-axis sizing, sparse immutable
+scroll metadata, offset-only cache reuse and shared paint/input clipping.
 
 See [canvas placement and visual origins](ui_canvas.md) for slot formulas, content
 measurement, sparse ownership and source compatibility.

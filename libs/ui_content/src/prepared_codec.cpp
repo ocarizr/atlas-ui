@@ -94,9 +94,16 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
                                             {
                                                 return !v.events.empty();
                                             });
-    serialize(payload, copy, presentation || events, events);
+    const bool scroll =
+        std::ranges::any_of(source.view.elements,
+                            [](const auto& node)
+                            {
+                                return std::holds_alternative<ui::scroll_layout>(node.panel);
+                            });
+    serialize(payload, copy, presentation || events || scroll, events || scroll);
     return mvvm_content::detail::seal_prepared(payload, magic,
-                                               events         ? std::uint16_t{4}
+                                               scroll         ? std::uint16_t{5}
+                                               : events       ? std::uint16_t{4}
                                                : presentation ? std::uint16_t{3}
                                                               : wire_version);
 }
@@ -105,7 +112,7 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
 prepared_view decode_prepared(std::span<const std::byte> bytes)
 {
     const auto version = detail::prepared_version(bytes);
-    if (version != wire_version && version != 3 && version != 4)
+    if (version != wire_version && version != 3 && version != 4 && version != 5)
     {
         throw std::invalid_argument("Unsupported prepared UI version");
     }
@@ -113,6 +120,16 @@ prepared_view decode_prepared(std::span<const std::byte> bytes)
     detail::binary<true> archive{mvvm_content::detail::open_prepared(bytes, magic, version)};
     prepared_view result;
     serialize(archive, result, version >= 3, version >= 4);
+    if (version < 5 && std::ranges::any_of(
+                           result.view.elements,
+                           [](const auto& node)
+                           {
+                               return std::holds_alternative<ui::scroll_layout>(node.panel);
+                           }))
+    {
+        throw std::invalid_argument("Scroll panel requires prepared UI version 5");
+    }
+
     if (!archive.exhausted())
     {
         throw std::invalid_argument("Trailing prepared UI payload");

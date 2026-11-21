@@ -33,7 +33,8 @@ Packets store back-to-front quads. Reverse iteration gives front-to-back paint
 candidates, not a complete interactive-element index: nonpainting and invisible
 elements have no quad. [Input](ui_input.md) optionally collects unfitted border/clip
 regions through this same traversal, including nonpainting panels. Oversized descendants are not
-clipped to the parent's border unless that parent explicitly enables clipping.
+clipped to an ordinary parent's border unless it explicitly enables clipping.
+Scroll viewports always clip their content subtree to their inner viewport.
 
 ## Rectangular masks
 
@@ -41,8 +42,10 @@ The logical viewport is the initial clip. Nested clips intersect through
 `intersect_clip`; empty coverage emits no rectangle. Oversized translated content
 retains its original geometry and UVs while its parent's mask stays fixed.
 Input hit testing uses this intersection contract. This implements
-neither scrolling/focus reveal nor virtualization. Arbitrary shape/alpha masks,
-scale and rotation are outside this rectangle foundation.
+the mask primitive used by [scroll viewports](ui_scrolling.md); focus reveal and
+virtualization are separate policies. Axis-preserving presentation transforms can
+transform rectangular masks. Arbitrary shape/alpha masks and rotated masks that
+cannot be expressed by an axis-aligned scissor are unsupported.
 
 ## Jobs and ownership
 
