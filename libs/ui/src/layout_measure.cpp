@@ -16,6 +16,7 @@ std::pair<double, double> content_size(const measured_branch& result, std::size_
     const auto& value = nodes[index];
     const auto flow = describe_flow(value.panel);
     const auto* canvas = std::get_if<canvas_layout>(&value.panel);
+    const auto* scroll = std::get_if<scroll_layout>(&value.panel);
     double width = 0;
     double height = 0;
     std::size_t children = 0;
@@ -63,7 +64,7 @@ std::pair<double, double> content_size(const measured_branch& result, std::size_
         }
     }
 
-    return {width, height};
+    return {scroll && scroll->horizontal ? 0 : width, scroll && scroll->vertical ? 0 : height};
 }
 } // namespace
 

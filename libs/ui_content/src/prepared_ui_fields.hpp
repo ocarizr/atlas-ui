@@ -32,6 +32,9 @@ template <class Archive> void panel_fields(Archive& format, ui::panel_layout& pa
             case 5:
                 panel = ui::canvas_layout{};
                 break;
+            case 6:
+                panel = ui::scroll_layout{};
+                break;
             default:
                 throw std::invalid_argument("Unknown prepared UI panel");
         }
@@ -48,6 +51,10 @@ template <class Archive> void panel_fields(Archive& format, ui::panel_layout& pa
                 format.choice(value.distribution, ui::stack_distribution::space_evenly);
                 format.choice(value.fill, ui::stack_fill::weighted);
                 format.choice(value.overflow, ui::stack_overflow::shrink);
+            }
+            else if constexpr (std::is_same_v<panel_type, ui::scroll_layout>)
+            {
+                format.fields(value.horizontal, value.vertical, value.offset.x, value.offset.y);
             }
             else if constexpr (std::is_same_v<panel_type, ui::canvas_layout>)
             {

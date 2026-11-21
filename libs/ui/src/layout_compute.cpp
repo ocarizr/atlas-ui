@@ -92,6 +92,16 @@ layout_engine::impl::compute(const element_snapshot& snapshot, const jobs::job_o
         throw jobs::job_cancelled{};
     }
 
+    {
+        const diagnostics::operation_scope scope{destinations, {"ui.layout.scroll", "ui.cpu"}};
+        detail::prepare_scrolls(snapshot, *output);
+    }
+
+    if (options.cancellation.stop_requested())
+    {
+        throw jobs::job_cancelled{};
+    }
+
     cache.swap(next);
     last = output;
     return output;

@@ -27,11 +27,13 @@ void panel(fields& xml, ui::panel_layout& data)
         size_box,   ///< Single content slot.
         horizontal, ///< Horizontal stack.
         vertical,   ///< Vertical stack.
-        canvas      ///< Anchored placement.
+        canvas,     ///< Anchored placement.
+        scroll      ///< Single clipped, independently measured content subtree.
     };
     auto selected = static_cast<kind>(data.index());
-    xml.choice("panel", selected,
-               std::array{"overlay", "leaf", "size-box", "horizontal", "vertical", "canvas"});
+    xml.choice(
+        "panel", selected,
+        std::array{"overlay", "leaf", "size-box", "horizontal", "vertical", "canvas", "scroll"});
     if (xml.reading())
     {
         switch (selected)
@@ -54,6 +56,9 @@ void panel(fields& xml, ui::panel_layout& data)
             case kind::canvas:
                 data = ui::canvas_layout{};
                 break;
+            case kind::scroll:
+                data = ui::scroll_layout{};
+                break;
         }
     }
 
@@ -65,6 +70,13 @@ void panel(fields& xml, ui::panel_layout& data)
                           std::is_same_v<type, ui::vertical_layout>)
             {
                 stack_panel(xml, current);
+            }
+            else if constexpr (std::is_same_v<type, ui::scroll_layout>)
+            {
+                xml.value("scroll-horizontal", current.horizontal);
+                xml.value("scroll-vertical", current.vertical);
+                xml.value("scroll-x", current.offset.x);
+                xml.value("scroll-y", current.offset.y);
             }
             else if constexpr (std::is_same_v<type, ui::canvas_layout>)
             {

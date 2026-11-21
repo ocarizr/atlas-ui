@@ -145,7 +145,7 @@ class layout_snapshot_data
 {
   public:
     explicit layout_snapshot_data(std::shared_ptr<std::pmr::memory_resource> resource)
-        : memory(std::move(resource)), items(0, memory.get())
+        : memory(std::move(resource)), items(0, memory.get()), scrolls(0, memory.get())
     {
     } ///< Retain resource before output.
 
@@ -153,9 +153,13 @@ class layout_snapshot_data
     std::uint64_t session = 0;                         ///< Captured tree identity.
     std::uint64_t revision = 0;                        ///< Captured geometry-input identity.
     layout_rect viewport{};                            ///< Captured logical bounds.
-    std::size_t root_count = 0;          ///< Constant-time whole-result cache statistics.
-    std::pmr::vector<layout_item> items; ///< Ascending global slot order.
+    std::size_t root_count = 0;            ///< Constant-time whole-result cache statistics.
+    std::pmr::vector<layout_item> items;   ///< Ascending global slot order.
+    std::pmr::vector<scroll_item> scrolls; ///< Sparse viewport presentation values.
 };
+
+/// @brief Build sparse scroll output only after complete measure/arrange, before cache commit.
+void prepare_scrolls(const element_snapshot& source, layout_snapshot_data& output);
 } // namespace atlas::ui::detail
 
 namespace atlas::ui

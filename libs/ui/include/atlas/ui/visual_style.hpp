@@ -7,13 +7,6 @@
 
 namespace atlas::ui
 {
-struct layout_point
-{
-    float x = 0; ///< Horizontal logical or normalized coordinate, according to the contract.
-    float y = 0; ///< Vertical logical or normalized coordinate.
-    bool operator==(const layout_point&) const = default; ///< Compare coordinates.
-}; ///< Lightweight value without native SDK types.
-
 struct visual_style
 {
     layout_point origin{0.5f, 0.5f}; ///< Normalized border-relative origin in [0, 1] on each axis.

@@ -78,6 +78,11 @@ void append_nodes(layout_source& source, const element_snapshot& snapshot,
                                 link(value.next_sibling), value.panel, slot_index, value.layout,
                                 value.requested.width, value.requested.height,
                                 value.requested.width_fixed, value.requested.height_fixed});
+        if (auto* scroll = std::get_if<scroll_layout>(&source.nodes.back().panel))
+        {
+            scroll->offset = {}; // Presentation is published separately from numeric layout.
+        }
+
         const auto boundaries = snapshot.boundaries();
         const auto boundary =
             std::lower_bound(boundaries.begin(), boundaries.end(), value.target.index,

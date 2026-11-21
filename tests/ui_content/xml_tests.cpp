@@ -1,9 +1,29 @@
 /** @file @brief Strict UI document source and deterministic round trips. */
 #include <atlas/ui_content/document.hpp>
+#include <atlas/ui_content/prepared.hpp>
 #include <gtest/gtest.h>
 
 namespace atlas::ui_content::tests
 {
+/// @brief A scroll viewport remains a typed container after an XML round trip.
+TEST(ui_document_xml, RoundTripsScrollViewport)
+{
+    const auto source = parse_xml({R"(<ui version="1">
+      <element id="viewport" panel="scroll" scroll-horizontal="true" scroll-y="75" width="100" height="50"/>
+      <element id="content" parent="viewport" panel="vertical"/>
+    </ui>)"});
+    const auto xml = write_xml(source);
+    EXPECT_NE(xml.find("panel=\"scroll\""), std::string::npos);
+    EXPECT_EQ(write_xml(parse_xml({xml})), xml);
+    const auto ref =
+        assets::asset_ref{assets::parse_id("018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000001"),
+                          assets::asset_type::ui};
+    const prepared_view prepared{ref, source, {{ref, 1}}, {}, {}};
+    const auto bytes = encode_prepared(prepared);
+    EXPECT_EQ(std::to_integer<unsigned>(bytes.at(4)), 5U);
+    EXPECT_EQ(write_xml(decode_prepared(bytes).view), xml);
+}
+
 /// @brief Canonical XML preserves durable references and the order of children.
 TEST(ui_document_xml, RoundTripsPersistentReferences)
 {

@@ -51,6 +51,13 @@ void validate_panel(const panel_layout& panel)
                     throw std::invalid_argument("invalid panel spacing");
                 }
             }
+            else if constexpr (std::is_same_v<policy, scroll_layout>)
+            {
+                if (!std::isfinite(value.offset.x) || !std::isfinite(value.offset.y))
+                {
+                    throw std::invalid_argument("invalid finite UI scroll offset");
+                }
+            }
             else if constexpr (std::is_same_v<policy, canvas_layout>)
             {
                 if (value.measure != canvas_measure::intrinsic &&

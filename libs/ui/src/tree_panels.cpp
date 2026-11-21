@@ -23,8 +23,9 @@ void element_tree::set_panel(element_handle target, const panel_layout& panel)
     impl_->validate_boundary_panel(index, panel);
     auto& node = impl_->at(index);
     if ((std::holds_alternative<leaf_layout>(panel) && node.first != impl::none) ||
-        (std::holds_alternative<size_box_layout>(panel) && node.first != impl::none &&
-         impl_->at(node.first).next != impl::none))
+        ((std::holds_alternative<size_box_layout>(panel) ||
+          std::holds_alternative<scroll_layout>(panel)) &&
+         node.first != impl::none && impl_->at(node.first).next != impl::none))
     {
         throw std::invalid_argument("UI panel is incompatible with existing children");
     }
