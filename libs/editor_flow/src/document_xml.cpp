@@ -80,7 +80,7 @@ document read_xml(ui_content::xml_source source)
     header.value("version", version);
     header.value("id", result.id);
     header.finish();
-    if (version != 1)
+    if (version != 1 && version != 2)
     {
         throw std::invalid_argument("Unsupported Flow authoring XML version");
     }
@@ -119,6 +119,10 @@ document read_xml(ui_content::xml_source source)
         {
             read(child, result.layout, 1344, detail::layout_fields);
         }
+        else if (name == "conditions" && version == 2 && result.conditions.size() < 1024)
+        {
+            result.conditions.push_back(detail::read_conditions(child));
+        }
         else if (name == "selection" && !selected)
         {
             detail::fields fields{child, true};
@@ -143,13 +147,18 @@ std::string write_xml(const document& source)
     validate(source);
     pugi::xml_document tree;
     auto node = tree.append_child("flow-authoring");
-    node.append_attribute("version") = 1;
+    node.append_attribute("version") = source.conditions.empty() ? 1 : 2;
     node.append_attribute("id").set_value(source.id.c_str());
     write(node, "region", source.graph.regions, detail::region_fields);
     write(node, "screen", source.graph.screens, detail::screen_fields);
     write(node, "parameter", source.graph.parameters, detail::parameter_fields);
     write(node, "transition", source.graph.transitions, detail::transition_fields);
     write(node, "layout", source.layout, detail::layout_fields);
+    for (const auto& entry : source.conditions)
+    {
+        detail::write_conditions(node, entry);
+    }
+
     auto selection = source.selection;
     detail::fields selected{node.append_child("selection"), false};
     detail::reference_fields(selected, selection);

@@ -39,7 +39,8 @@ void editor_view::impl::cycle_tool()
 bool editor_view::impl::dispatch(std::span<const input::event> events)
 {
     auto commands = chrome->dispatch(events);
-    bool changed = assets && assets->visible && assets->keyboard(events);
+    bool changed = flow && flow->visible && flow->input(events, density);
+    changed |= !(flow && flow->visible) && assets && assets->visible && assets->keyboard(events);
     const auto route = [&](std::unique_ptr<tool_panel>& panel, bool is_shell)
     {
         try
@@ -62,12 +63,12 @@ bool editor_view::impl::dispatch(std::span<const input::event> events)
             }
         }
     };
-    if (shell_visible)
+    if (shell_visible && !(flow && flow->visible))
     {
         route(shell, true);
     }
 
-    if (active_tool && !(assets && assets->visible))
+    if (active_tool && !(assets && assets->visible) && !(flow && flow->visible))
     {
         route(active_tool, false);
     }
@@ -83,6 +84,28 @@ bool editor_view::impl::dispatch(std::span<const input::event> events)
     }
 
     return changed || !commands.empty();
+}
+
+/// @brief Compose the graph tool independently from ordinary document panels.
+void editor_view::impl::compose_flow(panel_plan& plan, ui::layout_rect bounds)
+{
+    if (!flow)
+    {
+        return;
+    }
+
+    if (flow->visible)
+    {
+        plan.controls.clear();
+        plan.shell = {};
+        plan.preview = {8, 8, std::max(1.F, bounds.width - 16), std::max(1.F, bounds.height - 42)};
+        flow->append(plan, layout, paint, session());
+    }
+
+    plan.controls.push_back({{bounds.width - 156, bounds.height - 28, 72, 24},
+                             {0.14F, 0.21F, 0.30F, 1},
+                             flow->visible ? "UI view" : "Flow",
+                             {control_kind::flow_toggle, {}}});
 }
 
 /// @brief Build the render packet only when document, viewport or control state changes.
@@ -149,7 +172,7 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
     }
 
     tool_bounds = plan.preview;
-    if (active_tool && !(assets && assets->visible))
+    if (active_tool && !(assets && assets->visible) && !(flow && flow->visible))
     {
         plan.tool = active_tool->paint(tool_bounds, layout, paint);
         active_tool->append_labels(plan.controls);
@@ -166,7 +189,7 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
              {control_kind::cycle_tool, {}}});
     }
 
-    if (assets)
+    if (assets && !(flow && flow->visible))
     {
         plan.controls.push_back({{bounds.width - 80, bounds.height - 28, 72, 24},
                                  {0.14F, 0.21F, 0.30F, 1},
@@ -177,6 +200,8 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
             assets->append(plan);
         }
     }
+
+    compose_flow(plan, bounds);
 
     chrome = std::make_unique<panel_scene>(plan, session().preview(), bounds, scale, layout, paint,
                                            sinks);
@@ -199,6 +224,29 @@ editor_view::~editor_view() = default;
 void editor_view::bind_assets(asset_repository& repository, std::filesystem::path root)
 {
     impl_->assets = std::make_unique<asset_panel>(repository, std::move(root));
+    impl_->chrome.reset();
+}
+
+/// @brief Persistent graph storage remains owned by the application, not the visual panel.
+void editor_view::bind_flow(editor_flow::persistence& document, asset_repository* repository,
+                            std::shared_ptr<std::pmr::memory_resource> memory,
+                            const std::string& identity_scope)
+{
+    impl_->flow = std::make_unique<flow_panel>(document, impl_->sinks, repository,
+                                               std::move(memory), identity_scope);
+    impl_->chrome.reset();
+}
+
+/// @brief Bounded discovery never invokes an action or condition implementation.
+void editor_view::bind_flow_module(std::span<const scripting::source_asset> sources,
+                                   scripting::callable_module entry)
+{
+    if (!impl_->flow)
+    {
+        throw std::logic_error("Bind a Flow document before callable discovery");
+    }
+
+    impl_->flow->register_module(sources, std::move(entry));
     impl_->chrome.reset();
 }
 

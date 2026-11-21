@@ -5,6 +5,49 @@ document. A missing file starts a generic document, and Save creates it at that
 path. The default path is `atlas-ui.xml` in the launch directory. Use `--warp`
 to select software graphics.
 
+## Flow graph tool
+
+**Flow** opens the Atlas graph workspace; **UI view** returns to element authoring.
+`--flow path/to/flow.xml` selects its independent source, defaulting to
+`atlas-flow.xml` beside the startup UI document. Graph and UI save/undo/recovery
+state remain separate.
+
+- **Screen +** creates a stable-ID node in the selected region. **Choose typed
+  asset** cycles compatible catalog references. Unassigned nodes remain saveable.
+  Captions, region and initial focus are editable in the inspector.
+- Drag nodes to move them. Hold **M** while selecting for multi-selection. Select
+  source then destination and press **Connect**. Background drag, or **Space** plus
+  drag, pans. **Zoom + / -** zooms around the view center. View changes do not dirty
+  the document; a completed multi-node drag creates one undo revision.
+- **Region +** creates an owned region when a screen is selected. Its inspector
+  defines owner, Submenu Area element, entry screen and remembered tabs. Region
+  buttons choose the destination region for new nodes.
+- Route rows open the transition inspector: endpoints, history operation,
+  enabled state and nested outgoing AND/NOT predicate groups with typed arguments.
+- Select a UI element in **UI view**, then its Flow context in the graph. The event
+  inspector enables interaction/focus and binds supported events to permitted
+  navigation or registered actions. Tab bindings declare their submenu region.
+  Existing bindings can be edited/removed. These changes dirty the UI document;
+  **Save Flow** saves only the graph.
+- Field editing accepts letters/digits, **Backspace** (or **Left**) to erase,
+  **Space** for underscore, **Enter** to apply and **Esc** to cancel. It is a bounded
+  ASCII editor, not an IME/text editor. Inspector pagination retains access to long
+  condition and argument lists.
+  **Up/Down** steps a numeric field by one, or by 0.1 when it contains a decimal.
+- **Save Flow** accepts complete or incomplete drafts. **Recover** explicitly
+  restores a checkpoint; **Discard** removes it. Autosave/window close checkpoints
+  both document types. `--recover-flow` restores a checkpoint at startup even when
+  the graph source is malformed.
+
+Optional `--flow-actions <script-asset-id>` discovers a project callable entrypoint
+and its declared script dependency closure through typed streaming. Imports use
+canonical catalog asset IDs. Discovery registers bounded sources in an isolated
+`project` registry and does not invoke registered actions or predicates. Native
+contributors use the same [descriptor contract](scripting_callables.md).
+
+The graph tool authors [documents and bindings](editor_flow.md). The ordinary UI
+preview remains separate; it does not run a composed multi-menu Flow session.
+
 The hierarchy lists authored element IDs and highlights the selection. The
 inspector changes width and visibility, adds a generic painted leaf to a panel,
 and removes nonroot subtrees. Undo and Redo restore up to 32 retained revisions.

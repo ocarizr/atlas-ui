@@ -21,6 +21,13 @@ std::string runtime_candidate::xml() const
     return ui_content::write_flow_xml(graph());
 }
 
+/// @brief Predicate authoring cannot disappear when a candidate outlives its draft revision.
+const std::vector<transition_conditions>& runtime_candidate::conditions() const
+{
+    (void)graph();
+    return *conditions_;
+}
+
 /// @brief Preflight the graph and optional catalog before issuing a private publication token.
 runtime_candidate session::compile(const asset_check& assets) const
 {
@@ -45,6 +52,8 @@ runtime_candidate session::compile(const asset_check& assets) const
         runtime_candidate result;
         result.graph_ = std::make_shared<const ui_content::flow_document>(current_.source->graph);
         result.assets_ = assets;
+        result.conditions_ =
+            std::make_shared<const std::vector<transition_conditions>>(current_.source->conditions);
         result.owner_ = identity_;
         result.revision_ = current_.id;
         return result;

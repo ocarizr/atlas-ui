@@ -3,6 +3,7 @@
 #include "storage.hpp"
 #include <atlas/ui_content/flow.hpp>
 #include <atlas/ui_scripting/event_handler.hpp>
+#include <utility>
 
 namespace atlas::ui_content::detail
 {
@@ -16,6 +17,43 @@ class composite_handler final : public ui::input_handler
     ui::event_response on_event(const ui::routed_event& event,
                                 ui::command_buffer& commands) override
     {
+        if (event.kind == ui::event_kind::pointer_cancel ||
+            event.kind == ui::event_kind::capture_lost)
+        {
+            pressed = false;
+        }
+
+        const bool capture = event.phase == ui::route_phase::target &&
+                             event.kind == ui::event_kind::pointer_down && !events.empty();
+        if (capture)
+        {
+            pressed = true;
+        }
+
+        const bool click = event.phase == ui::route_phase::target &&
+                           event.kind == ui::event_kind::pointer_up &&
+                           std::exchange(pressed, false) && event.local.x >= 0 &&
+                           event.local.y >= 0 && event.local.x < event.current_bounds.width &&
+                           event.local.y < event.current_bounds.height;
+        for (const auto& binding : events)
+        {
+            const bool activation = event.phase == ui::route_phase::target &&
+                                    event.kind == ui::event_kind::action && event.action &&
+                                    binding.input_action != 0 &&
+                                    event.action->action == binding.input_action &&
+                                    event.action->phase == input::action_phase::performed;
+            const bool matches =
+                (binding.event == authored_event::click && (click || activation)) ||
+                (binding.event == authored_event::focus_enter &&
+                 event.kind == ui::event_kind::focus_gained) ||
+                (binding.event == authored_event::focus_exit &&
+                 event.kind == ui::event_kind::focus_lost);
+            if (matches && dispatch_event)
+            {
+                dispatch_event(binding);
+            }
+        }
+
         if (event.phase == ui::route_phase::target && navigate)
         {
             for (const auto& route : navigation)
@@ -37,13 +75,19 @@ class composite_handler final : public ui::input_handler
             (void)action->on_event(event, commands);
         }
 
-        return script ? script->on_event(event, commands) : ui::event_response{};
+        auto response = script ? script->on_event(event, commands) : ui::event_response{};
+        response.capture_pointer |= capture;
+        response.focus |= capture;
+        return response;
     }
 
     std::vector<std::unique_ptr<ui_mvvm::action_handler>> actions; ///< Ordered model routes.
     std::unique_ptr<ui_scripting::event_handler> script; ///< One instance in the shared domain.
     std::vector<flow_control> navigation; ///< Graph-authored actions on this element.
     flow_dispatch navigate;               ///< Owner-only admission tied to one view generation.
+    std::vector<event_action> events;     ///< UI-asset-owned semantic declarations.
+    std::function<void(const event_action&)> dispatch_event; ///< Optional owner bridge.
+    bool pressed = false; ///< Click requires a matching press and in-bounds release.
 };
 
 /// @brief Each unique Lua source is acquired once per candidate and registered by persistent ID.
@@ -71,6 +115,8 @@ std::shared_ptr<ui::input_handler> make_handler(const element& node, const model
                                                 const construction& options)
 {
     auto handler = std::make_shared<composite_handler>();
+    handler->events = node.events;
+    handler->dispatch_event = options.dispatch_event;
     for (const auto& route : options.navigation)
     {
         if (route.element == node.id)

@@ -74,6 +74,18 @@ void action_fields(fields& xml, action_binding& data)
     }
 }
 
+/// @brief Preserve stable Flow permissions and registry identities in the owning UI asset.
+void event_fields(fields& xml, event_action& data)
+{
+    xml.choice("event", data.event, std::array{"click", "focus-enter", "focus-exit"});
+    xml.value("action", data.action, true);
+    xml.value("context", data.context);
+    xml.value("screen", data.screen);
+    xml.value("route", data.route);
+    xml.value("input-action", data.input_action);
+    xml.value("region", data.region);
+}
+
 /// @brief Script source and model context form one isolated shared-domain registration.
 void behavior_fields(fields& xml, behavior& data)
 {
@@ -131,6 +143,14 @@ void read_binding(pugi::xml_node node, element& target)
     {
         behavior_fields(xml, target.script.emplace());
     }
+    else if (name == "event-action" && target.events.size() < 64)
+    {
+        auto& event = target.events.emplace_back();
+        event_fields(xml, event);
+        read_arguments(node, event.arguments);
+        xml.finish();
+        return;
+    }
     else
     {
         throw std::invalid_argument("Unexpected or excess UI descriptor: " + std::string{name});
@@ -143,6 +163,18 @@ void read_binding(pugi::xml_node node, element& target)
 /// @brief Emit declarations without runtime schema slots or Lua registry references.
 void write_bindings(pugi::xml_node node, const element& source)
 {
+    for (auto event : source.events)
+    {
+        auto target = node.append_child("event-action");
+        fields xml{target, false};
+        event_fields(xml, event);
+        for (auto& value : event.arguments)
+        {
+            fields xml_arg{target.append_child("arg"), false};
+            argument(xml_arg, value);
+        }
+    }
+
     for (auto property : source.properties)
     {
         fields xml{node.append_child("bind"), false};

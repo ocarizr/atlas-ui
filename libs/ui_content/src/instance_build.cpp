@@ -119,7 +119,7 @@ void instance::impl::bind_elements(const document& source, const construction& o
                 textures.emplace(node.id, *texture);
             }
 
-            if (node.interaction || !node.actions.empty() || node.script ||
+            if (node.interaction || !node.actions.empty() || !node.events.empty() || node.script ||
                 navigation.contains(node.id))
             {
                 input.bind(target, detail::make_handler(node, models, domain, registered, options),

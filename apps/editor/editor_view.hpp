@@ -2,6 +2,7 @@
 #pragma once
 #include "document_session.hpp"
 #include "document_workspace.hpp"
+#include <atlas/editor_flow/persistence.hpp>
 #include <atlas/ui_text/paint.hpp>
 
 namespace atlas::editor
@@ -33,6 +34,13 @@ class editor_view
     void autosave(std::chrono::steady_clock::time_point now);
     /// @brief Attach type-oriented asset authoring before the first frame.
     void bind_assets(asset_repository& repository, std::filesystem::path root);
+    /// @brief Attach an independently owned Flow document before routing graph gestures.
+    void bind_flow(editor_flow::persistence& document, asset_repository* repository = nullptr,
+                   std::shared_ptr<std::pmr::memory_resource> memory = {},
+                   const std::string& identity_scope = {});
+    /// @brief Discover typed actions/conditions from streamer-supplied immutable catalog sources.
+    void bind_flow_module(std::span<const scripting::source_asset> sources,
+                          scripting::callable_module entry);
     ~editor_view(); ///< Retire UI and input on the main owner.
     /// @brief Publish an updated immutable packet after dispatching native input.
     [[nodiscard]] std::shared_ptr<const editor_frame>

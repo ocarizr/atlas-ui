@@ -120,4 +120,7 @@ void screen_fields(fields& codec, ui_content::flow_screen& value);         ///< 
 void transition_fields(fields& codec, ui_content::flow_transition& value); ///< Draft route codec.
 void parameter_fields(fields& codec, ui_content::flow_parameter& value);   ///< Exact scalar codec.
 void layout_fields(fields& codec, item_layout& value); ///< Editor-only canvas metadata.
+[[nodiscard]] transition_conditions read_conditions(pugi::xml_node node); ///< Bounded AND/NOT XML.
+void write_conditions(pugi::xml_node root,
+                      const transition_conditions& source); ///< Stable predicate IDs.
 } // namespace atlas::editor_flow::detail

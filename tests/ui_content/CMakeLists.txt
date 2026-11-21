@@ -10,7 +10,7 @@ add_custom_command(OUTPUT "${generated}"
     VERBATIM)
 add_executable(atlas_ui_content_tests xml_tests.cpp composition_tests.cpp composition_failure_tests.cpp
     animation_tests.cpp animation_transform_tests.cpp animation_transition_tests.cpp
-    material_tests.cpp material_asset_tests.cpp flow_tests.cpp flow_runtime_tests.cpp
+    material_tests.cpp material_asset_tests.cpp event_action_tests.cpp flow_tests.cpp flow_runtime_tests.cpp
     flow_callable_tests.cpp prepared_flow_tests.cpp presentation_tests.cpp flow_presentation_tests.cpp flow_history_tests.cpp flow_typed_runtime_tests.cpp "${generated}")
 target_compile_definitions(atlas_ui_content_tests PRIVATE
     ATLAS_UI_DOCUMENT="${CMAKE_CURRENT_SOURCE_DIR}/data/dashboard.xml"

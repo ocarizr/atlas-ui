@@ -24,6 +24,19 @@ canonical UTF-8 bytes for the host's persistence boundary.
 
 ## Typed presentations
 
+Elements can declare `<event-action event="click" action="atlas.navigate_to"
+screen="settings" route="open_audio"/>`. Events are `click`, `focus-enter` and
+`focus-exit`. Optional `region` binds a Tab Group to a Submenu Area; `input-action`
+selects performed semantic activation. Registered native/Lua actions use their
+stable descriptor ID, a named model `context` and typed `<arg>` children. The editor
+validates event support, argument schemas and graph permissions before assignment.
+Bindings belong to the UI asset, not graph layout metadata. Runtime hosts provide
+the owner-thread `construction::dispatch_event` bridge.
+
+Prepared UI v4 preserves these semantic bindings and exact arguments. Documents
+without them retain their existing prepared v2/v3 encoding; readers accept all
+three versions. Source XML continues to use the existing v1/v2 presentation roots.
+
 Legacy `<ui version="1">` documents retain catalog type `ui`. Explicit
 presentations use XML v2 with `kind="menu"`, `kind="submenu"`, `kind="popup"`
 or `kind="widget"`, matching the catalog reference type. Each kind uses the

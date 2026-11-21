@@ -33,6 +33,23 @@ struct item_layout
     double y = 0;      ///< Finite graph-space vertical position.
 };
 
+/// @brief Persistent predicate IDs and scalar arguments, never Lua/domain lifetime tokens.
+struct authored_condition
+{
+    std::string callable{}; ///< Empty for an AND group; namespaced predicate ID for a leaf.
+    std::string context{};  ///< Named model context for a predicate leaf.
+    std::vector<mvvm::value> arguments{};       ///< Exact scalar inputs.
+    std::vector<authored_condition> children{}; ///< Ordered short-circuit AND members.
+    bool negate = false; ///< Invert only a successfully evaluated value, never an error.
+};
+
+/// @brief Predicate decorators belong to the outgoing route, independent of UI controls.
+struct transition_conditions
+{
+    std::string transition;        ///< Stable route identity.
+    authored_condition expression; ///< Bounded AND/NOT tree.
+};
+
 /// @brief A structurally sound draft can contain disconnected nodes and unresolved references.
 struct document
 {
@@ -40,6 +57,7 @@ struct document
     ui_content::flow_document graph; ///< Editable runtime declarations, possibly incomplete.
     std::vector<item_layout> layout; ///< Bounded editor-only positions/captions.
     item_ref selection{};            ///< Existing graph item, or no selection.
+    std::vector<transition_conditions> conditions{}; ///< Version 2 outgoing predicate decorators.
 };
 
 /// @brief Check draft shape, identities and budgets without requiring a runnable graph.

@@ -55,6 +55,8 @@ struct construction
     std::optional<std::span<const staged_asset>> staged{};  ///< When set, all reads must be staged.
     std::span<const flow_control> navigation{};       ///< Optional graph-authored control routes.
     std::function<bool(std::string_view)> navigate{}; ///< Owner-only navigation admission.
+    std::function<void(const event_action&)>
+        dispatch_event{}; ///< Optional owner Flow/registry bridge.
 };
 
 /// @brief Acquire an authored UI document through a typed catalog mount.
