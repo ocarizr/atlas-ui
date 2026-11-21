@@ -265,6 +265,7 @@ void run(const launch_options& options, const diagnostics::services& sinks)
     if (flow)
     {
         view.bind_flow(*flow, repository.get(), memory);
+        view.bind_flow_preview(preview_sources, memory);
     }
 
     if (options.flow_actions && repository)

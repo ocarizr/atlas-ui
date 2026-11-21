@@ -41,6 +41,7 @@ instance::impl::impl(const document& source, const construction& options)
       elements{detail::build_tree(tree, source)}, models{detail::make_models(source, options)},
       domain{std::make_shared<scripting::domain>(scripting::session_limits{}, options.memory,
                                                  options.diagnostics, options.script_diagnostics)},
+      events{options.memory ? options.memory.get() : std::pmr::get_default_resource()},
       input{tree,
             {.max_nodes = source.elements.size(), .max_bindings = source.elements.size()},
             options.memory,
@@ -99,10 +100,18 @@ void instance::impl::bind_elements(const document& source, const construction& o
 
     std::set<assets::asset_id> registered;
     detail::material_sources materials{options};
+    std::size_t event_count = 0;
+    for (const auto& node : source.elements)
+    {
+        event_count += node.events.size();
+    }
+
+    events.reserve(event_count);
     for (const auto& node : source.elements)
     {
         try
         {
+            events.insert(events.end(), node.events.begin(), node.events.end());
             const auto target = elements.at(node.id);
             bind_properties(node, target);
             auto texture = node.texture;
@@ -122,8 +131,12 @@ void instance::impl::bind_elements(const document& source, const construction& o
             if (node.interaction || !node.actions.empty() || !node.events.empty() || node.script ||
                 navigation.contains(node.id))
             {
-                input.bind(target, detail::make_handler(node, models, domain, registered, options),
-                           node.interaction.value_or(ui::interaction_options{}));
+                const auto event_bindings =
+                    std::span<const event_action>{events}.last(node.events.size());
+                input.bind(
+                    target,
+                    detail::make_handler(node, models, domain, registered, options, event_bindings),
+                    node.interaction.value_or(ui::interaction_options{}));
             }
         }
         catch (const std::logic_error& error)

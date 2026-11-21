@@ -31,7 +31,17 @@ void visit(const flow_document& graph, const detail::flow_stacks& state,
 
     for (std::size_t index = first_visible(stack); index < stack.size(); ++index)
     {
-        const bool foreground = input && index + 1 == stack.size();
+        bool foreground = input;
+        for (auto above = index + 1; above < stack.size(); ++above)
+        {
+            const auto& overlay = stack.at(above);
+            const auto& definition = graph.screens.at(overlay.screen);
+            const bool modeless =
+                overlay.session && definition.asset.type == assets::asset_type::popup &&
+                !resolve_popup(overlay.session->view->presentation().popup, definition.popup).modal;
+            foreground &= modeless;
+        }
+
         result.push_back({owner, index, foreground});
         const auto& screen = graph.screens.at(stack.at(index).screen);
         for (std::size_t child = 0; child < graph.regions.size(); ++child)
@@ -178,7 +188,6 @@ bool flow_manager::impl::apply_transition(detail::flow_candidate& next,
     }
 
     const auto source = screen(found->from);
-    auto owner = region(graph.screens.at(source).region);
     const auto shown = visible(current);
     if (std::ranges::none_of(shown,
                              [&](const auto& position)
@@ -197,21 +206,63 @@ bool flow_manager::impl::apply_transition(detail::flow_candidate& next,
         return false;
     }
 
-    if (found->operation == flow_operation::back)
+    return apply_origin(next, *found, source);
+}
+
+/// @brief Apply history changes to the actual origin rather than a modeless overlay above it.
+bool flow_manager::impl::apply_origin(detail::flow_candidate& next, const flow_transition& edge,
+                                      std::size_t source)
+{
+    auto owner = region(graph.screens.at(source).region);
+    if (edge.operation == flow_operation::reload)
     {
-        while (next.stacks.at(owner).size() == 1 && owner != root)
+        auto& stack = next.stacks.at(owner);
+        const auto origin = std::ranges::find(stack, source, &detail::flow_entry::screen);
+        if (origin == stack.end())
         {
-            owner = region(graph.screens.at(screen(graph.regions.at(owner).owner)).region);
+            return false;
         }
+
+        origin->session.reset();
+        origin->focus_pending = true;
+        next.edge = &edge;
+        return true;
     }
 
-    const auto target = found->to.empty() ? source : screen(found->to);
-    if (!apply_operation(next.stacks.at(owner), found->operation, target))
+    if (edge.operation != flow_operation::overlay && !scope_history(next.stacks.at(owner), source))
     {
         return false;
     }
 
-    next.edge = &*found;
+    if (edge.operation == flow_operation::push || edge.operation == flow_operation::replace)
+    {
+        auto& stack = next.stacks.at(owner);
+        while (stack.size() > 1 && stack.back().overlay)
+        {
+            stack.pop_back();
+        }
+    }
+
+    if (edge.operation == flow_operation::back)
+    {
+        while (next.stacks.at(owner).size() == 1 && owner != root)
+        {
+            const auto parent = screen(graph.regions.at(owner).owner);
+            owner = region(graph.screens.at(parent).region);
+            if (!scope_history(next.stacks.at(owner), parent))
+            {
+                return false;
+            }
+        }
+    }
+
+    const auto target = edge.to.empty() ? source : screen(edge.to);
+    if (!apply_operation(next.stacks.at(owner), edge.operation, target))
+    {
+        return false;
+    }
+
+    next.edge = &edge;
     return true;
 }
 
@@ -227,6 +278,7 @@ void flow_manager::impl::load_view(detail::flow_candidate& next, detail::flow_po
     const auto generation = ++sequence;
     const auto& menu = graph.screens.at(entry.screen);
     flow_load_request request{menu.asset, {}, {}};
+    request.screen = menu.id;
     for (const auto& edge : graph.transitions)
     {
         if (edge.from == menu.id && !edge.control.empty() && edge.enabled)

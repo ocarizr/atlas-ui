@@ -58,8 +58,9 @@ Navigation stores an exact outgoing route ID and source-screen context. A Tab Gr
 may declare its region; validation requires an owned Submenu Area, same-region
 Submenu destination and replace operation. Registry actions retain descriptor ID,
 named model context and scalar arguments. Hosts receive semantic bindings through
-`construction::dispatch_event` on the UI owner. Without that bridge the UI remains
-a static authoring preview rather than a composed navigation session.
+`construction::dispatch_event` on the UI owner. The isolated `preview` installs this
+bridge per loaded graph instance. Standalone single-document hosts may leave it
+unset for a static authoring preview.
 
 `transition_conditions` stores persistent predicate/context IDs and arguments in
 ordered AND groups. A leaf or group may be negated. Missing registrations remain
@@ -72,6 +73,51 @@ Runtime candidates retain immutable condition declarations separately from stric
 Flow XML. Hosts must resolve these declarations and compose the Flow guard evaluator
 before running a candidate. Later draft edits cannot change a retained candidate.
 Graph editing does not execute predicates or mutate a live Flow Manager.
+
+## Isolated runtime preview
+
+`preview` retains an immutable `runtime_candidate`, a streamer-backed screen
+loader and a frozen native/Lua registration callback. `apply` validates every
+screen privately, one asynchronous load at a time, including typed presentations,
+submenu hosts, action arguments/model contexts and outgoing condition bindings.
+The executable condition budget is 64 nodes at depth 8; incomplete AND groups
+remain saveable authoring data but cannot run. Preflight resolves schemas without
+executing predicates. Runtime evaluation uses each actual screen's model/domain
+and exact callable generations, including revalidation while a transition loads.
+
+A complete initial presentation replaces the old preview only after preflight.
+Failure or cancellation preserves its active views. `restart` uses the last
+applied graph/registration snapshot, independent of dirty drafts; `stop` cancels
+loads and delivers owner lifecycle cleanup. No editor graph edits occur during
+runtime navigation, and no source/recovery file is overwritten by preview.
+Preflight adds bounded startup reads; it is explicit, not a per-frame discovery
+pass. Ordinary transition loads continue through the same streamer and shared
+job pool. The host retains mounts and any borrowed construction tables until
+accepted loads have retired.
+
+`ui_content::flow_viewport` is the reusable presentation/input adapter. It maps
+Submenu Areas to their parent host geometry, clips their paint and hit testing,
+and concatenates immutable packets in back-to-front presentation order. Submenu
+hosts preserve their full layout size when partially clipped and inherit ancestor
+translations and opacity. Scaled or rotated submenu hosts require a transformed
+surface adapter and are rejected explicitly; transforms inside each composed UI
+retain their regular support.
+
+Modal popups suspend lower input. Modeless layers remain pointer-eligible, with one
+keyboard/focus owner. Capture wins over geometric routing. Outside-dismiss
+consumes both press and release, including across publication frames. Escape or
+the configured performed Back action closes an allowed popup or exits the owning
+menu; a popup that forbids Back consumes it. UI frames close before navigation
+publication. Lua/input dispatch stays on its owner; shared layout/paint engines
+retain their existing threshold-based job policies.
+
+`presentation`, `history`, `conditions`, `status`, `diagnostic` and `active_route`
+return bounded observations for inspection. `plan` returns a forward structural
+path under the graph's declared scalar guards and identifies routes with custom
+conditions. It does not execute Lua or prove those conditions reachable. A test
+supplies real model fixtures/registrations and replays logical input packets via
+`frame`; direct `request` traversal is deliberately a separate operation. Prepared
+UI v4 uses the same event bridge and retains existing v2/v3 decoding compatibility.
 
 ## Drafts and runtime candidates
 

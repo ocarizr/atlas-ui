@@ -6,7 +6,8 @@ add_library(atlas_ui_content STATIC src/xml_document.cpp src/xml_fields.cpp src/
     src/material_document.cpp src/material_sources.cpp src/prepared_codec.cpp src/prepared_view.cpp
     src/presentation.cpp src/presentation_xml.cpp src/flow_graph.cpp src/flow_xml.cpp src/flow_loader.cpp src/flow_navigation.cpp
     src/flow_manager.cpp src/flow_publication.cpp src/flow_history.cpp src/flow_exits.cpp
-    src/flow_conditions.cpp src/flow_presentation.cpp src/prepared_flow.cpp src/prepared_flow_codec.cpp)
+    src/flow_conditions.cpp src/flow_presentation.cpp src/flow_viewport.cpp src/flow_viewport_input.cpp src/flow_viewport_geometry.cpp
+    src/prepared_flow.cpp src/prepared_flow_codec.cpp)
 add_library(atlas::ui_content ALIAS atlas_ui_content)
 target_compile_features(atlas_ui_content PUBLIC cxx_std_20)
 target_include_directories(atlas_ui_content PUBLIC

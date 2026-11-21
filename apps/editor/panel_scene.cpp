@@ -131,7 +131,12 @@ panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
     result->viewport = viewport;
     result->quads.assign(plan.shell.quads().begin(), plan.shell.quads().end());
     result->quads.insert(result->quads.end(), chrome.quads().begin(), chrome.quads().end());
-    if (plan.tool)
+    if (plan.flow_preview)
+    {
+        result->quads.insert(result->quads.end(), plan.flow_preview->begin(),
+                             plan.flow_preview->end());
+    }
+    else if (plan.tool)
     {
         result->quads.insert(result->quads.end(), plan.tool->quads().begin(),
                              plan.tool->quads().end());

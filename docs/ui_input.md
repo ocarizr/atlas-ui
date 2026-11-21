@@ -48,6 +48,13 @@ input creates no scheduler or implicit work phase. Callback commands become
 visible only when the caller seals/applies them. Prior sealed publications and
 arbitrary callback side effects are not rolled back by later failure.
 
+Cross-view routers can call `process({})` once and then `process_more` with ordered
+packet chunks before `tick`. Chunks share one cumulative event/callback budget and
+do not broadcast `process_input` again. Validate the complete original batch with
+`validate_input_events` before routing its prefix to any view; per-chunk validation
+cannot undo callbacks already delivered to another session. The shared Flow
+viewport uses this path to preserve packet order across popup/submenu boundaries.
+
 | Stage | Notifications |
 | --- | --- |
 | Begin | Reconcile stale ownership; first active `start`, then `enable` |

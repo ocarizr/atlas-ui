@@ -1,7 +1,7 @@
 add_executable(atlas_ui_tests command_merge_tests.cpp command_validation_tests.cpp)
 
 target_sources(atlas_ui_tests PRIVATE input_routing_tests.cpp input_lifecycle_tests.cpp input_failure_tests.cpp)
-target_sources(atlas_ui_tests PRIVATE input_resource_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE input_resource_tests.cpp input_chunk_tests.cpp root_presentation_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE input_diagnostics_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE input_route_order_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE image_fit_tests.cpp)

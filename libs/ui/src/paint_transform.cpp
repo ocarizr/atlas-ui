@@ -2,8 +2,10 @@
 #include "paint_transform.hpp"
 #include "layout_validation.hpp"
 #include <algorithm>
+#include <atlas/ui/root_presentation.hpp>
 #include <cmath>
 #include <numbers>
+#include <stdexcept>
 
 namespace atlas::ui::detail
 {
@@ -162,3 +164,50 @@ paint_transform compose(const paint_transform& parent, layout_rect border,
             parent.xx * x + parent.xy * y + parent.x, parent.yx * x + parent.yy * y + parent.y};
 }
 } // namespace atlas::ui::detail
+
+namespace atlas::ui
+{
+namespace
+{
+/// @brief Reject stale/foreign geometry and nonroot elements before visual-coordinate mapping.
+std::pair<const element_record*, layout_rect>
+root_border(const element_snapshot& source, const layout_snapshot& geometry, element_handle root)
+{
+    if (source.session() != geometry.session() || source.revision() != geometry.revision() ||
+        source.viewport() != geometry.viewport())
+    {
+        throw std::invalid_argument("Root presentation requires matching source/layout snapshots");
+    }
+
+    const auto node = std::ranges::find(source.elements(), root, &element_record::target);
+    const auto bounds = geometry.find(root);
+    if (node == source.elements().end() || node->parent.generation || !bounds)
+    {
+        throw std::invalid_argument("Root presentation requires a live forest root");
+    }
+
+    return {&*node, bounds->bounds};
+}
+} // namespace
+
+/// @brief Share exact paint math, including translation, scale, rotation and transform origin.
+layout_rect root_visual_bounds(const element_snapshot& source, const layout_snapshot& geometry,
+                               element_handle root)
+{
+    const auto [node, border] = root_border(source, geometry, root);
+    return detail::compose({}, border, *node).bounds(border);
+}
+
+/// @brief Use inverse visual mapping instead of an axis-aligned approximation for popup admission.
+bool root_visual_contains(const element_snapshot& source, const layout_snapshot& geometry,
+                          element_handle root, layout_point point)
+{
+    if (!std::isfinite(point.x) || !std::isfinite(point.y))
+    {
+        throw std::invalid_argument("Root presentation requires finite pointer coordinates");
+    }
+
+    const auto [node, border] = root_border(source, geometry, root);
+    return detail::compose({}, border, *node).hit(border, point);
+}
+} // namespace atlas::ui

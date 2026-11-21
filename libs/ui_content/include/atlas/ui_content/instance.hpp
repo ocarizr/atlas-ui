@@ -89,6 +89,8 @@ class instance
     [[nodiscard]] ui::element_tree& tree();     ///< Borrow owner-affine UI state.
     [[nodiscard]] ui::input_session& input();   ///< Borrow owner-affine routing.
     [[nodiscard]] scripting::domain& scripts(); ///< Borrow the single UI domain.
+    /// @brief Immutable semantic bindings retained for one-time host validation and resolution.
+    [[nodiscard]] std::span<const event_action> event_bindings() const;
     void begin_models(std::uint64_t frame); ///< Begin matching model and Lua frames before input.
     void synchronize(); ///< Flush models, apply Lua subscription edits and queue property writes.
     /// @brief Replace playback after validating a clip against live targets and binding ownership.

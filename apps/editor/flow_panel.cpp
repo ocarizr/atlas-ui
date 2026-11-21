@@ -46,8 +46,24 @@ void flow_panel::register_module(std::span<const scripting::source_asset> source
         registry_.register_source(source);
     }
 
-    registry_.load_callable_module(std::move(entry));
+    registry_.load_callable_module(entry);
     descriptors_ = registry_.callable_descriptors();
+    for (const auto& source : sources)
+    {
+        std::erase_if(preview_sources_,
+                      [&](const auto& old)
+                      {
+                          return old.identity == source.identity;
+                      });
+        preview_sources_.push_back(source);
+    }
+
+    std::erase_if(preview_modules_,
+                  [&](const auto& old)
+                  {
+                      return old.source == entry.source;
+                  });
+    preview_modules_.push_back(std::move(entry));
 }
 
 /// @brief Preserve graph changes through the independent atomic recovery contract.
@@ -196,6 +212,11 @@ bool flow_panel::key_input(std::uint32_t key, bool pressed)
 /// @brief Normalize physical coordinates once and route through persistent Atlas capture state.
 bool flow_panel::input(std::span<const input::event> events, float scale)
 {
+    if (preview_visible_)
+    {
+        return false;
+    }
+
     if (!visible)
     {
         return false;
@@ -281,7 +302,7 @@ bool flow_panel::execute(const control_action& action, document_session& ui)
 
             found->second.second({});
         }
-        else if (!command(action.target, ui))
+        else if (!preview_command(action.target) && !command(action.target, ui))
         {
             throw std::invalid_argument("Unknown Flow editor command");
         }
@@ -300,6 +321,12 @@ void flow_panel::append(panel_plan& plan, ui::layout_engine& layout, ui::paint_e
                         const document_session& ui)
 {
     const auto bounds = plan.preview;
+    if (preview_visible_)
+    {
+        append_preview(plan);
+        return;
+    }
+
     graph_bounds_ = {bounds.x + 4, bounds.y + 54, std::max(1.F, bounds.width - 256),
                      std::max(1.F, bounds.height - 80)};
     plan.tool = canvas_.arrange(graph_bounds_, layout, paint);
@@ -311,10 +338,11 @@ void flow_panel::append(panel_plan& plan, ui::layout_engine& layout, ui::paint_e
         }
     }
 
-    const std::array actions{"screen", "region",  "connect", "delete", "save", "undo",
-                             "redo",   "recover", "discard", "zoom+",  "zoom-"};
-    const std::array titles{"Screen +", "Region +", "Connect", "Delete", "Save Flow", "Undo",
-                            "Redo",     "Recover",  "Discard", "Zoom +", "Zoom -"};
+    const std::array actions{"screen", "region",  "connect", "delete", "save",  "undo",
+                             "redo",   "recover", "discard", "zoom+",  "zoom-", "preview:apply"};
+    const std::array titles{"Screen +",  "Region +", "Connect", "Delete",
+                            "Save Flow", "Undo",     "Redo",    "Recover",
+                            "Discard",   "Zoom +",   "Zoom -",  "Apply preview"};
     const auto width = std::max(1.F, (bounds.width - 8) / 6 - 4);
     for (std::size_t i = 0; i < actions.size(); ++i)
     {
@@ -353,5 +381,14 @@ void flow_panel::append(panel_plan& plan, ui::layout_engine& layout, ui::paint_e
                     ? "Drag nodes | M: multiselect | Space: pan | background: pan | XML draft"
                     : status_)
              : editing_ + ": " + text_ + " | Enter: apply, Esc: cancel, Space: underscore"});
+    if (preview_ && (preview_->running() || preview_->applying()))
+    {
+        plan.controls.back().bounds.width = std::max(1.F, bounds.width - 120);
+        plan.controls.push_back(
+            {{bounds.x + bounds.width - 112, bounds.y + bounds.height - 26, 108, 23},
+             {0.14F, 0.21F, 0.30F, 1},
+             "Resume preview",
+             {control_kind::flow, "preview:show"}});
+    }
 }
 } // namespace atlas::editor

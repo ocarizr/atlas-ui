@@ -30,6 +30,9 @@ struct input_event
     std::optional<input::action_event> action{}; ///< Present only for semantic action packets.
 }; ///< Value-only, replayable primary-pointer/key packet; no platform or device ownership.
 
+/// @brief Validate a complete replay batch before any view can receive callbacks or mutations.
+void validate_input_events(std::span<const input_event> events);
+
 /// @brief Direct lifecycle events and routed input share one serial handler interface.
 enum class event_kind : std::uint8_t
 {
@@ -147,6 +150,8 @@ class input_session
                      const layout_snapshot& geometry, float delta_seconds = 0);
     ///< Prepare matching geometry, begin the tree's command frame, then start/enable handlers.
     void process(std::span<const input_event> events); ///< Exactly once, before tick.
+    /// @brief Append routed packets before tick, sharing the original frame/event budget.
+    void process_more(std::span<const input_event> events);
     void tick();      ///< Broadcast after input; callers can join work between serial stages.
     void late_tick(); ///< Broadcast after tick and any caller-owned sync point.
     void end_frame(); ///< Broadcast after late tick; caller seals/applies remaining commands.
@@ -160,6 +165,7 @@ class input_session
     void suspend(std::uint64_t frame);   ///< Release interaction and disable until the next frame.
     input_statistics statistics() const; ///< Serial owner observation.
   private:
+    void process_packets(std::span<const input_event> events, bool append); ///< Shared preflight.
     void close_lifecycle(std::uint64_t frame, bool terminal); ///< Shared suspension and teardown.
     class impl; ///< Bounded handlers, immutable presentation and owner lifecycle state.
     std::unique_ptr<impl> impl_; ///< Tree and services must outlive synchronous calls.

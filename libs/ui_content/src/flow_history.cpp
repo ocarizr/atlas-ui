@@ -4,6 +4,19 @@
 
 namespace atlas::ui_content
 {
+/// @brief Input eligibility is checked before trimming a private candidate history.
+bool flow_manager::impl::scope_history(std::vector<detail::flow_entry>& stack, std::size_t source)
+{
+    const auto origin = std::ranges::find(stack, source, &detail::flow_entry::screen);
+    if (origin == stack.end())
+    {
+        return false;
+    }
+
+    stack.erase(std::next(origin), stack.end());
+    return true;
+}
+
 /// @brief Snapshot child regions only when their parent is still composed.
 std::shared_ptr<const detail::flow_bookmarks>
 flow_manager::impl::bookmark(const detail::flow_stacks& state,

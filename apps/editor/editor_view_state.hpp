@@ -84,8 +84,10 @@ class editor_view::impl
     std::unique_ptr<tool_panel> active_tool; ///< Current independent contribution.
     std::size_t tool_index = 0;              ///< Zero displays the document preview.
     std::unique_ptr<asset_panel>
-        assets;                       ///< Browser state references the host's durable repository.
-    ui::layout_rect tool_bounds;      ///< Last arranged contribution viewport.
+        assets;                  ///< Browser state references the host's durable repository.
+    ui::layout_rect tool_bounds; ///< Last arranged contribution viewport.
+    std::function<std::shared_ptr<streaming::catalog_streamer>()>
+        flow_mount;                   ///< Current catalog snapshot factory.
     std::unique_ptr<flow_panel> flow; ///< Optional persistent Atlas graph tool.
 };
 

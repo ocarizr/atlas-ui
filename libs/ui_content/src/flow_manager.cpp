@@ -74,6 +74,25 @@ flow_manager::flow_manager(flow_document graph, flow_loader loader, diagnostics:
 
 flow_manager::~flow_manager() = default; ///< Discard pending work and release owner views.
 
+/// @brief Diagnostics copy only names, including inactive lightweight history bookmarks.
+std::vector<std::pair<std::string, std::vector<std::string>>> flow_manager::history() const
+{
+    impl_->check();
+    std::vector<std::pair<std::string, std::vector<std::string>>> result;
+    for (std::size_t index = 0; index < impl_->current.size(); ++index)
+    {
+        std::vector<std::string> names;
+        for (const auto& entry : impl_->current[index])
+        {
+            names.push_back(impl_->graph.screens[entry.screen].id);
+        }
+
+        result.emplace_back(impl_->graph.regions[index].id, std::move(names));
+    }
+
+    return result;
+}
+
 /// @brief Queue initialization for the next owner publication point.
 void flow_manager::start()
 {
