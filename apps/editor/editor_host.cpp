@@ -3,6 +3,7 @@
 #include "asset_files.hpp"
 #include "document_file.hpp"
 #include "editor_graphics.hpp"
+#include "flow_project.hpp"
 #include "tool_registry.hpp"
 #include <algorithm>
 #include <atlas/application/entry_point.hpp>
@@ -19,10 +20,14 @@ struct launch_options
     std::vector<std::filesystem::path>
         files;            ///< Selected files, each owning an independent session.
     bool recover = false; ///< Restore the active document's checkpoint only by explicit request.
-    std::filesystem::path asset_root; ///< Optional explicit editor content origin.
-    bool warp = false;                ///< Force software rendering.
-    bool smoke = false;               ///< Hidden bounded native render exercise.
-    bool help = false;                ///< Print command-line usage.
+    std::filesystem::path asset_root;              ///< Optional explicit editor content origin.
+    std::filesystem::path flow;                    ///< Independent graph authoring target.
+    std::optional<assets::asset_ref> flow_actions; ///< Optional typed callable entrypoint.
+    bool recover_flow =
+        false;          ///< Explicit graph checkpoint restoration, independent of UI recovery.
+    bool warp = false;  ///< Force software rendering.
+    bool smoke = false; ///< Hidden bounded native render exercise.
+    bool help = false;  ///< Print command-line usage.
 };
 
 /// @brief Parse editor options before touching native graphics or storage.
@@ -43,6 +48,19 @@ launch_options parse_options(int argc, char** argv)
         else if (argument == "--asset-root" && i + 1 < argc)
         {
             options.asset_root = argv[++i];
+        }
+        else if (argument == "--flow" && i + 1 < argc)
+        {
+            options.flow = argv[++i];
+        }
+        else if (argument == "--recover-flow")
+        {
+            options.recover_flow = true;
+        }
+        else if (argument == "--flow-actions" && i + 1 < argc)
+        {
+            options.flow_actions =
+                assets::asset_ref{assets::parse_id(argv[++i]), assets::asset_type::script};
         }
         else if (argument == "--warp")
         {
@@ -145,6 +163,24 @@ void render_frames(window::window& window, editor_view& view, render_host::rende
     loop.stop_and_join(pump);
 }
 
+/// @brief Keep native window and render-loop lifetimes inside one joined presentation scope.
+void present_editor(editor_view& view, jobs::job_system& workers, const launch_options& options,
+                    const diagnostics::services& sinks)
+{
+    window::window window{{"Atlas Editor", 960, 540, !options.smoke}};
+    const auto target = window.share_presentation();
+    std::atomic<std::uint64_t> presented{0};
+    render_host::render_loop loop{[&]
+                                  {
+                                      return std::make_unique<editor_graphics>(
+                                          target, workers, options.warp || options.smoke, sinks,
+                                          presented);
+                                  },
+                                  {},
+                                  sinks};
+    render_frames(window, view, loop, presented, options.smoke, sinks);
+}
+
 /// @brief Mount the editor's preview catalog and compose one application-owned worker pool.
 void run(const launch_options& options, const diagnostics::services& sinks)
 {
@@ -211,24 +247,32 @@ void run(const launch_options& options, const diagnostics::services& sinks)
                                                            : path.parent_path() / "editor_tools"},
                               workers,
                               sinks};
+    std::unique_ptr<editor_flow::persistence> flow;
+    if (!options.smoke)
+    {
+        flow = open_flow_document(
+            std::filesystem::absolute(options.flow.empty() ? path.parent_path() / "atlas-flow.xml"
+                                                           : options.flow),
+            workers, sinks, options.recover_flow);
+    }
+
     editor_view view{workspace, workers, sinks, &tools};
     if (repository)
     {
         view.bind_assets(*repository, asset_root);
     }
 
-    window::window window{{"Atlas Editor", 960, 540, !options.smoke}};
-    const auto target = window.share_presentation();
-    std::atomic<std::uint64_t> presented{0};
-    render_host::render_loop loop{[&]
-                                  {
-                                      return std::make_unique<editor_graphics>(
-                                          target, workers, options.warp || options.smoke, sinks,
-                                          presented);
-                                  },
-                                  {},
-                                  sinks};
-    render_frames(window, view, loop, presented, options.smoke, sinks);
+    if (flow)
+    {
+        view.bind_flow(*flow, repository.get(), memory);
+    }
+
+    if (options.flow_actions && repository)
+    {
+        load_flow_module(view, *options.flow_actions, repository->snapshot(), *preview_sources);
+    }
+
+    present_editor(view, workers, options, sinks);
 }
 } // namespace
 
@@ -248,6 +292,7 @@ int run_editor(int argc, char** argv)
         {
             (void)log->write(diagnostics::log_level::info, "editor",
                              "Options: --document <file> (repeatable), --asset-root <directory>, "
+                             "--flow <file>, --recover-flow, --flow-actions <script-asset-id>, "
                              "--recover, --warp, --smoke-test, "
                              "--graphics-smoke-test");
             return 0;

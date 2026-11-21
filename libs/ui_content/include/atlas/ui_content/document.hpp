@@ -30,6 +30,27 @@ struct action_binding
     ui_mvvm::action_binding_definition binding; ///< Trigger and typed constants.
 };
 
+/// @brief Semantic authoring events independent of pointer, keyboard or controller activation.
+enum class authored_event : std::uint8_t
+{
+    click,       ///< Successful press/release inside, or performed semantic activation.
+    focus_enter, ///< Focus acquired, distinct from hover.
+    focus_exit   ///< Focus lost.
+};
+
+/// @brief Stable event/action data owned by the UI asset, resolved by its Flow host.
+struct event_action
+{
+    authored_event event = authored_event::click; ///< Supported semantic control event.
+    std::string action;    ///< Built-in atlas action or registered native/Lua descriptor ID.
+    std::string context{}; ///< Named ViewModel context for a registered action.
+    std::string screen{};  ///< Explicit Flow screen context; reusable widgets require host binding.
+    std::string route{};   ///< Exact permitted route ID, never a path or display label.
+    std::vector<mvvm::value> arguments{}; ///< Exact typed scalar constants.
+    std::uint32_t input_action = 0;       ///< Optional performed semantic activation identity.
+    std::string region{}; ///< Optional explicit Tab Group/Submenu Area navigation scope.
+};
+
 /// @brief Isolated handler table in the shared UI Lua domain.
 struct behavior
 {
@@ -68,6 +89,7 @@ struct element
     std::optional<behavior> script; ///< At most one behavior instance per element.
     std::string caption{};          ///< Optional authored text for a host's label presentation.
     std::optional<assets::asset_ref> material{}; ///< Persistent material template or override.
+    std::vector<event_action> events{};          ///< Editor-authored semantic action bindings.
 };
 
 /// @brief Popup defaults shared by source assets and optional Flow-instance overrides.

@@ -1,6 +1,7 @@
 /** @file @brief Graph document validation and explicit runtime import boundary. */
 #include "document_state.hpp"
 #include <algorithm>
+#include <atlas/editor_flow/inspector.hpp>
 #include <cmath>
 #include <set>
 
@@ -155,6 +156,8 @@ void validate(const document& source)
     {
         throw std::invalid_argument("Invalid Flow draft selection");
     }
+
+    validate_conditions(source);
 }
 
 /// @brief Runtime loading remains strict and separate from incomplete authoring XML.

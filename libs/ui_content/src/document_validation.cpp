@@ -1,5 +1,6 @@
 /** @file @brief Validate stable IDs, hierarchy, and document-local references. */
 #include "document_validation.hpp"
+#include <cmath>
 #include <map>
 #include <set>
 
@@ -43,12 +44,43 @@ using model_names = std::set<std::string_view>; ///< Borrowed document-local con
 /// @brief Validate independent descriptor names and storage limits before construction.
 void validate_bindings(const element& node, const model_names& models)
 {
-    if (node.properties.size() > 4 || node.actions.size() > 64)
+    if (node.properties.size() > 4 || node.actions.size() > 64 || node.events.size() > 64)
     {
         throw std::invalid_argument("UI element descriptor limit exceeded");
     }
 
     std::set<ui::property> targets;
+    for (const auto& event : node.events)
+    {
+        if (event.event > authored_event::focus_exit || event.action.empty() ||
+            event.action.size() > 128 || event.arguments.size() > 32 ||
+            (!event.screen.empty() && !valid_name(event.screen)) ||
+            (!event.route.empty() && !valid_name(event.route)))
+        {
+            throw std::invalid_argument("Invalid UI event/action binding");
+        }
+
+        mvvm::validate_text(event.action, 128);
+        mvvm::validate_text(event.context, 64);
+        if (!event.region.empty() && !valid_name(event.region))
+        {
+            throw std::invalid_argument("Invalid event submenu region");
+        }
+
+        for (const auto& value : event.arguments)
+        {
+            if (const auto* text = std::get_if<std::string>(&value))
+            {
+                mvvm::validate_text(*text, 4096);
+            }
+
+            if (const auto* number = std::get_if<double>(&value); number && !std::isfinite(*number))
+            {
+                throw std::invalid_argument("Nonfinite UI event argument");
+            }
+        }
+    }
+
     for (const auto& binding : node.properties)
     {
         if (!models.contains(binding.model) || binding.binding.source.empty() ||

@@ -3,6 +3,30 @@
 
 namespace atlas::editor_flow::tests
 {
+/// @brief A new unsaved graph's checkpoint remains explicitly recoverable when no source exists.
+TEST(flow_persistence, OpensMissingSourceWithoutConsumingItsExistingRecovery)
+{
+    memory_storage files;
+    const std::filesystem::path path{"flow.xml"};
+    auto recovered = example();
+    files.files[recovery_path(path)] = write_xml(recovered);
+    document fallback;
+    fallback.id = "new_flow";
+    fallback.graph.regions = {{"viewport", "", ""}};
+    persistence owner{path, fallback, files.adapter(), {}, true};
+    EXPECT_TRUE(owner.recovery_pending());
+    EXPECT_FALSE(owner.pristine_creation());
+    EXPECT_TRUE(owner.edit().current().graph.screens.empty());
+    const auto checkpoint = files.files.at(recovery_path(path));
+    EXPECT_NO_THROW(owner.checkpoint());
+    EXPECT_EQ(files.files.at(recovery_path(path)), checkpoint);
+    EXPECT_FALSE(files.files.contains(path));
+    EXPECT_TRUE(owner.recover());
+    EXPECT_FALSE(owner.pristine_creation());
+    EXPECT_EQ(owner.edit().current().graph.screens.front().id, "home");
+    EXPECT_FALSE(files.files.contains(path));
+}
+
 /// @brief Reopening leaves recovery untouched until the user chooses restore or discard.
 TEST(flow_persistence, restores_incomplete_checkpoint_without_overwriting_saved_source)
 {

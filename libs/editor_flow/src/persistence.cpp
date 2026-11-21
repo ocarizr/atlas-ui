@@ -42,20 +42,48 @@ persistence::persistence(std::filesystem::path path, storage files, bool restore
     edit_ = std::make_unique<session>(read_xml({*bytes}), !restore, 64, sinks_);
     pending_ = checkpoint.has_value() && !restore;
     checkpoint_ = restore ? edit_->revision() : 0;
+    opened_ = edit_->revision();
 }
 
 /// @brief New graph creation does not truncate an existing source or abandoned recovery.
 persistence::persistence(std::filesystem::path path, document initial, storage files,
-                         diagnostics::services sinks)
+                         diagnostics::services sinks, bool preserve_recovery)
     : path_{std::move(path)}, files_{std::move(files)}, sinks_{std::move(sinks)}
 {
     validate_storage(path_, files_);
-    if (files_.read(path_) || files_.read(recovery_path(path_)))
+    if (files_.read(path_))
     {
         throw std::invalid_argument("Flow document or recovery already exists");
     }
 
+    const auto checkpoint = files_.read(recovery_path(path_));
+    if (checkpoint && !preserve_recovery)
+    {
+        throw std::invalid_argument("Flow document or recovery already exists");
+    }
+
+    if (checkpoint)
+    {
+        pending_ = true;
+        try
+        {
+            initial.id = read_xml({*checkpoint}).id;
+        }
+        catch (const std::invalid_argument&)
+        {
+            diagnostics::write(sinks_, diagnostics::log_level::warning, "editor.flow",
+                               "Malformed orphan recovery preserved for explicit discard");
+        }
+        catch (const std::length_error&)
+        {
+            diagnostics::write(sinks_, diagnostics::log_level::warning, "editor.flow",
+                               "Oversized orphan recovery preserved for explicit discard");
+        }
+    }
+
     edit_ = std::make_unique<session>(std::move(initial), false, 64, sinks_);
+    opened_ = edit_->revision();
+    created_ = true;
 }
 
 /// @brief Persistence remains on the owner that selected the trusted target path.
@@ -72,6 +100,13 @@ session& persistence::edit()
 {
     check();
     return *edit_;
+}
+
+/// @brief Hosts can avoid checkpointing a never-used empty bootstrap without discarding recovery.
+bool persistence::pristine_creation() const
+{
+    check();
+    return created_ && !pending_ && edit_->revision() == opened_;
 }
 
 /// @brief A malformed checkpoint still remains pending until a restore or discard choice.
@@ -102,6 +137,7 @@ void persistence::save()
     }
 
     edit_->mark_saved();
+    created_ = false;
     checkpoint_ = 0;
     pending_ = false;
 }
@@ -114,7 +150,7 @@ void persistence::checkpoint()
     const diagnostics::operation_scope scope{sinks_, {"editor.flow.checkpoint", "editor.flow"}};
     if (pending_)
     {
-        if (edit_->dirty())
+        if (edit_->dirty() && edit_->revision() != opened_)
         {
             throw std::logic_error("Resolve existing Flow recovery before checkpointing new edits");
         }

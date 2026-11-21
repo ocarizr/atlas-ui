@@ -29,7 +29,8 @@ document_session::make_preview(const ui_content::document& source,
                                              options_.model_schemas,
                                              options_.staged,
                                              options_.navigation,
-                                             options_.navigate};
+                                             options_.navigate,
+                                             options_.dispatch_event};
     try
     {
         return ui_content::instance::build(source, effective);

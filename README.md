@@ -128,7 +128,7 @@ updates. Edit source comments rather than generated wiki pages.
 | --- | --- |
 | Product | [Scope](docs/scope.md), [architecture](docs/architecture.md), [application hosts](docs/application_hosts.md) |
 | MVVM | [Schemas, XML, actions and UI bindings](docs/mvvm.md), [runtime API](libs/mvvm/README.md) |
-| Flow authoring | [Graph documents, history and XML recovery](docs/editor_flow.md) |
+| Flow authoring | [Atlas graph workspace, typed inspectors, history and XML recovery](docs/editor_flow.md) |
 | Behavior | [Lua sessions, UI events and native jobs](docs/scripting.md), [shared domains and director](docs/scripting_domains.md), [runtime API](libs/scripting/README.md), [Lua development and debugging](docs/lua_development.md) |
 | Input | [Actions, contexts and adapters](docs/input.md), [API](libs/input/README.md) |
 | UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [painting and clipping](docs/ui_paint.md), [streamed images](docs/ui_images.md), [input and lifecycle](docs/ui_input.md), [API and examples](libs/ui/README.md) |

@@ -10,6 +10,69 @@ editor layout records and selection. Item references combine their kind and stab
 ID. Labels and positions are independent metadata: changing a caption or moving a
 node does not rename a screen, route, region or referenced asset.
 
+## Graph workspace
+
+`workspace` borrows one `session`. Selection, pan and zoom are transient view state;
+they do not create authored revisions. Multi-selection retains stable item IDs and
+prunes items removed by undo or another edit. Captions never rename identities.
+The editor allocates IDs within a fresh 128-bit authoring scope on each tool open,
+so recreating an item does not recycle an older deleted item's identity. Friendly
+captions remain separate. Hosts can inject a unique scope for reproducible fixtures.
+
+`begin_move` captures the revision and selected nodes. `move_by` updates one pending
+displacement; `end_move` commits one complete revision. Cancellation writes nothing.
+A changed source revision invalidates the gesture instead of overwriting newer
+edits. Deleting screens or regions removes owned regions, incident routes, condition
+decorators and layout records in one transaction. Removed entry references become
+empty, saveable draft values.
+
+`canvas` is a reusable Atlas UI surface with persistent input registrations,
+pointer capture and ancestor clipping. It publishes ordinary paint snapshots and
+clipped label rectangles. Callbacks produce value-only intents; mutations run after
+dispatch returns. Nodes and elbow connections reuse tree storage. The host supplies
+existing layout/paint services and may supply a shared PMR resource. Cheap graph
+edits stay on the coordinator rather than creating jobs.
+The editor supplies the application's shared PMR resource to its graph tree, input
+state and isolated callable domain.
+
+Typed catalog choices follow region ownership. Top-level nodes accept Menu, Popup
+and legacy UI assets; submenu regions accept Submenu assets. Reusable Widgets and
+media are not graph destinations. Missing assets remain explicit draft values.
+Forward connections require existing endpoints in the same region; history-return
+operations have no authored destination.
+
+## Event and condition inspectors
+
+Inspector metadata comes from the shared native/Lua callable registry. Discovery
+does not inspect source or invoke behavior. Defaults, exact scalar types and
+optional integer choices are checked before committing a binding.
+
+`bind_event` returns an independent UI document with the binding on its selected
+element. The graph stores route permissions, not UI event bindings. Semantic click,
+focus-enter and focus-exit are distinct from hover; focus events require a focusable
+control. Click requires matched in-bounds press/release or its configured performed
+input action. Cancellation cannot become a click.
+
+Built-ins are `atlas.navigate_to`, `atlas.exit_menu` and `atlas.close_popup`.
+Navigation stores an exact outgoing route ID and source-screen context. A Tab Group
+may declare its region; validation requires an owned Submenu Area, same-region
+Submenu destination and replace operation. Registry actions retain descriptor ID,
+named model context and scalar arguments. Hosts receive semantic bindings through
+`construction::dispatch_event` on the UI owner. Without that bridge the UI remains
+a static authoring preview rather than a composed navigation session.
+
+`transition_conditions` stores persistent predicate/context IDs and arguments in
+ordered AND groups. A leaf or group may be negated. Missing registrations remain
+saveable drafts; `resolve_conditions` explicitly validates schemas and resolves
+current domain generations. Unknown, retired or failed predicates cannot become
+allowed through negation. Each expression allows 256 nodes, 64 children per group
+and depth 8, with one decorator root per route.
+
+Runtime candidates retain immutable condition declarations separately from strict
+Flow XML. Hosts must resolve these declarations and compose the Flow guard evaluator
+before running a candidate. Later draft edits cannot change a retained candidate.
+Graph editing does not execute predicates or mutate a live Flow Manager.
+
 ## Drafts and runtime candidates
 
 Draft validation checks structure, unique declaration IDs, scalar values,
@@ -55,7 +118,10 @@ does not mutate a running manager.
 ## XML contract
 
 Authoring and recovery use the same complete UTF-8 XML representation:
-`<flow-authoring version="1" id="stable_document_id">`. Runtime XML is a separate
+`<flow-authoring version="1" id="stable_document_id">`. Version 2 adds outgoing
+`conditions` records with recursive `predicate` and scalar `arg` records. Readers
+accept versions 1 and 2; writers retain version 1 when decorators are absent.
+Version 1 rejects version 2-only records. Runtime XML is a separate
 contract with a `<flow>` root; imports are explicit.
 
 | Record | Contents |
@@ -96,6 +162,16 @@ Opening a source never restores or overwrites an existing checkpoint implicitly.
 `recovery_pending()` reports that an explicit choice is required. A malformed
 checkpoint remains pending until restore or discard is requested. The recovery
 path appends `.atlas-flow-recovery.xml`, separate from ordinary UI recovery files.
+
+Creation is exclusive by default. The editor's explicit `preserve_recovery` mode
+can open a missing source with a protected orphan checkpoint. It adopts only a
+valid checkpoint's document identity into the empty fallback, not its graph. A
+malformed checkpoint remains pending for explicit discard. Checkpointing the
+unchanged fallback preserves the old file; new edits require a restore/discard
+decision first. `pristine_creation()` distinguishes an unchanged new revision
+from an opened or explicitly restored document. The editor skips recovery for an
+untouched empty bootstrap, while an explicitly restored empty graph remains
+protected until Save or Discard.
 
 - `checkpoint()` writes a complete changed dirty revision atomically. An unchanged
   revision is skipped. Existing unresolved recovery is preserved, and conflicting

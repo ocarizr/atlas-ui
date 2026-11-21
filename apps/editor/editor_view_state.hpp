@@ -2,6 +2,7 @@
 #pragma once
 #include "asset_panel.hpp"
 #include "editor_view.hpp"
+#include "flow_panel.hpp"
 #include "panel_scene.hpp"
 #include "tool_panel.hpp"
 
@@ -42,6 +43,8 @@ class editor_view::impl
 
     void execute(const control_action& action); ///< Run only outside Atlas event callbacks.
     void rebuild(ui::layout_rect viewport, float scale); ///< Publish complete chrome candidate.
+    void compose_flow(panel_plan& plan,
+                      ui::layout_rect bounds); ///< Graph tool and explicit mode switch.
     void cycle_tool(); ///< Switch to the next valid contribution or the preview.
     bool dispatch(std::span<const input::event> events); ///< Process isolated Lua and host actions.
 
@@ -81,8 +84,9 @@ class editor_view::impl
     std::unique_ptr<tool_panel> active_tool; ///< Current independent contribution.
     std::size_t tool_index = 0;              ///< Zero displays the document preview.
     std::unique_ptr<asset_panel>
-        assets;                  ///< Browser state references the host's durable repository.
-    ui::layout_rect tool_bounds; ///< Last arranged contribution viewport.
+        assets;                       ///< Browser state references the host's durable repository.
+    ui::layout_rect tool_bounds;      ///< Last arranged contribution viewport.
+    std::unique_ptr<flow_panel> flow; ///< Optional persistent Atlas graph tool.
 };
 
 } // namespace atlas::editor

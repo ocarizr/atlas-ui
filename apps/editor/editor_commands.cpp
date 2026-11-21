@@ -91,6 +91,11 @@ void editor_view::impl::execute(const control_action& action)
     try
     {
         status.clear();
+        if (flow && flow->execute(action, session()))
+        {
+            return;
+        }
+
         if (assets && assets->execute(action, workspace, jobs, sinks))
         {
             return;
@@ -160,9 +165,37 @@ bool editor_view::preserve()
 {
     try
     {
+        std::exception_ptr failure;
+        if (impl_->flow)
+        {
+            try
+            {
+                impl_->flow->checkpoint();
+            }
+            catch (...)
+            {
+                failure = std::current_exception();
+            }
+        }
+
         if (impl_->workspace)
         {
-            impl_->workspace->checkpoint_all();
+            try
+            {
+                impl_->workspace->checkpoint_all();
+            }
+            catch (...)
+            {
+                if (!failure)
+                {
+                    failure = std::current_exception();
+                }
+            }
+        }
+
+        if (failure)
+        {
+            std::rethrow_exception(failure);
         }
 
         return true;

@@ -31,10 +31,13 @@ class persistence
     /// source.
     persistence(std::filesystem::path path, storage files, bool restore = false,
                 diagnostics::services sinks = {});
-    /// @brief Create a new unsaved owner only when neither source nor recovery already exists.
+    /// @brief Create an unsaved owner. Explicit protected-open mode retains an orphan checkpoint
+    /// for a restore/discard decision, without restoring its graph implicitly.
     persistence(std::filesystem::path path, document initial, storage files,
-                diagnostics::services sinks = {});
+                diagnostics::services sinks = {}, bool preserve_recovery = false);
     [[nodiscard]] session& edit(); ///< Mutable authoring remains on the opening thread.
+    /// @brief An unchanged newly created revision with no unresolved recovery decision.
+    [[nodiscard]] bool pristine_creation() const;
     [[nodiscard]] bool
     recovery_pending() const; ///< Existing checkpoint awaits an explicit decision.
     void save();       ///< Save even incomplete drafts; mark clean only after complete cleanup.
@@ -49,9 +52,11 @@ class persistence
     diagnostics::services sinks_;   ///< Optional structured diagnostics.
     std::unique_ptr<session> edit_; ///< One active history owner.
     std::uint64_t checkpoint_ = 0;  ///< Last completely written recovery revision.
-    bool pending_ = false;          ///< Never silently overwrite an existing recovery draft.
-    bool busy_ = false;             ///< Reject persistence reentry from storage callbacks.
-    bool closed_ = false;           ///< Set only after successful preserve/discard.
+    std::uint64_t opened_ = 0; ///< Initial revision may coexist with unresolved orphan recovery.
+    bool pending_ = false;     ///< Never silently overwrite an existing recovery draft.
+    bool busy_ = false;        ///< Reject persistence reentry from storage callbacks.
+    bool closed_ = false;      ///< Set only after successful preserve/discard.
+    bool created_ = false;     ///< A new unsaved source, rather than an opened/restored document.
     std::thread::id owner_ = std::this_thread::get_id(); ///< Persistence stays on its coordinator.
 };
 } // namespace atlas::editor_flow

@@ -42,7 +42,9 @@ enum class control_kind : std::uint8_t
     assets_open,      ///< Open an authored UI asset.
     assets_assign,    ///< Assign a typed element reference.
     assets_next,      ///< Cycle the next page.
-    assets_settings   ///< Advance importer settings.
+    assets_settings,  ///< Advance importer settings.
+    flow_toggle,      ///< Switch between the graph workspace and ordinary UI authoring.
+    flow              ///< Typed graph/inspector command, applied after Atlas input dispatch.
 };
 
 /// @brief Owned command materialized from a control after pointer release.

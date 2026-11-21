@@ -17,12 +17,18 @@ class runtime_candidate
   public:
     [[nodiscard]] const ui_content::flow_document& graph() const; ///< Immutable runtime values.
     [[nodiscard]] std::string xml() const; ///< Canonical runtime XML, with no editor metadata.
+    /// @brief Persistent predicates retained for explicit owner-domain resolution by the preview
+    /// host.
+    [[nodiscard]] const std::vector<transition_conditions>& conditions() const;
+
   private:
     friend class session;        ///< Validates before issuing a publication token.
     std::uint64_t owner_ = 0;    ///< Exact session, including independently opened documents.
     std::uint64_t revision_ = 0; ///< Exact authored revision at compilation.
     std::shared_ptr<const ui_content::flow_document> graph_; ///< Owned immutable runtime graph.
     asset_check assets_; ///< Retained snapshot capability, revalidated before publication.
+    std::shared_ptr<const std::vector<transition_conditions>>
+        conditions_; ///< Immutable decorators.
 };
 
 /// @brief Draft editing never mutates the last published runtime snapshot.
