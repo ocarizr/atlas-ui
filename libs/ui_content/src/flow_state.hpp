@@ -96,6 +96,11 @@ class flow_manager::impl
     impl(flow_document graph, flow_loader factory, diagnostics::services sinks,
          flow_guard_evaluator guards);
 
+    /// @brief Retain the actual input origin, dropping modeless overlays above its scope.
+    bool scope_history(std::vector<detail::flow_entry>& stack, std::size_t source);
+    /// @brief Resolve origin-relative reload, return and new-menu operations.
+    bool apply_origin(detail::flow_candidate& next, const flow_transition& edge,
+                      std::size_t source);
     void check() const; ///< Reject cross-thread access or reentrant calls at publication.
     [[nodiscard]] std::size_t region(std::string_view name) const; ///< Validated graph index.
     [[nodiscard]] std::size_t screen(std::string_view name) const; ///< Validated graph index.

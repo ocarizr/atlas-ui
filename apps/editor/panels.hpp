@@ -70,6 +70,8 @@ struct panel_plan
     ui::layout_rect preview;                ///< Clip and viewport for the isolated runtime tree.
     ui::paint_snapshot shell;               ///< Authored editor background, panels and controls.
     std::optional<ui::paint_snapshot> tool; ///< Active authored contribution in the center.
+    std::optional<std::vector<ui::paint_quad>>
+        flow_preview{}; ///< Composed Flow layers, back to front.
 };
 
 /// @brief Named slots in the installed self-authored shell.

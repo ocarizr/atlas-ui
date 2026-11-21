@@ -1,5 +1,6 @@
 set(atlas_flow_panel_sources apps/editor/flow_panel.cpp apps/editor/flow_panel_commands.cpp apps/editor/flow_panel_bindings.cpp
-    apps/editor/flow_panel_inspector.cpp apps/editor/flow_panel_conditions.cpp apps/editor/flow_panel_events.cpp)
+    apps/editor/flow_panel_inspector.cpp apps/editor/flow_panel_conditions.cpp apps/editor/flow_panel_events.cpp
+    apps/editor/flow_preview.cpp)
 
 function(atlas_add_application target source output label argument)
     if(NOT label IN_LIST atlas_requested_components)
@@ -103,7 +104,7 @@ if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
         "${PROJECT_SOURCE_DIR}/apps/common")
     target_link_libraries(atlas_editor_tests PRIVATE atlas::editor_flow atlas::ui_content atlas::mvvm_content GTest::gtest_main)
     if(ATLAS_BUILD_WINDOWS_INTEGRATION)
-        target_sources(atlas_editor_tests PRIVATE ${atlas_flow_panel_sources} apps/editor/flow_project.cpp apps/editor/flow_file.cpp tests/platform/windows/editor/flow_workspace_tests.cpp tests/platform/windows/editor/flow_recovery_tests.cpp tests/platform/windows/editor/authoring_tests.cpp
+        target_sources(atlas_editor_tests PRIVATE ${atlas_flow_panel_sources} apps/editor/flow_project.cpp apps/editor/flow_file.cpp tests/platform/windows/editor/flow_workspace_tests.cpp tests/platform/windows/editor/flow_preview_tests.cpp tests/platform/windows/editor/flow_recovery_tests.cpp tests/platform/windows/editor/authoring_tests.cpp
             libs/platform/windows/editor/document_file.cpp apps/editor/editor_view.cpp
             apps/editor/panels.cpp apps/editor/panel_scene.cpp apps/editor/tool_registry.cpp
             apps/editor/tool_panel.cpp apps/editor/editor_commands.cpp tests/platform/windows/editor/tool_tests.cpp

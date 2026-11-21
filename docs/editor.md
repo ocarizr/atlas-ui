@@ -45,8 +45,28 @@ canonical catalog asset IDs. Discovery registers bounded sources in an isolated
 `project` registry and does not invoke registered actions or predicates. Native
 contributors use the same [descriptor contract](scripting_callables.md).
 
-The graph tool authors [documents and bindings](editor_flow.md). The ordinary UI
-preview remains separate; it does not run a composed multi-menu Flow session.
+The graph tool authors [documents and bindings](editor_flow.md). **Apply preview**
+validates an independent graph snapshot and its streamed screen compositions before
+installing the shared Flow runtime. The isolated Flow view supports nested Submenu
+Areas, Tab Group routes, popup policies and real Atlas input. It is separate from
+the ordinary single-document authoring preview. Save UI content and refresh changed
+catalog assets before applying; unsaved UI buffers are not overlaid onto the catalog.
+
+**Apply** uses the current graph draft and latest explicitly discovered callable
+sources. **Restart** reconstructs the last applied snapshot. **Cancel load** drops
+pending application/navigation; **Stop** retires the preview without changing
+source or recovery files. **Graph** returns to editing. Changes never apply
+implicitly. Invalid bindings, condition schemas or streamed sources preserve the
+last valid preview and report a diagnostic.
+**Resume preview** returns from the graph to that running snapshot without applying
+the current draft. Each explicit apply acquires a fresh catalog mount, while the
+running preview retains its prior mount independently.
+
+The Flow sidebar shows presented screen/region identities, focus ownership,
+history, the requested route and bounded condition results. **Next route** and
+**Traverse route** send diagnostic requests through actual runtime guards; they
+are not input replay and cannot prove arbitrary Lua reachability. Popup Back uses
+Escape; portable hosts can supply their own performed semantic Back action.
 
 The hierarchy lists authored element IDs and highlights the selection. The
 inspector changes width and visibility, adds a generic painted leaf to a panel,

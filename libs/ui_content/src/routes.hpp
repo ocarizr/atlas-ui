@@ -9,5 +9,6 @@ namespace atlas::ui_content::detail
 [[nodiscard]] std::shared_ptr<ui::input_handler>
 make_handler(const element& node, const model_map& models,
              const std::shared_ptr<scripting::domain>& domain,
-             std::set<assets::asset_id>& registered, const construction& options);
+             std::set<assets::asset_id>& registered, const construction& options,
+             std::span<const event_action> events);
 } // namespace atlas::ui_content::detail

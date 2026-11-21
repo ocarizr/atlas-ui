@@ -7,6 +7,7 @@
 #include <atlas/editor_flow/canvas.hpp>
 #include <atlas/editor_flow/inspector.hpp>
 #include <atlas/editor_flow/persistence.hpp>
+#include <atlas/editor_flow/preview.hpp>
 #include <map>
 
 namespace atlas::editor
@@ -27,6 +28,12 @@ class flow_panel
     bool input(std::span<const input::event> events, float scale); ///< Owner input, no native SDK.
     bool execute(const control_action& command, document_session& ui); ///< Apply after callbacks.
     void checkpoint(); ///< Preserve the graph independently from UI documents.
+    /// @brief Retain an immutable typed mount; explicit apply snapshots callable registrations.
+    void bind_preview(const jobs::job_dispatcher& jobs,
+                      std::shared_ptr<streaming::catalog_streamer> storage,
+                      std::shared_ptr<std::pmr::memory_resource> memory = {});
+    bool pump_preview(std::span<const input::event> events,
+                      float density); ///< Advance even without input.
     void
     register_module(std::span<const scripting::source_asset> sources,
                     scripting::callable_module entry); ///< Isolated bounded metadata discovery.
@@ -36,7 +43,20 @@ class flow_panel
     {
         return status_;
     } ///< Last visible operation diagnostic.
+
+    /// @brief Refresh only on explicit apply; each running preview retains its own mount.
+    void
+    preview_mount_factory(std::function<std::shared_ptr<streaming::catalog_streamer>()> factory)
+    {
+        preview_mount_ = std::move(factory);
+    }
+
   private:
+    void apply_preview(); ///< Build a private graph/catalog snapshot on explicit apply.
+    std::function<std::shared_ptr<streaming::catalog_streamer>()>
+        preview_mount_;                            ///< Explicit mount snapshot factory.
+    bool preview_command(std::string_view action); ///< Explicit apply/restart/cancel/stop/traverse.
+    void append_preview(panel_plan& plan); ///< Atlas preview and bounded diagnostics controls.
     using field_writer = std::function<void(std::string)>; ///< One validated inspector assignment.
     void inspect(std::vector<control>& rows,
                  const document_session& ui); ///< Materialize typed rows.
@@ -101,6 +121,18 @@ class flow_panel
     bool extend_ = false;                         ///< Held multiselect modifier (M).
     bool pan_ = false;                            ///< Held explicit pan modifier (Space).
     std::optional<std::string> region_selection_; ///< Region inspector selection.
-    ui_content::event_action binding_{};          ///< Uncommitted UI event/action inspector state.
+    std::shared_ptr<streaming::catalog_streamer>
+        preview_storage_;                                       ///< Retained exact catalog mount.
+    std::shared_ptr<std::pmr::memory_resource> preview_memory_; ///< Shared project allocator.
+    std::unique_ptr<editor_flow::preview> preview_;             ///< Independent running snapshot.
+    std::vector<scripting::source_asset>
+        preview_sources_; ///< Latest explicitly discovered sources.
+    std::vector<scripting::callable_module> preview_modules_; ///< Frozen on apply, not per frame.
+    std::vector<ui::paint_quad> preview_quads_;               ///< Last immutable CPU presentation.
+    ui::layout_rect preview_bounds_{}; ///< Actual clipped logical panel area.
+    bool preview_visible_ = false;     ///< Explicit graph versus isolated runtime view.
+    std::chrono::steady_clock::time_point preview_tick_{}; ///< Host-owned monotonic frame clock.
+    std::size_t preview_route_ = 0;                        ///< Bounded diagnostic route selector.
+    ui_content::event_action binding_{}; ///< Uncommitted UI event/action inspector state.
 };
 } // namespace atlas::editor

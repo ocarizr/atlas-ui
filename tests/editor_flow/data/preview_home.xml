@@ -1,0 +1,13 @@
+<ui version="2" kind="menu">
+  <model name="state" asset="018d0b95cf2673c6a0d7dd8ce5d29b23:0000000000000001"/>
+  <element id="root" panel="canvas"/>
+  <element id="allow" parent="root" width="40" height="30">
+    <interaction focusable="true"/>
+    <event-action event="click" action="project.allow" context="state" screen="home"/>
+  </element>
+  <element id="next" parent="root" width="40" height="30">
+    <canvas-slot x-offset-min="50"/>
+    <interaction focusable="true"/>
+    <event-action event="click" action="atlas.navigate_to" screen="home" route="open"/>
+  </element>
+</ui>

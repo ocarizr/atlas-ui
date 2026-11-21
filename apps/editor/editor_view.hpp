@@ -41,6 +41,9 @@ class editor_view
     /// @brief Discover typed actions/conditions from streamer-supplied immutable catalog sources.
     void bind_flow_module(std::span<const scripting::source_asset> sources,
                           scripting::callable_module entry);
+    /// @brief Attach the retained typed mount used only by explicit isolated Flow preview.
+    void bind_flow_preview(std::shared_ptr<streaming::catalog_streamer> storage,
+                           std::shared_ptr<std::pmr::memory_resource> memory = {});
     ~editor_view(); ///< Retire UI and input on the main owner.
     /// @brief Publish an updated immutable packet after dispatching native input.
     [[nodiscard]] std::shared_ptr<const editor_frame>

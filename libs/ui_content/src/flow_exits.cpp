@@ -57,12 +57,22 @@ bool flow_manager::impl::apply_exit(detail::flow_candidate& next, std::string_vi
     }
 
     auto owner = region(found->region);
-    while (!graph.regions.at(owner).owner.empty() && !popup(current.at(owner).back()))
+    if (!scope_history(next.stacks.at(owner), source_index))
     {
-        owner = region(graph.screens.at(screen(graph.regions.at(owner).owner)).region);
+        return false;
     }
 
-    const auto& entry = current.at(owner).back();
+    while (!graph.regions.at(owner).owner.empty() && !popup(next.stacks.at(owner).back()))
+    {
+        const auto parent = screen(graph.regions.at(owner).owner);
+        owner = region(graph.screens.at(parent).region);
+        if (!scope_history(next.stacks.at(owner), parent))
+        {
+            return false;
+        }
+    }
+
+    const auto& entry = next.stacks.at(owner).back();
     if (operation == flow_operation::close_popup)
     {
         if (!popup(entry) || !entry.overlay)
@@ -70,17 +80,9 @@ bool flow_manager::impl::apply_exit(detail::flow_candidate& next, std::string_vi
             return false;
         }
     }
-    else
+    else if (popup(entry))
     {
-        if (popup(entry))
-        {
-            return false;
-        }
-
-        while (!graph.regions.at(owner).owner.empty())
-        {
-            owner = region(graph.screens.at(screen(graph.regions.at(owner).owner)).region);
-        }
+        return false;
     }
 
     auto& stack = next.stacks.at(owner);

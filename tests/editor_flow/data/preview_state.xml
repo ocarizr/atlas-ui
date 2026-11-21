@@ -1,0 +1,3 @@
+<ViewModel version="1" name="state">
+  <Fields><Field name="allowed" type="boolean" value="false"/></Fields>
+</ViewModel>

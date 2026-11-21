@@ -101,17 +101,58 @@ void input_session::begin_frame(std::uint64_t frame, const element_snapshot& sou
 /// @brief Whole-batch preflight rejects invalid replay before process-input or raw callbacks.
 void input_session::process(std::span<const input_event> events)
 {
+    process_packets(events, false);
+}
+
+/// @brief Cross-view routing preserves packet order without broadcasting process-input twice.
+void input_session::process_more(std::span<const input_event> events)
+{
+    process_packets(events, true);
+}
+
+/// @brief Preflight each admitted chunk before callbacks and charge the cumulative frame budget.
+void input_session::process_packets(std::span<const input_event> events, bool append)
+{
     impl_->open();
-    if (impl_->stage != 1)
+    if (impl_->stage != (append ? 2U : 1U))
     {
         throw std::logic_error("UI input is processed once before tick");
     }
 
-    if (events.size() > impl_->limits.max_events)
+    if (events.size() > impl_->limits.max_events - impl_->stats.events)
     {
         throw std::overflow_error("UI input packet limit exhausted");
     }
 
+    validate_input_events(events);
+
+    const impl::guard guard{impl_->busy};
+    const diagnostics::operation_scope scope{impl_->destinations,
+                                             {"ui.input.process", "ui.dispatch"}};
+    try
+    {
+        impl_->stage = 2;
+        if (!append)
+        {
+            impl_->broadcast(event_kind::process_input);
+        }
+
+        for (const auto& value : events)
+        {
+            ++impl_->stats.events;
+            impl_->process_one(value);
+        }
+    }
+    catch (...)
+    {
+        impl_->fail();
+        throw;
+    }
+}
+
+/// @brief Shared shape validation prevents a malformed suffix from admitting a navigation prefix.
+void validate_input_events(std::span<const input_event> events)
+{
     for (const auto& value : events)
     {
         if (value.kind > input_kind::window_blur || !std::isfinite(value.position.x) ||
@@ -125,25 +166,6 @@ void input_session::process(std::span<const input_event> events)
         {
             throw std::invalid_argument("invalid UI input packet");
         }
-    }
-
-    const impl::guard guard{impl_->busy};
-    const diagnostics::operation_scope scope{impl_->destinations,
-                                             {"ui.input.process", "ui.dispatch"}};
-    try
-    {
-        impl_->stage = 2;
-        impl_->broadcast(event_kind::process_input);
-        for (const auto& value : events)
-        {
-            ++impl_->stats.events;
-            impl_->process_one(value);
-        }
-    }
-    catch (...)
-    {
-        impl_->fail();
-        throw;
     }
 }
 

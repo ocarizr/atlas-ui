@@ -17,6 +17,12 @@ instance::~instance()
     }
 }
 
+/// @brief Retain the exact XML/prepared declarations without exposing live Lua registrations.
+std::span<const event_action> instance::event_bindings() const
+{
+    return impl_->events;
+}
+
 /// @brief An authored ID never resolves to a different element after the original is removed.
 ui::element_handle instance::find(std::string_view id) const
 {

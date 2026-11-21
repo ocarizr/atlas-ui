@@ -114,6 +114,8 @@ struct flow_load_request
     assets::asset_ref source;           ///< Typed UI asset to prepare.
     std::vector<flow_control> controls; ///< Authored routes for this screen only.
     flow_dispatch dispatch;             ///< Routes attached to this exact candidate generation.
+    std::string screen{}; ///< Exact graph instance, including repeated use of the same asset.
+    std::function<void(const event_action&)> dispatch_event{}; ///< Exact owning instance bridge.
 }; ///< A load owns its request until it returns a privately composed instance.
 
 class flow_load
@@ -171,6 +173,8 @@ class flow_manager
     [[nodiscard]] flow_status advance(std::uint64_t frame); ///< Poll and publish between frames.
     [[nodiscard]] std::exception_ptr failure() const;       ///< Last load or lifecycle failure.
     [[nodiscard]] std::vector<flow_presentation> presentation() const; ///< Ordered live views.
+    /// @brief Copy lightweight region/history identities, oldest first, without exposing views.
+    [[nodiscard]] std::vector<std::pair<std::string, std::vector<std::string>>> history() const;
     void restore_focus(instance& view); ///< Call after the view's first input begin-frame.
     void shutdown(std::uint64_t frame); ///< Cancel, retire active views and close the manager.
   private:

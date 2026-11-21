@@ -85,7 +85,7 @@ class composite_handler final : public ui::input_handler
     std::unique_ptr<ui_scripting::event_handler> script; ///< One instance in the shared domain.
     std::vector<flow_control> navigation; ///< Graph-authored actions on this element.
     flow_dispatch navigate;               ///< Owner-only admission tied to one view generation.
-    std::vector<event_action> events;     ///< UI-asset-owned semantic declarations.
+    std::span<const event_action> events; ///< Borrowed immutable instance-owned declarations.
     std::function<void(const event_action&)> dispatch_event; ///< Optional owner bridge.
     bool pressed = false; ///< Click requires a matching press and in-bounds release.
 };
@@ -112,10 +112,11 @@ scripting::instance_handle make_behavior(const behavior& spec, scripting::domain
 std::shared_ptr<ui::input_handler> make_handler(const element& node, const model_map& models,
                                                 const std::shared_ptr<scripting::domain>& domain,
                                                 std::set<assets::asset_id>& registered,
-                                                const construction& options)
+                                                const construction& options,
+                                                std::span<const event_action> events)
 {
     auto handler = std::make_shared<composite_handler>();
-    handler->events = node.events;
+    handler->events = events;
     handler->dispatch_event = options.dispatch_event;
     for (const auto& route : options.navigation)
     {

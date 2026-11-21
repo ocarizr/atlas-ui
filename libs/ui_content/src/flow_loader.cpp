@@ -94,6 +94,11 @@ class stream_load final : public flow_load
         options_.staged = std::span<const staged_asset>{ready_};
         options_.navigation = request_.controls;
         options_.navigate = request_.dispatch;
+        if (request_.dispatch_event)
+        {
+            options_.dispatch_event = request_.dispatch_event;
+        }
+
         if (binary_view_)
         {
             return build_prepared(*binary_view_, options_);

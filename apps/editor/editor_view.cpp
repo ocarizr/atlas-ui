@@ -1,4 +1,5 @@
 /** @file @brief Editor owner loop for transactional commands and cached panel presentation. */
+#include "asset_files.hpp"
 #include "editor_view_state.hpp"
 #include <algorithm>
 
@@ -223,6 +224,10 @@ editor_view::~editor_view() = default;
 /// @brief The application retains repository services through every panel callback and frame.
 void editor_view::bind_assets(asset_repository& repository, std::filesystem::path root)
 {
+    impl_->flow_mount = [&repository, root, workers = &impl_->jobs, sinks = impl_->sinks]
+    {
+        return mount_editor_assets(repository.snapshot(), root, *workers, sinks);
+    };
     impl_->assets = std::make_unique<asset_panel>(repository, std::move(root));
     impl_->chrome.reset();
 }
@@ -248,6 +253,19 @@ void editor_view::bind_flow_module(std::span<const scripting::source_asset> sour
 
     impl_->flow->register_module(sources, std::move(entry));
     impl_->chrome.reset();
+}
+
+/// @brief Preview runtime borrows the same job pool and retains its own mount lifetime.
+void editor_view::bind_flow_preview(std::shared_ptr<streaming::catalog_streamer> storage,
+                                    std::shared_ptr<std::pmr::memory_resource> memory)
+{
+    if (!impl_->flow)
+    {
+        throw std::logic_error("Bind a Flow document before its preview");
+    }
+
+    impl_->flow->bind_preview(impl_->jobs.dispatcher(), std::move(storage), std::move(memory));
+    impl_->flow->preview_mount_factory(impl_->flow_mount);
 }
 
 /// @brief The workspace remains the sole owner of documents as selection changes.
@@ -276,7 +294,8 @@ std::shared_ptr<const editor_frame> editor_view::snapshot(const window::window_s
         impl_->rebuild(bounds, density);
     }
 
-    if (!events.empty() && impl_->dispatch(events))
+    const bool preview_changed = impl_->flow && impl_->flow->pump_preview(events, density);
+    if ((!events.empty() && impl_->dispatch(events)) || preview_changed)
     {
         impl_->rebuild(bounds, density);
     }
