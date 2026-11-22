@@ -9,7 +9,8 @@ class detail::element_snapshot_data
   public:
     element_snapshot_data(std::uint64_t id, std::shared_ptr<std::pmr::memory_resource> resource)
         : session(id), memory(std::move(resource)), canvas_slots(0, memory.get()),
-          stack_slots(0, memory.get()), boundaries(0, memory.get()), records(0, memory.get())
+          stack_slots(0, memory.get()), boundaries(0, memory.get()), scrollbars(0, memory.get()),
+          records(0, memory.get())
     {
     } ///< Counted construction permits debug metadata allocation failure.
 
@@ -20,6 +21,7 @@ class detail::element_snapshot_data
     std::pmr::vector<canvas_slot_record> canvas_slots; ///< Sparse explicit placement overrides.
     std::pmr::vector<stack_slot_record> stack_slots;   ///< Sparse explicit stack metadata.
     std::pmr::vector<boundary_record> boundaries;      ///< Sparse directed sibling dependencies.
+    std::pmr::vector<scrollbar_record> scrollbars;     ///< Sparse scrollbar links.
     std::pmr::vector<element_record> records;          ///< Copied in stable slot order.
 };
 
@@ -63,6 +65,13 @@ std::span<const boundary_record> element_snapshot::boundaries() const noexcept
                  : std::span<const boundary_record>{};
 }
 
+/// @brief Sparse chrome links share the retained input lifetime.
+std::span<const scrollbar_record> element_snapshot::scrollbars() const noexcept
+{
+    return data_ ? std::span<const scrollbar_record>{data_->scrollbars}
+                 : std::span<const scrollbar_record>{};
+}
+
 /// @brief Capture is owner-only; failed allocation never acknowledges or mutates live state.
 element_snapshot element_tree::snapshot() const
 {
@@ -77,6 +86,7 @@ element_snapshot element_tree::snapshot() const
     data->canvas_slots.reserve(registry.view<const canvas_slot>().size());
     data->stack_slots.reserve(registry.view<const stack_slot>().size());
     data->boundaries.reserve(registry.view<const layout_boundaries>().size());
+    data->scrollbars.reserve(registry.view<const scrollbar_style>().size());
     for (std::uint32_t index = 0; index < impl_->slots.size(); ++index)
     {
         if (impl_->slots[index].entity == entt::null)
@@ -92,6 +102,11 @@ element_snapshot element_tree::snapshot() const
         if (const auto* value = registry.try_get<paint_style>(impl_->slots[index].entity))
         {
             data->records.back().paint = *value;
+        }
+
+        if (const auto* bar = registry.try_get<scrollbar_style>(impl_->slots[index].entity))
+        {
+            data->scrollbars.push_back({impl_->handle(index), *bar});
         }
 
         auto& style = data->records.back().paint;

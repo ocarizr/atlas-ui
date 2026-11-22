@@ -58,6 +58,30 @@ bool assign(float& destination, float value)
     return true;
 }
 
+/// @brief Material assignment is independent from requested scalar/layout state.
+void apply_material(entt::registry& registry, entt::entity target, const property_write& write,
+                    invalidation& dirty)
+{
+    auto& style = registry.get<paint_style>(target);
+    if (style.material &&
+        assign(material_value(*style.material, write.field), std::get<float>(write.value)))
+    {
+        dirty.paint = true;
+    }
+}
+
+/// @brief Scroll commands use the same staged validation as ordinary scalar properties.
+float& scroll_value(panel_layout& panel, property field)
+{
+    auto* scroll = std::get_if<scroll_layout>(&panel);
+    if (!scroll)
+    {
+        throw std::invalid_argument("UI scroll command requires a scroll viewport");
+    }
+
+    return field == property::scroll_x ? scroll->offset.x : scroll->offset.y;
+}
+
 /// @brief Select an edge in declaration order for the contiguous inset command ranges.
 float& edge(layout_insets& values, property field, property first)
 {
@@ -128,6 +152,11 @@ bool element_tree::impl::prepare_writes(std::span<const property_write> writes,
         else if (write.field == property::spacing)
         {
             geometry_changed |= spacing(target_node.panel) != std::get<float>(write.value);
+        }
+        else if (write.field == property::scroll_x || write.field == property::scroll_y)
+        {
+            geometry_changed |=
+                scroll_value(target_node.panel, write.field) != std::get<float>(write.value);
         }
         else if (canvas_field(write.field))
         {
@@ -215,14 +244,20 @@ void element_tree::impl::apply_canvas(const canvas_writes& canvas)
 void element_tree::impl::apply_scalar(const property_write& write)
 {
     auto& target_node = at(write.target.index);
+    if (write.field == property::scroll_x || write.field == property::scroll_y)
+    {
+        if (assign(scroll_value(target_node.panel, write.field), std::get<float>(write.value)))
+        {
+            subtree(write.target.index, true);
+            ancestors(target_node.parent);
+        }
+
+        return;
+    }
+
     if (material_slot(write.field))
     {
-        auto& style = registry.get<paint_style>(slots[write.target.index].entity);
-        if (style.material &&
-            assign(material_value(*style.material, write.field), std::get<float>(write.value)))
-        {
-            target_node.dirty.paint = true;
-        }
+        apply_material(registry, slots[write.target.index].entity, write, target_node.dirty);
 
         return;
     }

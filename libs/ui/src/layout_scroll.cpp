@@ -68,5 +68,7 @@ void prepare_scrolls(const element_snapshot& source, layout_snapshot_data& outpu
                          std::clamp(scroll->offset.y, 0.f, result.range.y)};
         output.scrolls.push_back({node.target, result});
     }
+
+    prepare_scrollbars(source, output);
 }
 } // namespace atlas::ui::detail

@@ -64,6 +64,28 @@ bool collect_input(native_input_state& state, const native_input_message& packet
 {
     const auto [handle, message, native_key, data] = packet;
     auto& queue = state.buffer;
+    if (message == WM_MOUSEWHEEL || message == WM_MOUSEHWHEEL)
+    {
+        POINT point{static_cast<std::int16_t>(LOWORD(data)),
+                    static_cast<std::int16_t>(HIWORD(data))};
+        if (!ScreenToClient(handle, &point))
+        {
+            return true;
+        }
+
+        const auto notches =
+            static_cast<float>(static_cast<std::int16_t>(HIWORD(native_key))) / WHEEL_DELTA;
+        const input_value value =
+            message == WM_MOUSEHWHEEL ? input_value{notches, 0} : input_value{0, -notches};
+        (void)queue.try_push({event_kind::pointer_scroll,
+                              {2, device_kind::pointer},
+                              pointer_control::wheel,
+                              value,
+                              0,
+                              {static_cast<float>(point.x), static_cast<float>(point.y)}});
+        return true;
+    }
+
     if (message == WM_MOUSEMOVE || message == WM_LBUTTONDOWN || message == WM_LBUTTONUP)
     {
         const input_value position{static_cast<float>(static_cast<std::int16_t>(LOWORD(data))),

@@ -1,5 +1,6 @@
 /** @file @brief Private bounded interaction ownership and synchronous dispatch helpers. */
 #pragma once
+#include "input_scroll_state.hpp"
 #include "paint_state.hpp"
 #include <algorithm>
 #include <atlas/jobs/execution.hpp>
@@ -43,6 +44,7 @@ class input_session::impl
                         element_handle target, input_event raw = {});
     ///< Bounded callback with copied values; cleanup may reference a removed element.
     void reconcile();                ///< Cancel stale focus/capture/hover and lifecycle states.
+    void start_bindings();           ///< Begin newly active registrations after frame preparation.
     void broadcast(event_kind kind); ///< Stable serial active registrations.
     void set_focus(element_handle target); ///< Direct transition plus ancestor reveal requests.
     void clear_capture();                  ///< Reset before delivering capture-lost.
@@ -52,7 +54,24 @@ class input_session::impl
     /// @brief Validate response transitions before changing ownership.
     void respond(input_binding& binding, const event_response& response, input_event raw);
     ///< Validate requested state transitions before applying them.
-    void process_one(input_event raw); ///< Semantic packet to routing/state changes.
+    void process_one(input_event raw);             ///< Semantic packet to routing/state changes.
+    pending_scroll* scroll(element_handle target); ///< Captured sparse viewport lookup.
+    bool scroll_navigation(element_handle current,
+                           input_event raw);                    ///< Ordered list focus navigation.
+    bool scroll_wheel(element_handle current, input_event raw); ///< Axis-aware wheel consumption.
+    bool scroll_response(element_handle current, event_kind kind,
+                         input_event raw); ///< Built-in wheel/bar routing.
+    bool scroll_interactive(
+        element_handle target) const;   ///< Built-in hit eligibility without a user handler.
+    bool scroll_capture_valid() const;  ///< Cancel captures after geometry or owner changes.
+    void reveal(element_handle target); ///< Deterministic nested focus reveal.
+    std::array<bool, 4> scroll_edges(element_handle owner, element_handle target)
+        const; ///< Eligible first/last per axis in numeric layout order.
+    void preserve_scroll_anchor(
+        const scroll_input_frame& previous); ///< Retain focused position on content changes.
+    void queue_scroll(pending_scroll& pending,
+                      layout_point offset); ///< Clamp and coalesce without live mutation.
+    void flush_scroll(); ///< Preflight all writes, then publish bounded command requests.
     /// @brief Shared guarded tick, late-tick and end transition.
     void system_stage(event_kind kind);
 
@@ -82,6 +101,9 @@ class input_session::impl
     std::pmr::vector<std::size_t> slots;   ///< Slot to region lookup; no live registry access.
     std::pmr::vector<element_handle> path; ///< Reserved route scratch, bounded by ancestry policy.
     element_handle focus_target{}, capture_target{}, hover_target{}; ///< Separate ownership states.
+    std::unique_ptr<scroll_input_frame> scrolling; ///< Immutable frame and sparse pending offsets.
+    scroll_navigation_actions navigation;          ///< Optional semantic action identities.
+    std::optional<scroll_drag> dragging;           ///< At most one primary-pointer drag.
     input_statistics stats; ///< Current/last admitted frame, not process memory.
     float delta = 0;        ///< Finite frame duration.
     unsigned stage = 0;     ///< 0 closed, 1 input, 2 tick, 3 late, 4 end, 5 failed.

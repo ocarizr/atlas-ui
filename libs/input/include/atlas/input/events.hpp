@@ -35,20 +35,23 @@ struct input_value
 /// @brief Ready packet categories and explicit loss/reset notifications.
 enum class event_kind : std::uint8_t
 {
-    control_changed,    ///< New button/axis value, including release zero.
-    pointer_motion,     ///< Absolute physical client position in value.
-    pointer_cancel,     ///< Cancel pointer ownership and its control states.
-    pointer_leave,      ///< Hover exit, not a button release.
-    focus_lost,         ///< Cancel controls from this source.
-    source_reset,       ///< Overflow/source reset; cancel rather than invent release success.
-    device_connected,   ///< Device lifecycle observation.
-    device_disconnected ///< Cancel this source/device's controls.
+    control_changed,     ///< New button/axis value, including release zero.
+    pointer_motion,      ///< Absolute physical client position in value.
+    pointer_cancel,      ///< Cancel pointer ownership and its control states.
+    pointer_leave,       ///< Hover exit, not a button release.
+    focus_lost,          ///< Cancel controls from this source.
+    source_reset,        ///< Overflow/source reset; cancel rather than invent release success.
+    device_connected,    ///< Device lifecycle observation.
+    device_disconnected, ///< Cancel this source/device's controls.
+    pointer_scroll       ///< Signed wheel notches in value; positive right/down, client position in
+                         ///< position.
 }; ///< Backends enqueue values; application handlers run during explicit owner dispatch.
 
 namespace pointer_control
 {
 inline constexpr std::uint32_t primary = 1;  ///< Primary button control.
 inline constexpr std::uint32_t position = 2; ///< Absolute position vector.
+inline constexpr std::uint32_t wheel = 3;    ///< Transient two-axis wheel, never a held control.
 } // namespace pointer_control
 
 struct event

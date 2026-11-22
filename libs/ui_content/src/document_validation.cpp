@@ -96,7 +96,7 @@ void validate_bindings(const element& node, const model_names& models)
     {
         const auto& action = route.binding;
         if (!models.contains(route.model) || action.action.empty() ||
-            action.arguments.size() > 32 || action.event > ui::event_kind::ensure_visible ||
+            action.arguments.size() > 32 || action.event > ui::event_kind::pointer_scroll ||
             action.route > ui::route_phase::bubble ||
             action.input_phase > input::action_phase::cancelled ||
             ((action.event == ui::event_kind::action) != (action.input_action != 0)))
@@ -123,6 +123,46 @@ struct location
 };
 
 using locations = std::map<std::string_view, location>; ///< Stable identity index.
+
+/// @brief Chrome and viewport must be separate branches of the same authored UI document.
+void validate_scrollbar(const element& node, const locations& seen)
+{
+    if (!node.scrollbar)
+    {
+        return;
+    }
+
+    const auto& bar = *node.scrollbar;
+    const auto owner = seen.find(bar.viewport);
+    if (owner == seen.end() ||
+        !std::holds_alternative<ui::scroll_layout>(owner->second.source->panel))
+    {
+        throw std::invalid_argument("Unknown scroll viewport on scrollbar: " + node.id);
+    }
+
+    for (auto current = seen.at(node.id).source; current;)
+    {
+        if (current->id == bar.viewport)
+        {
+            throw std::invalid_argument("Scrollbar must be outside its viewport subtree");
+        }
+
+        current = current->parent.empty() ? nullptr : seen.at(current->parent).source;
+    }
+
+    for (auto current = owner->second.source; current;)
+    {
+        if (current->id == node.id)
+        {
+            throw std::invalid_argument("Scrollbar cannot contain its viewport");
+        }
+
+        current = current->parent.empty() ? nullptr : seen.at(current->parent).source;
+    }
+
+    (void)ui::resolve_scrollbar({}, {},
+                                {{}, bar.axis, bar.minimum_thumb, bar.hide_when_zero, bar.color});
+}
 
 /// @brief Confirm that an authored edge names another child in the same layout domain.
 void validate_sibling(const element& node, const std::optional<sibling_boundary>& edge,
@@ -223,6 +263,7 @@ void validate(const document& source)
     {
         validate_sibling(node, node.horizontal, seen);
         validate_sibling(node, node.vertical, seen);
+        validate_scrollbar(node, seen);
     }
 }
 } // namespace atlas::ui_content::detail

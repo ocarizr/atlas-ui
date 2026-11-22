@@ -59,12 +59,12 @@ void action_fields(fields& xml, action_binding& data)
     auto& route = data.binding;
     xml.value("name", route.action, true);
     xml.choice("event", route.event,
-               std::array{"start",         "enable",        "disable",      "end",
-                          "process-input", "tick",          "late-tick",    "end-frame",
-                          "pointer-move",  "pointer-down",  "pointer-up",   "pointer-cancel",
-                          "pointer-enter", "pointer-leave", "capture-lost", "key-down",
-                          "key-up",        "focus-gained",  "focus-lost",   "action",
-                          "ensure-visible"});
+               std::array{"start",          "enable",        "disable",      "end",
+                          "process-input",  "tick",          "late-tick",    "end-frame",
+                          "pointer-move",   "pointer-down",  "pointer-up",   "pointer-cancel",
+                          "pointer-enter",  "pointer-leave", "capture-lost", "key-down",
+                          "key-up",         "focus-gained",  "focus-lost",   "action",
+                          "ensure-visible", "pointer-scroll"});
     xml.choice("route", route.route, std::array{"direct", "capture", "target", "bubble"});
     if (route.event == ui::event_kind::action)
     {

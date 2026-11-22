@@ -77,6 +77,8 @@ enum class property : std::uint8_t
     material_u_scale,    ///< Texture U scale in [0, 2].
     material_v_scale,    ///< Texture V scale in [0, 2].
     material_union,      ///< Mix toward the SDF union.
+    scroll_x,            ///< Finite requested horizontal scroll offset; requires a scroll owner.
+    scroll_y,            ///< Finite requested vertical scroll offset; requires a scroll owner.
 };
 
 /// @brief Validate a finite numeric value for the given scalar property.

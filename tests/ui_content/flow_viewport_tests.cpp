@@ -3,6 +3,44 @@
 
 namespace atlas::ui_content::tests
 {
+/// @brief Wheel follows the pointer's modeless layer even while another layer owns pointer capture.
+TEST_F(flow_viewport_test, WheelRoutesUnderPointerIndependentlyFromPopupCapture)
+{
+    documents.emplace(1, parse_xml({R"(<ui version="1">
+      <element id="viewport" panel="scroll"/>
+      <element id="content" parent="viewport" height="200"/>
+    </ui>)"}));
+    documents.emplace(2, parse_xml({R"(<ui version="1">
+      <element id="root" width="20" height="20"/>
+      <element id="viewport" parent="root" panel="scroll" width="10" height="20"/>
+      <element id="content" parent="viewport" height="100"/>
+      <element id="bar" parent="root" width="10" height="20">
+        <layout horizontal="end"/>
+        <scrollbar viewport="viewport" min-thumb="5"/>
+      </element>
+    </ui>)"}));
+    flow_manager flow{popup_graph(false, false), typed_loader()};
+    flow.start();
+    ASSERT_EQ(flow.advance(2), flow_status::committed);
+    ASSERT_TRUE(flow.request("open"));
+    ASSERT_EQ(flow.advance(3), flow_status::committed);
+    ui::layout_engine layout{jobs.dispatcher()};
+    ui::paint_engine paint{jobs.dispatcher()};
+    flow_viewport viewport{flow, layout, paint};
+    const ui::input_event press{ui::input_kind::pointer_down, {15, 2}};
+    (void)viewport.frame(4, {0, 0, 80, 60}, {&press, 1});
+    const auto layers = flow.presentation();
+    ASSERT_EQ(layers.size(), 2U);
+    EXPECT_EQ(layers.back().view->input().captured(), layers.back().view->find("bar"));
+    ui::input_event wheel{ui::input_kind::pointer_scroll, {60, 50}};
+    wheel.scroll.y = 1;
+    (void)viewport.frame(5, {0, 0, 80, 60}, {&wheel, 1});
+    EXPECT_EQ(std::get<ui::scroll_layout>(
+                  layers.front().view->tree().panel(layers.front().view->find("viewport")))
+                  .offset.y,
+              40);
+}
+
 /// @brief Replayed input produces a real navigation request only after closed UI phases.
 TEST_F(flow_viewport_test, FramesCloseBeforeNavigationAndReplayUsesRealInput)
 {

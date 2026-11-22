@@ -238,4 +238,17 @@ void interaction_fields(fields& xml, ui::interaction_options& data)
     xml.value("hit-test", data.hit_test);
     xml.value("focusable", data.focusable);
 }
+
+/// @brief Chrome references a document element, never a runtime handle or external path.
+void scrollbar_fields(fields& xml, scrollbar_link& data)
+{
+    xml.value("viewport", data.viewport, true);
+    xml.choice("axis", data.axis, std::array{"horizontal", "vertical"});
+    xml.value("min-thumb", data.minimum_thumb);
+    xml.value("hide-when-zero", data.hide_when_zero);
+    xml.value("r", data.color[0]);
+    xml.value("g", data.color[1]);
+    xml.value("b", data.color[2]);
+    xml.value("a", data.color[3]);
+}
 } // namespace atlas::ui_content::detail

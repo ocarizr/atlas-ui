@@ -140,7 +140,7 @@ void flow_viewport::impl::route(const ui::input_event& event, std::uint32_t back
         return;
     }
 
-    if (event.kind > ui::input_kind::pointer_leave)
+    if (event.kind > ui::input_kind::pointer_leave && event.kind != ui::input_kind::pointer_scroll)
     {
         for (auto& layer : layers)
         {
@@ -172,7 +172,7 @@ void flow_viewport::impl::route_pointer(const ui::input_event& event)
         {
             return value.item.input && value.item.view->input().captured().generation != 0;
         });
-    if (captured != layers.end())
+    if (captured != layers.end() && event.kind != ui::input_kind::pointer_scroll)
     {
         deliver(static_cast<std::size_t>(captured - layers.begin()), event);
         return;

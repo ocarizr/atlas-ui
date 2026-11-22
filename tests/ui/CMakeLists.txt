@@ -1,4 +1,7 @@
 add_executable(atlas_ui_tests command_merge_tests.cpp command_validation_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE scroll_input_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE scroll_focus_tests.cpp scroll_wheel_tests.cpp scrollbar_input_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE scrollbar_geometry_tests.cpp scroll_failure_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE scroll_geometry_tests.cpp scroll_presentation_tests.cpp scroll_resource_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE scroll_axis_tests.cpp)
 

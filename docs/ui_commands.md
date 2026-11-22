@@ -10,7 +10,10 @@ owned snapshots, without giving workers access to the live tree.
 ## Command contract
 
 A creating-thread `command_buffer` accepts absolute assignments to width, height,
-opacity and visibility. Handles contain a session, slot and nonzero generation.
+opacity, visibility and the documented layout/appearance scalar properties.
+`scroll_x` and `scroll_y` accept finite logical requested offsets only on scroll
+owners; using either on another panel rejects the whole batch before mutation.
+Handles contain a session, slot and nonzero generation.
 Each tree owns its bound producer. Unbound or foreign batches cannot mutate it.
 Width/height accept explicit fixed zero or `std::monostate{}` to reset automatic
 sizing. The [layout engine](ui_layout.md) consumes committed requests.

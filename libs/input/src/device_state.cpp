@@ -80,7 +80,7 @@ void input_system::impl::apply_to(const event& value, std::pmr::vector<control_r
         instances.push_back({value.source, value.device});
     }
 
-    if (value.kind == event_kind::device_connected)
+    if (value.kind == event_kind::device_connected || value.kind == event_kind::pointer_scroll)
     {
         return;
     }
@@ -119,8 +119,7 @@ void input_system::impl::preflight(std::span<const event> values)
     {
         validate_value(value.value);
         validate_value(value.position);
-        if (value.kind > event_kind::device_disconnected ||
-            value.device.kind > device_kind::gamepad)
+        if (value.kind > event_kind::pointer_scroll || value.device.kind > device_kind::gamepad)
         {
             throw std::invalid_argument("invalid input event category");
         }
@@ -140,7 +139,7 @@ void input_system::impl::preflight(std::span<const event> values)
         }
 
         if ((value.kind == event_kind::pointer_motion || value.kind == event_kind::pointer_cancel ||
-             value.kind == event_kind::pointer_leave) &&
+             value.kind == event_kind::pointer_leave || value.kind == event_kind::pointer_scroll) &&
             value.device.kind != device_kind::pointer)
         {
             throw std::invalid_argument("pointer event needs a pointer device");

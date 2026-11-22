@@ -52,6 +52,10 @@ bool read_metadata(pugi::xml_node node, element& target)
     {
         read_section(node, target.vertical.emplace(), boundary_fields);
     }
+    else if (kind == "scrollbar")
+    {
+        read_section(node, target.scrollbar.emplace(), scrollbar_fields);
+    }
     else if (kind == "interaction")
     {
         read_section(node, target.interaction.emplace(), interaction_fields);
@@ -139,6 +143,11 @@ void write_element(pugi::xml_node node, const element& source)
     if (source.interaction)
     {
         write_section(node, "interaction", *source.interaction, interaction_fields);
+    }
+
+    if (source.scrollbar)
+    {
+        write_section(node, "scrollbar", *source.scrollbar, scrollbar_fields);
     }
 
     write_bindings(node, source);

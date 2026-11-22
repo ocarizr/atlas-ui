@@ -21,8 +21,9 @@ element_handle input_session::impl::hit(layout_point point) const
     for (auto it = regions.rbegin(); it != regions.rend(); ++it)
     {
         const auto* binding = find(it->target);
-        if (binding && binding->options.hit_test && contains(it->clip, point) &&
-            it->transform.hit(it->border, point) && eligible(it->target))
+        if (((binding && binding->options.hit_test) || scroll_interactive(it->target)) &&
+            contains(it->clip, point) && it->transform.hit(it->border, point) &&
+            eligible(it->target))
         {
             return it->target;
         }
@@ -64,16 +65,7 @@ void input_session::impl::set_focus(element_handle target)
 
     focus_target = target;
     (void)send(target, event_kind::focus_gained, route_phase::direct, target);
-    auto parent = region(target)->parent;
-    while (parent.generation != 0 && eligible(target))
-    {
-        if (send(parent, event_kind::ensure_visible, route_phase::bubble, target).stop)
-        {
-            break;
-        }
-
-        parent = region(parent)->parent;
-    }
+    reveal(target);
 }
 
 /// @brief Explicit focus is not keyboard/gamepad navigation policy.
@@ -173,14 +165,17 @@ void input_session::impl::route(input_event raw, element_handle target, event_ki
         }
 
         auto* binding = find(current);
-        if (!binding || !binding->enabled || !eligible(current))
+        if (binding && binding->enabled && eligible(current))
         {
-            return false;
+            const auto response = send(current, kind, phase, target, raw);
+            respond(*binding, response, raw);
+            if (response.stop)
+            {
+                return true;
+            }
         }
 
-        const auto response = send(current, kind, phase, target, raw);
-        respond(*binding, response, raw);
-        return response.stop;
+        return phase != route_phase::capture && scroll_response(current, kind, raw);
     };
     for (std::size_t i = path.size(); i-- > 1;)
     {
@@ -227,6 +222,13 @@ void input_session::impl::process_one(input_event raw)
 
             break;
         }
+        case input_kind::pointer_scroll:
+            if (dragging)
+            {
+                clear_capture();
+            }
+            route(raw, hit(raw.position), event_kind::pointer_scroll);
+            break;
         case input_kind::pointer_cancel:
             route(raw, capture_target, event_kind::pointer_cancel);
             clear_capture();

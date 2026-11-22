@@ -6,6 +6,25 @@
 
 namespace atlas::window::tests
 {
+/// @brief Native wheel deltas become signed notches with client-space pointer coordinates.
+TEST(native_input_test, NormalizesWheelAxesAndScreenCoordinates)
+{
+    window target{{"Wheel replay fixture", 80, 60, false}};
+    const auto handle = FindWindowW(L"atlas_presentation_window", L"Wheel replay fixture");
+    ASSERT_NE(handle, nullptr);
+    POINT point{13, 17};
+    ASSERT_TRUE(ClientToScreen(handle, &point));
+    const auto position = MAKELPARAM(static_cast<WORD>(point.x), static_cast<WORD>(point.y));
+    SendMessageW(handle, WM_MOUSEWHEEL, MAKEWPARAM(0, WHEEL_DELTA / 2), position);
+    SendMessageW(handle, WM_MOUSEHWHEEL, MAKEWPARAM(0, WHEEL_DELTA), position);
+    const auto batch = std::make_unique<input::event_batch>(target.take_input());
+    ASSERT_EQ(batch->count, 2U);
+    EXPECT_EQ(batch->events[0].kind, input::event_kind::pointer_scroll);
+    EXPECT_EQ(batch->events[0].value, (input::input_value{0, -0.5f}));
+    EXPECT_EQ(batch->events[0].position, (input::input_value{13, 17}));
+    EXPECT_EQ(batch->events[1].value, (input::input_value{1, 0}));
+}
+
 namespace
 {
 /// @brief Keep multiple bounded native recordings off the test runner's stack.
