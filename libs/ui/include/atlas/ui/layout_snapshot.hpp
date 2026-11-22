@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <atlas/ui/layout_types.hpp>
+#include <atlas/ui/scrollbar.hpp>
 #include <optional>
 
 namespace atlas::ui
@@ -25,6 +26,9 @@ class layout_snapshot
     std::span<const scroll_item> scrolls() const noexcept; ///< Sparse scroll-owner metadata.
     std::optional<scroll_geometry>
     find_scroll(element_handle target) const; ///< Reject stale, foreign or non-scroll identities.
+    std::span<const scrollbar_item> scrollbars() const noexcept; ///< Sparse derived track/thumbs.
+    std::optional<scrollbar_geometry>
+    find_scrollbar(element_handle target) const; ///< Exact chrome identity.
     std::optional<layout_geometry>
     find(element_handle target) const; ///< Reject stale/foreign identities.
   private:

@@ -52,7 +52,15 @@ void input_session::begin_frame(std::uint64_t frame, const element_snapshot& sou
         }
     }
 
+    std::unique_ptr<scroll_input_frame> scrolls;
+    if (!geometry.scrolls().empty() || !geometry.scrollbars().empty())
+    {
+        scrolls = std::make_unique<scroll_input_frame>(source, geometry, impl_->memory.get());
+    }
+
     impl_->tree.commands().begin_frame(frame);
+    auto previous_scrolls = std::move(impl_->scrolling);
+    impl_->scrolling = std::move(scrolls);
     impl_->regions.swap(prepared);
     impl_->slots.swap(slots);
     impl_->stats = {frame, 0, 0, false, false};
@@ -61,40 +69,48 @@ void input_session::begin_frame(std::uint64_t frame, const element_snapshot& sou
     try
     {
         impl_->reconcile();
+        if (previous_scrolls)
+        {
+            impl_->preserve_scroll_anchor(*previous_scrolls);
+        }
+
         std::erase_if(impl_->bindings,
                       [](const auto& value)
                       {
                           return value.ended;
                       });
-        for (const auto& value : impl_->regions)
-        {
-            auto* binding = impl_->find(value.target);
-            if (!binding || !impl_->eligible(value.target))
-            {
-                continue;
-            }
-
-            if (!binding->started)
-            {
-                binding->started = true;
-                (void)impl_->send(value.target, event_kind::start, route_phase::direct,
-                                  value.target);
-            }
-
-            if (!binding->enabled && impl_->eligible(value.target))
-            {
-                binding->enabled = true;
-                (void)impl_->send(value.target, event_kind::enable, route_phase::direct,
-                                  value.target);
-            }
-        }
-
+        impl_->start_bindings();
         impl_->reconcile();
     }
     catch (...)
     {
         impl_->fail();
         throw;
+    }
+}
+
+/// @brief Lifecycle starts only after all new-frame allocations and scroll preparation succeed.
+void input_session::impl::start_bindings()
+{
+    for (const auto& value : regions)
+    {
+        auto* binding = find(value.target);
+        if (!binding || !eligible(value.target))
+        {
+            continue;
+        }
+
+        if (!binding->started)
+        {
+            binding->started = true;
+            (void)send(value.target, event_kind::start, route_phase::direct, value.target);
+        }
+
+        if (!binding->enabled && eligible(value.target))
+        {
+            binding->enabled = true;
+            (void)send(value.target, event_kind::enable, route_phase::direct, value.target);
+        }
     }
 }
 
@@ -155,8 +171,10 @@ void validate_input_events(std::span<const input_event> events)
 {
     for (const auto& value : events)
     {
-        if (value.kind > input_kind::window_blur || !std::isfinite(value.position.x) ||
-            !std::isfinite(value.position.y) ||
+        if (value.kind > input_kind::pointer_scroll || !std::isfinite(value.position.x) ||
+            !std::isfinite(value.position.y) || !std::isfinite(value.scroll.x) ||
+            !std::isfinite(value.scroll.y) ||
+            (value.kind != input_kind::pointer_scroll && value.scroll != layout_point{}) ||
             (value.kind == input_kind::action) != value.action.has_value() ||
             (value.action &&
              (!value.action->action || !value.action->frame ||
@@ -190,6 +208,7 @@ void input_session::impl::system_stage(event_kind kind)
         broadcast(kind);
         if (!next)
         {
+            flush_scroll();
             stats.closed = true;
         }
     }

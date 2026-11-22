@@ -26,6 +26,11 @@ class ui_input_batch final : public input::input_listener
         ui::input_event packet;
         switch (event.kind)
         {
+            case input::event_kind::pointer_scroll:
+                packet.kind = ui::input_kind::pointer_scroll;
+                packet.position = {event.position.x, event.position.y};
+                packet.scroll = {event.value.x, event.value.y};
+                break;
             case input::event_kind::pointer_motion:
                 packet.kind = ui::input_kind::pointer_move;
                 packet.position = {event.value.x, event.value.y};

@@ -69,6 +69,9 @@ class element_tree
                       const material_style& value);                      ///< Copy resolved values.
     std::optional<material_style> material(element_handle target) const; ///< Read instance values.
     void set_viewport(layout_rect viewport); ///< Changed bounds invalidate all computed geometry.
+    void set_scrollbar(element_handle target,
+                       const scrollbar_style& style); ///< Validate a sparse chrome link.
+    void reset_scrollbar(element_handle target); ///< Remove only the chrome behavior and thumb.
     void publish_layout(const layout_snapshot& result); ///< Atomically reject old/foreign inputs.
     std::optional<layout_geometry>
     computed(element_handle target) const; ///< Empty until current geometry is published.

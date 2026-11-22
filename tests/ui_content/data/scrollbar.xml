@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ui version="1">
+  <element id="root" panel="overlay"/>
+  <element id="viewport" parent="root" panel="scroll" width="90" height="80"/>
+  <element id="list" parent="viewport" panel="vertical"/>
+  <element id="first" parent="list" panel="leaf" height="40"><interaction focusable="true"/></element>
+  <element id="second" parent="list" panel="leaf" height="40"><interaction focusable="true"/></element>
+  <element id="third" parent="list" panel="leaf" height="40"><interaction focusable="true"/></element>
+  <element id="fourth" parent="list" panel="leaf" height="40"><interaction focusable="true"/></element>
+  <element id="last" parent="list" panel="leaf" height="40"><interaction focusable="true"/></element>
+  <element id="bar" parent="root" panel="leaf" width="10" height="80">
+    <layout horizontal="end"/>
+    <paint fill="true" r="0.2" g="0.2" b="0.2"/>
+    <scrollbar viewport="viewport" axis="vertical" min-thumb="12" hide-when-zero="true"/>
+  </element>
+</ui>

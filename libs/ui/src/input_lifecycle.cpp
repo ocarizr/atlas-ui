@@ -19,31 +19,31 @@ const detail::presentation_region* input_session::impl::region(element_handle ta
 /// @brief Direct tree removal/hide/reparent is detected before subsequent route deliveries.
 bool input_session::impl::eligible(element_handle target) const
 {
-    const auto* value = region(target);
-    if (!value || !value->visible)
+    const auto ancestry_enabled = [&](element_handle current)
     {
-        return false;
-    }
-
-    for (std::size_t depth = 0; target.generation != 0; ++depth)
-    {
-        value = region(target);
-        if (!value || depth >= limits.max_route_depth || !tree.contains(target) ||
-            !tree.requested(target).visible || tree.parent(target) != value->parent)
+        for (std::size_t depth = 0; current.generation != 0; ++depth)
         {
-            return false;
+            const auto* value = region(current);
+            if (!value || !value->visible || depth >= limits.max_route_depth ||
+                !tree.contains(current) || !tree.requested(current).visible ||
+                tree.parent(current) != value->parent)
+            {
+                return false;
+            }
+
+            const auto* binding = find(current);
+            if (binding && (!binding->options.enabled || binding->retiring || binding->ended))
+            {
+                return false;
+            }
+
+            current = value->parent;
         }
 
-        const auto* binding = find(target);
-        if (binding && (!binding->options.enabled || binding->retiring || binding->ended))
-        {
-            return false;
-        }
-
-        target = value->parent;
-    }
-
-    return true;
+        return true;
+    };
+    const auto bar = scrolling ? scrolling->geometry.find_scrollbar(target) : std::nullopt;
+    return ancestry_enabled(target) && (!bar || (bar->enabled && ancestry_enabled(bar->viewport)));
 }
 
 /// @brief Cleanup keeps the old full identity even when the live tree has reused its slot.
@@ -79,13 +79,14 @@ event_response input_session::impl::send(element_handle current, event_kind kind
     const diagnostics::operation_scope scope{destinations, {"ui.input.callback", "ui.dispatch"}};
     return binding->handler->on_event({kind, phase, target, current, raw.position, local,
                                        target_bounds, current_bounds, clip, raw.key, stats.frame,
-                                       delta, tree.contains(target), raw.action},
+                                       delta, tree.contains(target), raw.action, raw.scroll},
                                       tree.commands());
 }
 
 /// @brief State is invalidated before a possibly throwing cleanup callback.
 void input_session::impl::clear_capture()
 {
+    dragging.reset();
     const auto previous = std::exchange(capture_target, {});
     if (previous.generation != 0)
     {
@@ -117,7 +118,7 @@ void input_session::impl::set_hover(element_handle target, input_event raw)
 /// @brief Reconciliation never invokes a removed target's raw input body.
 void input_session::impl::reconcile()
 {
-    if (capture_target.generation != 0 && !eligible(capture_target))
+    if (capture_target.generation != 0 && (!eligible(capture_target) || !scroll_capture_valid()))
     {
         clear_capture();
     }
@@ -174,6 +175,8 @@ void input_session::impl::fail() noexcept
     stats.failed = true;
     stage = 5;
     focus_target = capture_target = hover_target = {};
+    dragging.reset();
+    scrolling.reset();
     try
     {
         tree.commands().discard_pending();

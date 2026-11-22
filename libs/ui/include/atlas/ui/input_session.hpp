@@ -19,7 +19,8 @@ enum class input_kind : std::uint8_t
     key_down,       ///< Semantic key press, routed to focus.
     key_up,         ///< Semantic key release, routed to focus.
     action,         ///< Semantic action routed to focus.
-    window_blur     ///< Release capture, hover and focus after activation/input loss.
+    window_blur,    ///< Release capture, hover and focus after activation/input loss.
+    pointer_scroll  ///< Signed wheel notches at position; positive values advance toward the end.
 };
 
 struct input_event
@@ -28,6 +29,8 @@ struct input_event
     layout_point position{}; ///< Logical viewport coordinates; may lie outside the viewport.
     std::uint32_t key = 0;   ///< Host-defined semantic identifier, not a native SDK type.
     std::optional<input::action_event> action{}; ///< Present only for semantic action packets.
+    layout_point
+        scroll{}; ///< Wheel notches; zero for other packets. One notch is 40 logical units.
 }; ///< Value-only, replayable primary-pointer/key packet; no platform or device ownership.
 
 /// @brief Validate a complete replay batch before any view can receive callbacks or mutations.
@@ -56,7 +59,8 @@ enum class event_kind : std::uint8_t
     focus_gained,   ///< Direct focus acquisition.
     focus_lost,     ///< Keyboard routing and focus transitions.
     action,         ///< Semantic action received from the reusable input library.
-    ensure_visible  ///< Bubble a focus-reveal request; scrolling policy belongs to the container.
+    ensure_visible, ///< Bubble a focus-reveal request.
+    pointer_scroll  ///< Signed wheel input routed under the pointer, independently from capture.
 };
 
 /// @brief Direct notifications and the three ordered hierarchy routing phases.
@@ -84,7 +88,8 @@ struct routed_event
     float delta_seconds = 0;    ///< Finite nonnegative frame delta.
     bool target_alive = false;  ///< Cleanup can refer to an already removed identity.
     std::optional<input::action_event>
-        action{}; ///< Copied semantic payload, independent of devices.
+        action{};          ///< Copied semantic payload, independent of devices.
+    layout_point scroll{}; ///< Copied signed wheel notches.
 }; ///< Borrowed only for callback duration; copying this value is safe.
 
 struct event_response
@@ -132,6 +137,15 @@ struct input_statistics
     bool failed = false;       ///< Further dispatch waits for a newer begin-frame or shutdown.
 };
 
+/// @brief Optional semantic actions for list navigation; zero leaves an operation unmapped.
+struct scroll_navigation_actions
+{
+    input::action_id previous = 0; ///< Previous eligible item in layout order.
+    input::action_id next = 0;     ///< Next eligible item in layout order.
+    input::action_id first = 0;    ///< First eligible item.
+    input::action_id last = 0;     ///< Last eligible item.
+};
+
 class input_session
 {
   public:
@@ -144,6 +158,8 @@ class input_session
     void bind(element_handle target, std::shared_ptr<input_handler> handler,
               interaction_options options = {}); ///< Between frames; retain handler ownership.
     void configure(element_handle target, interaction_options options); ///< Between frames only.
+    void configure_scroll_navigation(
+        scroll_navigation_actions actions); ///< Between-frame semantic input mappings.
     void unbind(element_handle target); ///< Retire at next begin-frame, with disable/end cleanup.
     /// @brief Prepare matching geometry, begin commands, then start/enable registered handlers.
     void begin_frame(std::uint64_t frame, const element_snapshot& source,
@@ -156,6 +172,11 @@ class input_session
     void late_tick(); ///< Broadcast after tick and any caller-owned sync point.
     void end_frame(); ///< Broadcast after late tick; caller seals/applies remaining commands.
     void focus(element_handle target); ///< During an open frame; empty clears focus.
+    void ensure_visible(
+        element_handle target); ///< Queue immediate minimal reveal through scroll ancestors.
+    void scroll_by(
+        element_handle viewport,
+        layout_point delta); ///< Queue logical-unit scrolling, including semantic gamepad actions.
     [[nodiscard]] bool can_focus(element_handle target) const; ///< Check current input eligibility.
     element_handle focused() const;  ///< Owner-only observation outside callbacks.
     element_handle captured() const; ///< Primary-pointer capture, or empty.

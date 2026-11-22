@@ -11,4 +11,6 @@ void canvas_fields(fields& xml, ui::canvas_slot& data);  ///< Independent anchor
 void stack_fields(fields& xml, ui::stack_slot& data);    ///< Sibling ordering and weights.
 void boundary_fields(fields& xml, sibling_boundary& data);           ///< Authored edge constraint.
 void interaction_fields(fields& xml, ui::interaction_options& data); ///< Input policy.
+void scrollbar_fields(fields& xml,
+                      scrollbar_link& data); ///< Persistent viewport link and thumb policy.
 } // namespace atlas::ui_content::detail

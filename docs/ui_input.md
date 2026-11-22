@@ -5,7 +5,8 @@ It borrows the tree and shares its sole command producer. The application retain
 both on the same coordinator; no worker invokes input/Lua/session callbacks.
 Handlers are retained interfaces for native behavior and the
 [Lua behavior adapter](scripting.md). UI routing/lifecycle remains independent of
-the interpreter; interactive widget policies are separate consumers.
+the interpreter. Scroll viewports have built-in interaction; other widget policies
+attach retained handlers.
 
 ## Frame boundaries
 
@@ -112,12 +113,14 @@ Action payloads preserve intent, value, phase and dispatch identity. A focus tra
 notifications and an ancestor `ensure_visible` request containing frozen target
 geometry. An ancestor can enqueue a reveal command and stop that request.
 Off-clip enabled targets may receive programmatic focus so a scroll container
-can reveal them. This hook does not implement scrolling or navigation policy.
+can reveal them. Scroll viewport ancestors implement immediate deterministic
+reveal and coalesce offsets at the end-frame command boundary. Registered ancestor
+handlers can override the policy by stopping the request.
 
-Wheel/scrollbars and first/last reveal are tracked in
-[#121](https://github.com/ocarizr/atlas-ui/issues/121); virtualization in
-[#122](https://github.com/ocarizr/atlas-ui/issues/122); keyboard/gamepad navigation,
-accessibility and extended input in [#98](https://github.com/ocarizr/atlas-ui/issues/98).
+See [scroll interaction](ui_scrolling.md#interaction-and-focus) for wheel routing,
+scrollbars, list keyboard/gamepad navigation and focus anchors. Virtualization is
+tracked in [#122](https://github.com/ocarizr/atlas-ui/issues/122); advanced spatial
+navigation, accessibility and extended input remain in [#98](https://github.com/ocarizr/atlas-ui/issues/98).
 
 ## Failure, cleanup and limits
 

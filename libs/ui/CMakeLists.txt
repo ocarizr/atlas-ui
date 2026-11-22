@@ -5,6 +5,8 @@ target_sources(atlas_ui PRIVATE src/element_tree.cpp src/tree_hierarchy.cpp src/
 target_sources(atlas_ui PRIVATE src/tree_snapshot.cpp src/frame_executor.cpp src/frame_work.cpp)
 add_library(atlas::ui ALIAS atlas_ui)
 target_sources(atlas_ui PRIVATE src/layout_scroll.cpp)
+target_sources(atlas_ui PRIVATE src/scrollbar.cpp src/tree_scrollbar.cpp src/layout_scrollbar.cpp)
+target_sources(atlas_ui PRIVATE src/input_scroll.cpp src/input_scroll_reveal.cpp src/input_scroll_pointer.cpp src/input_scroll_anchor.cpp)
 target_sources(atlas_ui PRIVATE src/image_fit.cpp)
 target_sources(atlas_ui PRIVATE src/tree_paint.cpp src/paint_engine.cpp src/paint_prepare.cpp src/paint_transform.cpp src/paint_jobs.cpp)
 target_sources(atlas_ui PRIVATE src/paint_order.cpp)
@@ -25,3 +27,5 @@ target_link_libraries(atlas_ui PUBLIC atlas::input atlas::diagnostics atlas::job
 target_link_libraries(atlas_ui PRIVATE $<BUILD_INTERFACE:EnTT::EnTT>)
 atlas_configure_target(atlas_ui)
 atlas_export_library(atlas_ui ui ui)
+
+target_sources(atlas_ui PRIVATE src/input_scroll_navigation.cpp)

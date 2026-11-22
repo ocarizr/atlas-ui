@@ -18,7 +18,7 @@ constexpr std::uint16_t wire_version = 2; ///< Add the embedded ViewModel defini
 /// @brief Encode the typed UI and its exact catalog closure in v2 field order.
 template <bool Reading>
 void serialize(detail::binary<Reading>& format, prepared_view& source, bool presentation,
-               bool events)
+               bool events, bool scrollbars)
 {
     detail::reference(format, source.source);
     format.sequence(source.dependencies, detail::max_prepared_dependencies,
@@ -79,6 +79,24 @@ void serialize(detail::binary<Reading>& format, prepared_view& source, bool pres
                             });
         }
     }
+
+    if (scrollbars)
+    {
+        for (auto& node : source.view.elements)
+        {
+            format.optional(node.scrollbar,
+                            [](auto& archive, scrollbar_link& link)
+                            {
+                                archive.field(link.viewport);
+                                archive.choice(link.axis, ui::scroll_axis::vertical);
+                                archive.fields(link.minimum_thumb, link.hide_when_zero);
+                                for (auto& color : link.color)
+                                {
+                                    archive.field(color);
+                                }
+                            });
+        }
+    }
 }
 } // namespace
 
@@ -100,9 +118,23 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
                             {
                                 return std::holds_alternative<ui::scroll_layout>(node.panel);
                             });
-    serialize(payload, copy, presentation || events || scroll, events || scroll);
+    const bool scrollbars = std::ranges::any_of(
+        source.view.elements,
+        [](const auto& node)
+        {
+            return node.scrollbar.has_value() ||
+                   std::ranges::any_of(node.actions,
+                                       [](const auto& action)
+                                       {
+                                           return action.binding.event ==
+                                                  ui::event_kind::pointer_scroll;
+                                       });
+        });
+    serialize(payload, copy, presentation || events || scroll || scrollbars,
+              events || scroll || scrollbars, scrollbars);
     return mvvm_content::detail::seal_prepared(payload, magic,
-                                               scroll         ? std::uint16_t{5}
+                                               scrollbars     ? std::uint16_t{6}
+                                               : scroll       ? std::uint16_t{5}
                                                : events       ? std::uint16_t{4}
                                                : presentation ? std::uint16_t{3}
                                                               : wire_version);
@@ -112,14 +144,14 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
 prepared_view decode_prepared(std::span<const std::byte> bytes)
 {
     const auto version = detail::prepared_version(bytes);
-    if (version != wire_version && version != 3 && version != 4 && version != 5)
+    if (version != wire_version && version != 3 && version != 4 && version != 5 && version != 6)
     {
         throw std::invalid_argument("Unsupported prepared UI version");
     }
 
     detail::binary<true> archive{mvvm_content::detail::open_prepared(bytes, magic, version)};
     prepared_view result;
-    serialize(archive, result, version >= 3, version >= 4);
+    serialize(archive, result, version >= 3, version >= 4, version >= 6);
     if (version < 5 && std::ranges::any_of(
                            result.view.elements,
                            [](const auto& node)

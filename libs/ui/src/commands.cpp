@@ -43,6 +43,11 @@ void validate(element_handle target, property field, const property_value& value
 /// @brief Shared numeric domain for commands and track keys.
 bool valid_scalar(property field, float value) noexcept
 {
+    if (field == property::scroll_x || field == property::scroll_y)
+    {
+        return std::isfinite(value);
+    }
+
     if (material_slot(field))
     {
         return valid_material_slot(material_kind::texture, field, value) ||
@@ -69,6 +74,11 @@ bool valid_scalar(property field, float value) noexcept
 /// @brief Index the closed command vocabulary without exposing its storage.
 std::string_view property_name(property field) noexcept
 {
+    if (field == property::scroll_x || field == property::scroll_y)
+    {
+        return field == property::scroll_x ? "scroll-x" : "scroll-y";
+    }
+
     if (material_slot(field))
     {
         return material_slot_name(field);

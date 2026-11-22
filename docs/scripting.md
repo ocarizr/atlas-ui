@@ -89,7 +89,7 @@ Register a retained `ui_scripting::event_handler` through `ui::input_session`.
 Admit the behavior/model frame before `input_session.begin_frame`, because that
 operation delivers `start`/`enable` immediately. Functions use the existing event
 names: `start`, `enable`, `disable`, `end`, `process_input`, `tick`, `late_tick`,
-`end_frame`, pointer/key/focus events, `action` and `ensure_visible`.
+`end_frame`, pointer/key/focus events, `action`, `ensure_visible` and `pointer_scroll`.
 Use `["end"] = function(...) ... end` because `end` is a Lua keyword.
 
 Every UI handler receives these scalar arguments, in order:
@@ -101,6 +101,10 @@ Every UI handler receives these scalar arguments, in order:
 5. Semantic action ID (decimal text, empty when absent).
 6. Action phase (integer, -1 when absent).
 7. Whether the original target is alive (boolean).
+8. Signed horizontal and vertical wheel notches (two numbers, zero for other events).
+
+The first eight scalar arguments retain their order. The wheel arguments are
+appended, so existing Lua handlers can continue ignoring them.
 
 Handlers can return a boolean prefix in order: stop propagation, capture pointer,
 release pointer, focus and blur. Missing flags are false. Nonboolean/excess flags

@@ -7,6 +7,7 @@ namespace atlas::ui::detail
 /// @brief Affine map from untransformed layout coordinates to logical viewport coordinates.
 struct paint_transform
 {
+    bool operator==(const paint_transform&) const = default; ///< Exact frozen transform identity.
     double xx = 1; ///< Horizontal contribution to viewport x.
     double xy = 0; ///< Vertical contribution to viewport x.
     double yx = 0; ///< Horizontal contribution to viewport y.

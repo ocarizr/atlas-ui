@@ -68,6 +68,16 @@ struct sibling_boundary
     ui::boundary_overflow overflow = ui::boundary_overflow::allow; ///< Incompatible bounds policy.
 };
 
+/// @brief Authored chrome reference resolved to a typed viewport handle during construction.
+struct scrollbar_link
+{
+    std::string viewport; ///< Document-local scroll-owner ID, including forward references.
+    ui::scroll_axis axis = ui::scroll_axis::vertical; ///< Controlled axis.
+    float minimum_thumb = 12;                         ///< Logical minimum thumb length.
+    bool hide_when_zero = true;                       ///< Hide chrome when content fits.
+    std::array<float, 4> color{0.7f, 0.7f, 0.7f, 1};  ///< Solid thumb color.
+};
+
 /// @brief Serializable element data without any live handles or registry identities.
 struct element
 {
@@ -90,6 +100,7 @@ struct element
     std::string caption{};          ///< Optional authored text for a host's label presentation.
     std::optional<assets::asset_ref> material{}; ///< Persistent material template or override.
     std::vector<event_action> events{};          ///< Editor-authored semantic action bindings.
+    std::optional<scrollbar_link> scrollbar{};   ///< Sparse authored chrome behavior.
 };
 
 /// @brief Popup defaults shared by source assets and optional Flow-instance overrides.

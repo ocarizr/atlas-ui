@@ -1,5 +1,6 @@
 /** @file @brief Iterative isolated stacking contexts and inherited rectangular masks. */
 #include "paint_state.hpp"
+#include "snapshot_lookup.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -80,6 +81,72 @@ void scroll_children(paint_transform& transform, layout_rect& clip,
     transform.x -= transform.xx * scroll->offset.x + transform.xy * scroll->offset.y;
     transform.y -= transform.yx * scroll->offset.x + transform.yy * scroll->offset.y;
 }
+
+/// @brief A linked viewport's explicit hidden ancestry also hides its independent chrome.
+bool scrollbar_owner_visible(const element_snapshot& input, element_handle viewport)
+{
+    for (std::size_t depth = 0; viewport.generation && depth <= input.elements().size(); ++depth)
+    {
+        const auto* node = find_element(input, viewport);
+        if (!node || !node->requested.visible)
+        {
+            return false;
+        }
+
+        viewport = node->parent;
+    }
+
+    return !viewport.generation;
+}
+
+/// @brief Fit a visible authored background without coupling traversal to image policy.
+void paint_background(paint_preparation& output, const element_record& node, layout_rect bounds,
+                      const paint_transform& transform, layout_rect clip, float alpha)
+{
+    const auto hull = transform.bounds(bounds);
+    const auto covered = intersect_clip(clip, hull);
+    if (!node.paint.fill || !transform.invertible() || alpha <= 0 || node.paint.color[3] <= 0 ||
+        covered.width <= 0 || covered.height <= 0)
+    {
+        return;
+    }
+
+    auto style = node.paint;
+    style.color[3] *= alpha;
+    auto fitted_hull = hull;
+    if (style.image)
+    {
+        const auto fitted = fit_image(bounds, *style.image, style.uv);
+        bounds = fitted.bounds;
+        style.uv = fitted.uv;
+        fitted_hull = transform.bounds(bounds);
+    }
+
+    if (bounds.width > 0 && bounds.height > 0)
+    {
+        output.inputs.push_back({node.target, bounds, fitted_hull, clip, style, transform});
+    }
+}
+
+/// @brief A thumb is a solid UI primitive in the chrome element's existing stacking context.
+void paint_thumb(paint_preparation& output, const scrollbar_geometry& bar,
+                 const paint_transform& transform, layout_rect clip, element_handle target,
+                 float alpha)
+{
+    const auto hull = transform.bounds(bar.thumb);
+    const auto covered = intersect_clip(clip, hull);
+    if (covered.width <= 0 || covered.height <= 0 || alpha <= 0 || bar.color[3] <= 0 ||
+        !transform.invertible())
+    {
+        return;
+    }
+
+    paint_style style;
+    style.fill = true;
+    style.color = bar.color;
+    style.color[3] *= alpha;
+    output.inputs.push_back({target, bar.thumb, hull, clip, style, transform});
+}
 } // namespace
 
 /// @brief Resolve inherited state iteratively after stable stacking links have been prepared.
@@ -110,7 +177,7 @@ void prepare_paint(const element_snapshot& input, const layout_snapshot& geometr
     stack.reserve(nodes.size());
     if (emit_quads)
     {
-        result.inputs.reserve(nodes.size());
+        result.inputs.reserve(nodes.size() + geometry.scrollbars().size());
         result.roots.reserve(nodes.size());
     }
 
@@ -135,41 +202,34 @@ void prepare_paint(const element_snapshot& input, const layout_snapshot& geometr
             validate(hull);
             current.alpha *= node.requested.opacity;
             current.visible = current.visible && node.requested.visible;
+            const auto bar = geometry.find_scrollbar(node.target);
+            current.visible =
+                current.visible &&
+                (!bar || (bar->visible && scrollbar_owner_visible(input, bar->viewport)));
             if (node.paint.clip)
             {
                 current.clip = clip_border(current.clip, hull, current.transform);
             }
 
-            const auto covered = intersect_clip(current.clip, hull);
             if (regions)
             {
                 regions->push_back({node.target, node.parent, hull, current.clip, current.visible,
                                     bounds, current.transform});
             }
 
-            if (emit_quads && node.paint.fill && current.visible &&
-                current.transform.invertible() && current.alpha > 0 && node.paint.color[3] > 0 &&
-                covered.width > 0 && covered.height > 0)
+            if (emit_quads && current.visible)
             {
-                auto style = node.paint;
-                style.color[3] *= current.alpha;
-                auto fitted_hull = hull;
-                if (style.image)
-                {
-                    const auto fitted = fit_image(bounds, *style.image, style.uv);
-                    bounds = fitted.bounds;
-                    style.uv = fitted.uv;
-                    fitted_hull = current.transform.bounds(bounds);
-                }
-
-                if (bounds.width > 0 && bounds.height > 0)
-                {
-                    result.inputs.push_back(
-                        {node.target, bounds, fitted_hull, current.clip, style, current.transform});
-                }
+                paint_background(result, node, bounds, current.transform, current.clip,
+                                 current.alpha);
             }
 
             const auto begin = stack.size();
+            if (emit_quads && bar && current.visible)
+            {
+                paint_thumb(result, *bar, current.transform, current.clip, node.target,
+                            current.alpha);
+            }
+
             scroll_children(current.transform, current.clip, geometry.find_scroll(node.target));
 
             for (auto child = first[current.index]; child != none; child = next[child])

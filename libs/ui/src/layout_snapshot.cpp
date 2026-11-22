@@ -23,6 +23,26 @@ std::optional<scroll_geometry> layout_snapshot::find_scroll(element_handle targe
                                                             : std::nullopt;
 }
 
+/// @brief Derived chrome geometry belongs to the same revision as scroll metadata.
+std::span<const scrollbar_item> layout_snapshot::scrollbars() const noexcept
+{
+    return data_ ? std::span<const scrollbar_item>{data_->scrollbars}
+                 : std::span<const scrollbar_item>{};
+}
+
+/// @brief Recycled chrome identities never alias retained scrollbar geometry.
+std::optional<scrollbar_geometry> layout_snapshot::find_scrollbar(element_handle target) const
+{
+    const auto values = scrollbars();
+    const auto found = std::lower_bound(values.begin(), values.end(), target.index,
+                                        [](const scrollbar_item& value, std::uint32_t index)
+                                        {
+                                            return value.target.index < index;
+                                        });
+    return found != values.end() && found->target == target ? std::optional{found->geometry}
+                                                            : std::nullopt;
+}
+
 /// @brief Only completed calculations construct nonempty publication packets.
 layout_snapshot::layout_snapshot(std::shared_ptr<const detail::layout_snapshot_data> data)
     : data_(std::move(data))

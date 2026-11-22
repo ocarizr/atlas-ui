@@ -87,6 +87,13 @@ elements build_tree(ui::element_tree& tree, const document& source)
     tree.apply(tree.commands().seal());
     for (const auto& node : source.elements)
     {
+        if (node.scrollbar)
+        {
+            const auto& bar = *node.scrollbar;
+            tree.set_scrollbar(ids.at(node.id), {ids.at(bar.viewport), bar.axis, bar.minimum_thumb,
+                                                 bar.hide_when_zero, bar.color});
+        }
+
         if (!node.horizontal && !node.vertical)
         {
             continue;

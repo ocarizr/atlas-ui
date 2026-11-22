@@ -58,6 +58,13 @@ by another matching device. Tap expiry stays rejected until neutral.
 
 ## Ready events and ownership
 
+`pointer_scroll` is a transient pointer event: `value` carries signed horizontal
+and vertical wheel notches, positive right/down; `position` carries client pointer
+coordinates. It is delivered to raw listeners but never retained as held control
+state. The Windows adapter preserves fractional wheel deltas and converts screen
+wheel coordinates to client coordinates before queuing the event. The UI adapter
+converts those notches to its documented logical scrolling policy.
+
 `event_queue` is an owner-affine fixed 256-packet ingress buffer. Publication and
 draining do not wait, allocate event storage, or invoke application callbacks.
 Each queue has a unique nonzero source ID. Device IDs must remain stable within

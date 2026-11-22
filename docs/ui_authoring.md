@@ -91,6 +91,7 @@ native UI validators.
 | `canvas-slot` or `stack-slot` | Anchors, pivots, offsets and sizing, or child order and grow/shrink weights. |
 | `horizontal-boundary` or `vertical-boundary` | Stable sibling source, side, gap, sizing and overflow. |
 | `interaction` | Enabled, hit-test and focusable flags. |
+| `scrollbar` | Document-local `viewport` ID, `axis`, `min-thumb`, `hide-when-zero` and thumb RGBA. Chrome is outside the referenced viewport subtree. |
 | `bind` | Model, field, property and one-way or explicit two-way mode. One binding per target property. |
 | `action` | Model and action, event, route, semantic input filter where applicable, and exact scalar arguments. |
 | `behavior` | Script asset and model context. One returned handler table per element in the shared Lua domain. |
