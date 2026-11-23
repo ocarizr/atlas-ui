@@ -40,6 +40,12 @@ void input_session::impl::preserve_scroll_anchor(const scroll_input_frame& previ
             continue;
         }
 
+        const auto* owner_binding = find(ancestor);
+        if (owner_binding && owner_binding->logical_anchor && !owner_binding->retiring)
+        {
+            continue;
+        }
+
         auto& pending = *value;
         const auto old = previous.geometry.find_scroll(pending.target);
         if (!old ||

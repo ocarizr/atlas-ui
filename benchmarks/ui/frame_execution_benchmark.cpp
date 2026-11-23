@@ -103,6 +103,11 @@ int main(int argc, char** argv)
         if (argc == 2)
         {
             const std::string_view mode{argv[1]};
+            if (mode == "--virtual" || mode == "--virtual-smoke")
+            {
+                return atlas::ui::benchmarks::run_virtual_benchmark(mode == "--virtual-smoke");
+            }
+
             if (mode == "--scroll" || mode == "--scroll-smoke")
             {
                 return atlas::ui::benchmarks::run_scroll_benchmark(mode == "--scroll-smoke");

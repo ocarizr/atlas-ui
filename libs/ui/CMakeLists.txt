@@ -1,4 +1,7 @@
 add_library(atlas_ui STATIC src/commands.cpp src/command_sealing.cpp src/command_batch.cpp)
+target_sources(atlas_ui PRIVATE src/virtual_source.cpp)
+target_sources(atlas_ui PRIVATE src/virtual_tree_edit.cpp src/virtual_input_edit.cpp)
+target_sources(atlas_ui PRIVATE src/virtual_list.cpp src/virtual_list_plan.cpp src/virtual_list_stage.cpp src/virtual_row.cpp src/virtual_navigation.cpp)
 
 target_sources(atlas_ui PRIVATE src/input_session.cpp src/input_frames.cpp src/input_lifecycle.cpp src/input_routing.cpp src/input_shutdown.cpp)
 target_sources(atlas_ui PRIVATE src/element_tree.cpp src/tree_hierarchy.cpp src/tree_application.cpp)

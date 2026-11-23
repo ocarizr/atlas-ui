@@ -1,5 +1,7 @@
 # Scroll viewports
 
+For bounded logical item sources and recycling, see [Virtual lists](ui_virtual_lists.md).
+
 `ui::scroll_layout` owns zero or one content subtree. Its border is sized with the
 normal requested dimensions, intrinsic hint, padding and constraints. The visible
 viewport is the border minus padding, with each available extent saturated at zero.
