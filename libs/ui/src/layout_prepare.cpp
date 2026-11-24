@@ -186,6 +186,7 @@ layout_forest prepare_layout(const element_snapshot& snapshot,
             return index == no_layout_node ? no_layout_node : local[index];
         };
         append_nodes(*source, snapshot, order, link);
+        resolve_grid_children(*source, snapshot);
         order_stack_children(*source);
         order_boundary_children(*source);
 

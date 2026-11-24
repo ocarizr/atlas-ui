@@ -1,12 +1,13 @@
 /** @file @brief Prepared v1 codecs for typed UI layout, appearance and bindings. */
 #pragma once
+#include "prepared_grid_fields.hpp"
 #include "prepared_material_fields.hpp"
 #include <atlas/mvvm_content/detail/prepared_definition.hpp>
 
 namespace atlas::ui_content::detail
 {
 /// @brief Persist the v1 panel tag and its kind-specific values.
-template <class Archive> void panel_fields(Archive& format, ui::panel_layout& panel)
+template <class Archive> void panel_fields(Archive& format, ui::panel_layout& panel, bool grids)
 {
     auto tag = static_cast<std::uint8_t>(panel.index());
     format.field(tag);
@@ -35,6 +36,13 @@ template <class Archive> void panel_fields(Archive& format, ui::panel_layout& pa
             case 6:
                 panel = ui::scroll_layout{};
                 break;
+            case 7:
+                if (!grids)
+                {
+                    throw std::invalid_argument("Grid requires prepared UI version 7");
+                }
+                panel = ui::grid_layout{};
+                break;
             default:
                 throw std::invalid_argument("Unknown prepared UI panel");
         }
@@ -59,6 +67,15 @@ template <class Archive> void panel_fields(Archive& format, ui::panel_layout& pa
             else if constexpr (std::is_same_v<panel_type, ui::canvas_layout>)
             {
                 format.choice(value.measure, ui::canvas_measure::absolute_children);
+            }
+            else if constexpr (std::is_same_v<panel_type, ui::grid_layout>)
+            {
+                if (!grids)
+                {
+                    throw std::invalid_argument("Grid requires prepared UI version 7");
+                }
+
+                grid_fields(format, value);
             }
         },
         panel);
@@ -177,16 +194,31 @@ template <class Archive> void relationship_fields(Archive& format, element& node
 }
 
 /// @brief Preserve parent-before-child order without constructing live registry handles.
-inline constexpr auto prepared_element_fields = [](auto& format, element& node)
+template <class Archive> void element_fields(Archive& format, element& node, bool grids)
 {
     format.fields(node.id, node.parent, node.caption);
     auto& size = node.requested;
     format.fields(size.width, size.height, size.opacity, size.visible, size.width_fixed,
                   size.height_fixed);
-    panel_fields(format, node.panel);
+    panel_fields(format, node.panel, grids);
     layout_fields(format, node.layout);
     appearance_fields(format, node);
     relationship_fields(format, node);
     binding_fields(format, node);
+    if (grids)
+    {
+        format.optional(node.grid, grid_slot_fields<Archive>);
+    }
+}
+
+/// @brief Preserve the exact legacy element field order when no grid feature is authored.
+inline constexpr auto prepared_element_fields = [](auto& format, element& node)
+{
+    element_fields(format, node, false);
+};
+/// @brief Version seven appends grid-owned relationships after the established element fields.
+inline constexpr auto prepared_grid_element_fields = [](auto& format, element& node)
+{
+    element_fields(format, node, true);
 };
 } // namespace atlas::ui_content::detail

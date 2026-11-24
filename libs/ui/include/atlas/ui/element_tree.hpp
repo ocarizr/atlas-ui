@@ -59,6 +59,10 @@ class element_tree
     void set_stack_slot(element_handle target,
                         const stack_slot& slot);  ///< Validate parent, order and weights.
     void reset_stack_slot(element_handle target); ///< Restore default parent-owned metadata.
+    void set_grid_slot(element_handle target,
+                       const grid_slot& slot);   ///< Validate a grid relationship.
+    void reset_grid_slot(element_handle target); ///< Restore stable automatic grid placement.
+    std::optional<grid_slot> grid_slot_for(element_handle target) const; ///< Empty outside a grid.
     std::optional<stack_slot>
     stack_slot_for(element_handle target) const; ///< Empty outside stack relationships.
     /// @brief Validate sibling scope, axis conflicts and acyclicity before changing state.

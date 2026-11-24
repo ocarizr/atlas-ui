@@ -4,6 +4,7 @@
 
 namespace atlas::ui_content::detail
 {
+void validate_grids(const document& source); ///< Validate cell ownership, topology and occupancy.
 inline constexpr std::size_t max_document_bytes = std::size_t{4} * 1024 * 1024; ///< XML ceiling.
 inline constexpr std::size_t max_elements = 4096; ///< Maximum UI tree size.
 inline constexpr std::size_t max_models = 64;     ///< Maximum simultaneously named models.

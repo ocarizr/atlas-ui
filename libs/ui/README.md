@@ -17,6 +17,7 @@ fallback. Constrained measure/arrange produces immutable layout geometry; the li
 does not draw UI. See [layout contracts](../../docs/ui_layout.md),
 [sibling boundary relationships](../../docs/ui_boundaries.md),
 [scroll viewports](../../docs/ui_scrolling.md),
+[grid tracks and cells](../../docs/ui_grid.md),
 [frame execution](../../docs/ui_frames.md) and [UI delivery tracking](https://github.com/ocarizr/atlas-ui/issues/27).
 
 ```cpp

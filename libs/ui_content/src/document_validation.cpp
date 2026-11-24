@@ -265,5 +265,7 @@ void validate(const document& source)
         validate_sibling(node, node.vertical, seen);
         validate_scrollbar(node, seen);
     }
+
+    validate_grids(source);
 }
 } // namespace atlas::ui_content::detail

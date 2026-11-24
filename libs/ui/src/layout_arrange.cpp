@@ -1,5 +1,6 @@
 /** @file @brief Top-down slot placement with checked finite output and stable child ordering. */
 #include "layout_flow.hpp"
+#include "layout_grid.hpp"
 #include "layout_numeric.hpp"
 #include "layout_stack.hpp"
 #include "layout_state.hpp"
@@ -102,6 +103,12 @@ void arrange_children(const arrange_input& input, arranged_branch& result, std::
     const auto flow = describe_flow(value.panel);
     const bool canvas = std::holds_alternative<canvas_layout>(value.panel);
     const auto* scroll = std::get_if<scroll_layout>(&value.panel);
+    const bool grid = std::holds_alternative<grid_layout>(value.panel);
+    if (grid)
+    {
+        arrange_grid(result, index, content, stop);
+    }
+
     const auto spacing = prepare_stack({*input.measured, result, flow.horizontal, stop}, index,
                                        flow.horizontal ? content.width : content.height, scratch);
     double cursor = spacing.leading;
@@ -113,6 +120,12 @@ void arrange_children(const arrange_input& input, arranged_branch& result, std::
         }
 
         auto slot = content;
+        if (grid)
+        {
+            const auto cell = result.items[child].geometry.bounds;
+            slot = {cell.x, cell.y, cell.width, cell.height};
+        }
+
         const auto desired = input.measured->desired[child];
         const auto margin = nodes[child].style.margin;
         if (flow.horizontal)

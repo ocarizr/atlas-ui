@@ -28,12 +28,13 @@ void panel(fields& xml, ui::panel_layout& data)
         horizontal, ///< Horizontal stack.
         vertical,   ///< Vertical stack.
         canvas,     ///< Anchored placement.
-        scroll      ///< Single clipped, independently measured content subtree.
+        scroll,     ///< Single clipped, independently measured content subtree.
+        grid        ///< Fixed/auto/fraction tracks with parent-owned cells.
     };
     auto selected = static_cast<kind>(data.index());
-    xml.choice(
-        "panel", selected,
-        std::array{"overlay", "leaf", "size-box", "horizontal", "vertical", "canvas", "scroll"});
+    xml.choice("panel", selected,
+               std::array{"overlay", "leaf", "size-box", "horizontal", "vertical", "canvas",
+                          "scroll", "grid"});
     if (xml.reading())
     {
         switch (selected)
@@ -58,6 +59,9 @@ void panel(fields& xml, ui::panel_layout& data)
                 break;
             case kind::scroll:
                 data = ui::scroll_layout{};
+                break;
+            case kind::grid:
+                data = ui::grid_layout{};
                 break;
         }
     }

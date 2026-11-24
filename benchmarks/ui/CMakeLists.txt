@@ -1,6 +1,6 @@
 add_executable(atlas_ui_benchmark frame_execution_benchmark.cpp)
 target_sources(atlas_ui_benchmark PRIVATE layout_benchmark.cpp layout_scenarios.cpp scroll_benchmark.cpp
-    virtual_list_benchmark.cpp
+    virtual_list_benchmark.cpp grid_benchmark.cpp
     ../jobs/allocation_counter.cpp ../jobs/allocation_counter_check.cpp)
 target_link_libraries(atlas_ui_benchmark PRIVATE atlas::ui)
 atlas_configure_target(atlas_ui_benchmark)
@@ -23,4 +23,6 @@ if(BUILD_TESTING)
     set_tests_properties(ui_scroll_benchmark_smoke PROPERTIES LABELS ui TIMEOUT 30)
     add_test(NAME ui_virtual_benchmark_smoke COMMAND atlas_ui_benchmark --virtual-smoke)
     set_tests_properties(ui_virtual_benchmark_smoke PROPERTIES LABELS ui TIMEOUT 30)
+    add_test(NAME ui_grid_benchmark_smoke COMMAND atlas_ui_benchmark --grid-smoke)
+    set_tests_properties(ui_grid_benchmark_smoke PROPERTIES LABELS ui TIMEOUT 30)
 endif()

@@ -38,6 +38,11 @@ void metadata(ui::element_tree& tree, ui::element_handle target, const element& 
     tree.set_panel(target, node.panel);
     tree.set_visual(target, node.visual);
     tree.set_paint(target, node.paint);
+    if (node.grid)
+    {
+        tree.set_grid_slot(target, *node.grid);
+    }
+
     if (node.canvas)
     {
         tree.set_canvas_slot(target, *node.canvas);

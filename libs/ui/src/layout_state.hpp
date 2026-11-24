@@ -42,13 +42,14 @@ struct layout_source
 {
     explicit layout_source(std::shared_ptr<std::pmr::memory_resource> resource)
         : memory(std::move(resource)), slots(0, memory.get()), stack_slots(0, memory.get()),
-          nodes(0, memory.get()), boundaries(0, memory.get())
+          grid_slots(0, memory.get()), nodes(0, memory.get()), boundaries(0, memory.get())
     {
     } ///< Retain resource before vectors.
 
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Outlives input storage.
     std::pmr::vector<canvas_slot> slots;      ///< Allocate only for explicit canvas overrides.
     std::pmr::vector<stack_slot> stack_slots; ///< Only explicit stack overrides.
+    std::pmr::vector<grid_slot> grid_slots;   ///< Resolved cells only for children of grids.
     std::pmr::vector<layout_node> nodes; ///< Parents precede descendants; child order is stable.
     std::pmr::vector<resolved_boundary> boundaries; ///< Target-preorder then horizontal/vertical.
 };
@@ -68,6 +69,8 @@ inline const stack_slot& stack_placement(const layout_source& source, const layo
 }
 
 void order_stack_children(layout_source& source); ///< Sort private sibling links with stable ties.
+/// @brief Resolve bounded occupancy before any worker sees an immutable branch.
+void resolve_grid_children(layout_source& source, const element_snapshot& snapshot);
 void order_boundary_children(layout_source& source); ///< Stable topological canvas child links.
 
 /// @brief Measure outputs remain private until the phase joins.
