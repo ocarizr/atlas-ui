@@ -52,3 +52,10 @@ Shaping and packing are synchronous CPU operations.
 Hosts can prepare independent labels as jobs and publish immutable results
 on their existing phase boundary. The graphics coordinator owns upload,
 submission and retirement.
+
+## Localized labels
+
+`localized_label` consumes a compact key from an independent localization context.
+It retains owned glyph/text snapshots across language and count changes and applies
+new natural dimensions through normal owner-side layout invalidation. See the
+[localization contract](localization.md) for fallback, RTL, plural and teardown behavior.

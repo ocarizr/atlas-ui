@@ -1,4 +1,11 @@
 components:
+  localization:
+    paths: [libs/localization/**, tests/localization/**, benchmarks/localization/**, libs/platform/windows/localization/**, tests/platform/windows/localization/**]
+    depends_on: [diagnostics]
+    build_targets: [atlas_localization, atlas_localization_tests, atlas_localization_benchmark]
+    test_labels: [localization]
+    build_requires: [diagnostics]
+    vendors: [testing, content]
   asset-catalog:
     paths:
     - libs/asset_catalog/**
@@ -292,10 +299,10 @@ components:
     - libs/platform/windows/ui_text/**
     - tests/ui_text/**
     - tests/platform/windows/ui_text/**
-    depends_on: [ui-renderer]
+    depends_on: [ui-renderer, localization]
     build_targets: [atlas_ui_text, atlas_ui_text_tests]
     test_labels: [ui-text]
-    build_requires: [ui-renderer]
+    build_requires: [ui-renderer, localization]
     vendors: [testing, content, graphics]
   ui-images:
     paths:

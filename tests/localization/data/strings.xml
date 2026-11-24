@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<localization fallback="en">
+  <language tag="en" direction="ltr">
+    <string key="title">Settings</string>
+    <string key="only_default">Default</string>
+    <string key="empty"></string>
+    <plural key="items"><form category="one">One item</form><form category="other">Items</form></plural>
+  </language>
+  <language tag="pt" direction="ltr"><string key="title">Configurações</string></language>
+  <language tag="pt-BR" direction="ltr"><string key="empty"> </string></language>
+  <language tag="ar" direction="rtl"><string key="title">إعدادات HUD</string></language>
+</localization>

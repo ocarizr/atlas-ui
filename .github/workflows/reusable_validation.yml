@@ -536,8 +536,18 @@ jobs:
       matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['ui-renderer']) }}
       keys: ${{ needs.plan.outputs.keys }}
       upstream: ${{ toJSON(needs) }}
+  localization:
+    needs: [plan, vendor-testing, vendor-content, diagnostics]
+    if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'localization') }}
+    uses: ./.github/workflows/reusable_build.yml
+    with:
+      component: localization
+      version: ${{ inputs.version }}
+      matrix: ${{ toJSON(fromJSON(needs.plan.outputs.matrices)['localization']) }}
+      keys: ${{ needs.plan.outputs.keys }}
+      upstream: ${{ toJSON(needs) }}
   ui-text:
-    needs: [plan, vendor-testing, vendor-content, vendor-graphics, ui-renderer]
+    needs: [plan, vendor-testing, vendor-content, vendor-graphics, ui-renderer, localization]
     if: ${{ success() && contains(fromJSON(needs.plan.outputs.components), 'ui-text') }}
     uses: ./.github/workflows/reusable_build.yml
     with:
@@ -609,6 +619,7 @@ jobs:
     - ui-renderer
     - ui-images
     - ui-text
+    - localization
     runs-on: windows-2022
     timeout-minutes: 5
     steps:
