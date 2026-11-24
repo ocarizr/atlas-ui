@@ -50,6 +50,7 @@ layout_engine::impl::compute(const element_snapshot& snapshot, const jobs::job_o
             cache[index]->measured->source->nodes == root->nodes &&
             cache[index]->measured->source->slots == root->slots &&
             cache[index]->measured->source->stack_slots == root->stack_slots &&
+            cache[index]->measured->source->grid_slots == root->grid_slots &&
             cache[index]->measured->source->boundaries == root->boundaries)
         {
             next[index] = cache[index];

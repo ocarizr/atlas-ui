@@ -101,6 +101,7 @@ struct element
     std::optional<assets::asset_ref> material{}; ///< Persistent material template or override.
     std::vector<event_action> events{};          ///< Editor-authored semantic action bindings.
     std::optional<scrollbar_link> scrollbar{};   ///< Sparse authored chrome behavior.
+    std::optional<ui::grid_slot> grid{}; ///< Grid-owned explicit coordinates or automatic spans.
 };
 
 /// @brief Popup defaults shared by source assets and optional Flow-instance overrides.

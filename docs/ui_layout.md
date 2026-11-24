@@ -1,5 +1,7 @@
 # UI layout
 
+[Grid layout](ui_grid.md) adds immutable track policies, spans and parent-owned cell placement.
+
 `atlas::ui::layout_engine` measures and arranges immutable element snapshots without
 accessing a graphics backend. The live tree and engine belong to their creating
 coordinator thread. Layout consumes committed properties; pending commands must be

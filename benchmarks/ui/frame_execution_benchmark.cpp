@@ -11,6 +11,7 @@
 #include <iostream>
 #include <limits>
 #include <numeric>
+#include <optional>
 #include <vector>
 
 namespace
@@ -93,6 +94,37 @@ std::size_t parse_workers(int argc, char** argv)
 
     return workers;
 }
+
+/// @brief Route named workload probes without mixing their CLI with worker-count parsing.
+std::optional<int> run_named_probe(int argc, char** argv)
+{
+    if (argc == 2)
+    {
+        const std::string_view mode{argv[1]};
+        if (mode == "--grid" || mode == "--grid-smoke")
+        {
+            return atlas::ui::benchmarks::run_grid_benchmark(mode == "--grid-smoke");
+        }
+
+        if (mode == "--virtual" || mode == "--virtual-smoke")
+        {
+            return atlas::ui::benchmarks::run_virtual_benchmark(mode == "--virtual-smoke");
+        }
+
+        if (mode == "--scroll" || mode == "--scroll-smoke")
+        {
+            return atlas::ui::benchmarks::run_scroll_benchmark(mode == "--scroll-smoke");
+        }
+
+        if (mode == "--layout" || mode == "--layout-smoke" || mode == "--layout-profile")
+        {
+            return atlas::ui::benchmarks::run_layout_benchmark(mode == "--layout-smoke",
+                                                               mode == "--layout-profile");
+        }
+    }
+
+    return std::nullopt;
+}
 } // namespace
 
 /// @brief Write a reproducible XML report to stdout; optional argument selects 1..64 workers.
@@ -100,24 +132,9 @@ int main(int argc, char** argv)
 {
     try
     {
-        if (argc == 2)
+        if (const auto result = run_named_probe(argc, argv))
         {
-            const std::string_view mode{argv[1]};
-            if (mode == "--virtual" || mode == "--virtual-smoke")
-            {
-                return atlas::ui::benchmarks::run_virtual_benchmark(mode == "--virtual-smoke");
-            }
-
-            if (mode == "--scroll" || mode == "--scroll-smoke")
-            {
-                return atlas::ui::benchmarks::run_scroll_benchmark(mode == "--scroll-smoke");
-            }
-
-            if (mode == "--layout" || mode == "--layout-smoke" || mode == "--layout-profile")
-            {
-                return atlas::ui::benchmarks::run_layout_benchmark(mode == "--layout-smoke",
-                                                                   mode == "--layout-profile");
-            }
+            return *result;
         }
 
         const auto workers = parse_workers(argc, argv);

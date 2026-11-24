@@ -1,5 +1,6 @@
 /** @file @brief Atomic policy changes validate arity and existing child slots before mutation. */
 #include "canvas_validation.hpp"
+#include "grid_validation.hpp"
 #include "stack_validation.hpp"
 #include "tree_state.hpp"
 
@@ -38,6 +39,15 @@ void element_tree::set_panel(element_handle target, const panel_layout& panel)
         }
     }
 
+    if (const auto* grid = std::get_if<grid_layout>(&panel))
+    {
+        for (auto child = node.first; child != impl::none; child = impl_->at(child).next)
+        {
+            const auto* slot = impl_->registry.try_get<grid_slot>(impl_->slots[child].entity);
+            detail::validate_grid_slot(slot ? *slot : grid_slot{}, grid->definition());
+        }
+    }
+
     if (node.panel == panel)
     {
         return;
@@ -58,6 +68,14 @@ void element_tree::set_panel(element_handle target, const panel_layout& panel)
         for (auto child = node.first; child != impl::none; child = impl_->at(child).next)
         {
             impl_->registry.remove<stack_slot>(impl_->slots[child].entity);
+        }
+    }
+
+    if (!std::holds_alternative<grid_layout>(panel))
+    {
+        for (auto child = node.first; child != impl::none; child = impl_->at(child).next)
+        {
+            impl_->registry.remove<grid_slot>(impl_->slots[child].entity);
         }
     }
 

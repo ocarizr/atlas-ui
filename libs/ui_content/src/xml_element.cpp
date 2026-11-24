@@ -28,7 +28,15 @@ void write_section(pugi::xml_node node, const char* name, const T& source, Codec
 bool read_metadata(pugi::xml_node node, element& target)
 {
     const std::string_view kind = node.name();
-    if (kind == "layout")
+    if (kind == "grid")
+    {
+        read_grid(node, target);
+    }
+    else if (kind == "grid-slot")
+    {
+        read_section(node, target.grid.emplace(), grid_fields);
+    }
+    else if (kind == "layout")
     {
         read_section(node, target.layout, layout_fields);
     }
@@ -113,6 +121,11 @@ void write_element(pugi::xml_node node, const element& source)
     attributes.requested = source.requested;
     fields xml{node, false};
     element_fields(xml, attributes);
+    if (const auto* grid = std::get_if<ui::grid_layout>(&source.panel))
+    {
+        write_grid(node, *grid);
+    }
+
     write_section(node, "layout", source.layout, layout_fields);
     attributes.paint = source.paint;
     attributes.visual = source.visual;
@@ -128,6 +141,11 @@ void write_element(pugi::xml_node node, const element& source)
     if (source.stack)
     {
         write_section(node, "stack-slot", *source.stack, stack_fields);
+    }
+
+    if (source.grid)
+    {
+        write_section(node, "grid-slot", *source.grid, grid_fields);
     }
 
     if (source.horizontal)

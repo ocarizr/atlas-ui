@@ -48,6 +48,7 @@ tree_edit::tree_edit(element_tree& tree) : tree_(tree)
         copy_component<paint_style>(source.registry, original, target.registry, entity);
         copy_component<canvas_slot>(source.registry, original, target.registry, entity);
         copy_component<stack_slot>(source.registry, original, target.registry, entity);
+        copy_component<grid_slot>(source.registry, original, target.registry, entity);
         copy_component<visual_style>(source.registry, original, target.registry, entity);
         copy_component<layout_boundaries>(source.registry, original, target.registry, entity);
         copy_component<scrollbar_style>(source.registry, original, target.registry, entity);

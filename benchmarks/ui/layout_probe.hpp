@@ -78,4 +78,6 @@ int run_layout_benchmark(bool smoke, bool profile); ///< XML output; no timing t
 int run_scroll_benchmark(bool smoke); ///< Offset-only update, paint and sparse PMR census.
 int run_virtual_benchmark(
     bool smoke); ///< Realization, layout, paint, input and bounded-memory census.
+int run_grid_benchmark(
+    bool smoke); ///< Dirty-grid capture/layout/paint reference and memory census.
 } // namespace atlas::ui::benchmarks

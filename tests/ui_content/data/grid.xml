@@ -1,0 +1,12 @@
+<ui version="1">
+  <element id="root" panel="grid">
+    <grid column-gap="4" row-gap="3">
+      <columns><track unit="fixed" value="20"/><track unit="fixed" value="30"/></columns>
+      <rows><track unit="fixed" value="10"/><track unit="fixed" value="15"/></rows>
+    </grid>
+  </element>
+  <element id="spanning" parent="root" panel="leaf">
+    <grid-slot row="0" column="0" row-span="2" column-span="2"/>
+    <paint fill="true"/>
+  </element>
+</ui>

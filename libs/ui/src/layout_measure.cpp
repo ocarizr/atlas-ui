@@ -1,5 +1,6 @@
 /** @file @brief Stable bottom-up natural sizing without recursive stack growth. */
 #include "layout_flow.hpp"
+#include "layout_grid.hpp"
 #include "layout_numeric.hpp"
 #include "layout_state.hpp"
 #include <algorithm>
@@ -14,6 +15,11 @@ std::pair<double, double> content_size(const measured_branch& result, std::size_
 {
     const auto& nodes = result.source->nodes;
     const auto& value = nodes[index];
+    if (std::holds_alternative<grid_layout>(value.panel))
+    {
+        return measure_grid(result, static_cast<std::uint32_t>(index), stop);
+    }
+
     const auto flow = describe_flow(value.panel);
     const auto* canvas = std::get_if<canvas_layout>(&value.panel);
     const auto* scroll = std::get_if<scroll_layout>(&value.panel);

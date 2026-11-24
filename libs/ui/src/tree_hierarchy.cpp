@@ -151,7 +151,8 @@ void element_tree::reparent(element_handle target, element_handle parent)
     impl_->validate_parent(parent_index);
     impl_->ensure_layout_revision();
     impl_->require_unreferenced(index);
-    impl_->registry.remove<canvas_slot, stack_slot, layout_boundaries>(impl_->slots[index].entity);
+    impl_->registry.remove<canvas_slot, stack_slot, grid_slot, layout_boundaries>(
+        impl_->slots[index].entity);
     impl_->detach(index);
     impl_->attach(index, parent_index);
     ++impl_->layout_revision;

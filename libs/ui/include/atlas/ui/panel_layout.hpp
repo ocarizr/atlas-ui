@@ -3,6 +3,7 @@
  * @brief Typed container policies, separate from common element sizing and child slots.
  */
 #pragma once
+#include <atlas/ui/grid_layout.hpp>
 #include <atlas/ui/layout_types.hpp>
 #include <atlas/ui/stack_layout.hpp>
 #include <cstdint>
@@ -67,5 +68,5 @@ struct canvas_layout
 
 using panel_layout =
     std::variant<overlay_layout, leaf_layout, size_box_layout, horizontal_layout, vertical_layout,
-                 canvas_layout, scroll_layout>; ///< Closed typed policies.
+                 canvas_layout, scroll_layout, grid_layout>; ///< Closed typed policies.
 } // namespace atlas::ui

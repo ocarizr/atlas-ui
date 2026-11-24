@@ -1,4 +1,7 @@
 add_executable(atlas_ui_tests command_merge_tests.cpp command_validation_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE grid_geometry_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE grid_placement_tests.cpp grid_state_tests.cpp grid_validation_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE grid_execution_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE virtual_source_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE virtual_list_tests.cpp virtual_list_failure_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE virtual_focus_tests.cpp)

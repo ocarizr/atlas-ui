@@ -28,6 +28,7 @@ class element_snapshot
     canvas_slots() const noexcept; ///< Explicit sparse overrides.
     std::span<const stack_slot_record>
     stack_slots() const noexcept; ///< Sparse overrides, ordered by live slot.
+    std::span<const grid_slot_record> grid_slots() const noexcept; ///< Sparse authored grid cells.
     std::span<const boundary_record> boundaries() const noexcept; ///< Sparse directed dependencies.
     std::span<const scrollbar_record> scrollbars() const noexcept; ///< Sparse chrome links.
   private:

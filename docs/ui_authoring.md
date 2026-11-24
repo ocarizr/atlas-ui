@@ -1,5 +1,7 @@
 # UI authoring documents
 
+[Grid authoring](ui_grid.md#authoring) describes nested track declarations, cell slots and prepared UI version 7.
+
 `atlas::ui_content` reads and writes viewport UI XML v1/v2 and constructs an
 owner-thread UI instance from a typed asset catalog. `parse_xml` returns
 editable data. `instance::build` validates the native layout rules and
