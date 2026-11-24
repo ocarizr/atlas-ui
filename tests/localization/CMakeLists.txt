@@ -1,0 +1,8 @@
+add_executable(atlas_localization_tests context_tests.cpp validation_tests.cpp)
+target_link_libraries(atlas_localization_tests PRIVATE atlas::localization GTest::gtest_main)
+target_compile_definitions(atlas_localization_tests PRIVATE ATLAS_LOCALIZATION_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+if(ATLAS_BUILD_WINDOWS_INTEGRATION)
+    target_sources(atlas_localization_tests PRIVATE ../platform/windows/localization/plural_tests.cpp)
+endif()
+atlas_configure_test(atlas_localization_tests)
+gtest_discover_tests(atlas_localization_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS localization TIMEOUT 30)

@@ -39,6 +39,8 @@ and semantic actions feed owner-thread interaction; expensive work remains in jo
 Independent data-defined ViewModels provide observable typed slots, actions/events, XML authoring
 and compiled factory generation. UI adapters publish property bindings and route events into
 model actions at explicit sync points.
+[Localization](docs/localization.md) adds independent language contexts, XML string tables,
+cardinal plurals and direction-aware text refresh.
 Owner-thread Lua behavior adds protected typed model commands, lifecycle/input adapters
 and bounded native job/result mailboxes. Scripts and workers share values without sharing a VM.
 Asset cooking/bundles and media playback are not implemented. Codec/ECS/IPC
@@ -81,6 +83,7 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | [UI](libs/ui/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tree/frame contracts |
 | [UI images](libs/ui_images/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Injected decode contracts |
+| [Localization](libs/localization/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tables and injected rules |
 | [UI text](libs/ui_text/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Atlas and paint contracts |
 | [UI renderer](libs/ui_renderer/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Packet contracts |
 | [MVVM](libs/mvvm/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
