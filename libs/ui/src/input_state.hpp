@@ -17,6 +17,8 @@ struct input_binding
     bool enabled = false;                   ///< Current active lifecycle state.
     bool retiring = false;                  ///< Explicit unbind waits for serial cleanup.
     bool ended = false;                     ///< End has been attempted once.
+    bool logical_anchor =
+        false; ///< Virtual-list owner already preserves its logical source anchor.
 }; ///< Stable slot/generation order defines system broadcast order.
 
 /// @brief Private serial state independent of applications.

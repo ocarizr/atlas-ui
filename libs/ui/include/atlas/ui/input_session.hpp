@@ -8,6 +8,10 @@
 
 namespace atlas::ui
 {
+namespace detail
+{
+class input_edit; ///< Private bounded staging helper.
+} // namespace detail
 /// @brief Platform adapters and replay supply logical viewport coordinates and semantic key IDs.
 enum class input_kind : std::uint8_t
 {
@@ -186,6 +190,7 @@ class input_session
     void suspend(std::uint64_t frame);   ///< Release interaction and disable until the next frame.
     input_statistics statistics() const; ///< Serial owner observation.
   private:
+    friend class detail::input_edit; ///< Prepare recycling without publishing partial handlers.
     void process_packets(std::span<const input_event> events, bool append); ///< Shared preflight.
     void close_lifecycle(std::uint64_t frame, bool terminal); ///< Shared suspension and teardown.
     class impl; ///< Bounded handlers, immutable presentation and owner lifecycle state.

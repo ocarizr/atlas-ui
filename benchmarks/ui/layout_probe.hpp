@@ -76,4 +76,6 @@ struct layout_probe
 
 int run_layout_benchmark(bool smoke, bool profile); ///< XML output; no timing threshold assertions.
 int run_scroll_benchmark(bool smoke); ///< Offset-only update, paint and sparse PMR census.
+int run_virtual_benchmark(
+    bool smoke); ///< Realization, layout, paint, input and bounded-memory census.
 } // namespace atlas::ui::benchmarks

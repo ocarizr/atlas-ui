@@ -8,6 +8,11 @@
 
 namespace atlas::ui
 {
+namespace detail
+{
+class tree_edit; ///< Private bounded staging helper.
+} // namespace detail
+
 /// @brief Fixed live-element capacity and the single producer's per-frame command budgets.
 struct tree_limits
 {
@@ -76,6 +81,8 @@ class element_tree
     std::optional<layout_geometry>
     computed(element_handle target) const; ///< Empty until current geometry is published.
   private:
+    friend class detail::tree_edit; ///< Atomic bounded list publication, never a public registry
+                                    ///< API.
     class impl; ///< Registry, hierarchy links, generation slots and diagnostic guards.
     std::unique_ptr<impl> impl_; ///< Keeps private EnTT/native-free implementation out of headers.
 };
