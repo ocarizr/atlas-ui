@@ -17,7 +17,12 @@ TEST_F(native_accessibility_test, TabsExposeSingleSelectionWithoutInvoke)
     root.Attach(new detail::provider{endpoint, group.id});
     SAFEARRAY* selected = nullptr;
     ASSERT_EQ(root->GetSelection(&selected), S_OK);
-    ASSERT_NE(selected, nullptr);
+    if (selected == nullptr)
+    {
+        ADD_FAILURE() << "selection must return an array";
+        return;
+    }
+
     LONG upper = -1;
     EXPECT_EQ(SafeArrayGetUBound(selected, 1, &upper), S_OK);
     EXPECT_EQ(upper, 0);

@@ -1,6 +1,7 @@
 /** @file @brief UIA property notifications after immutable owner publication, outside locks. */
 #include "provider.hpp"
 #include <array>
+#include <stdexcept>
 #include <wrl/client.h>
 
 namespace atlas::accessibility_host::detail
@@ -25,7 +26,13 @@ VARIANT property(const accessibility::node& source, PROPERTYID id)
                               source.bounds.height};
             for (LONG i = 0; i < 4; ++i)
             {
-                SafeArrayPutElement(array, &i, &values[static_cast<std::size_t>(i)]);
+                const auto status =
+                    SafeArrayPutElement(array, &i, &values[static_cast<std::size_t>(i)]);
+                if (FAILED(status))
+                {
+                    SafeArrayDestroy(array);
+                    throw std::runtime_error("cannot populate accessibility bounds notification");
+                }
             }
 
             output.parray = array;

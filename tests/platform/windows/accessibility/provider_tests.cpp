@@ -83,6 +83,24 @@ TEST_F(native_accessibility_test, AdapterAttachesPublishesAndRestoresNativeDispa
     host.notify();
 }
 
+/// @brief Bounds changes construct complete old/new COM arrays and retain the new snapshot.
+TEST_F(native_accessibility_test, BoundsChangeNotificationPreservesPublishedCoordinates)
+{
+    adapter host{target, channel};
+    host.notify();
+    button.bounds = {12, 24, 48, 36};
+    channel->publish({button});
+    EXPECT_NO_THROW(host.notify());
+    Microsoft::WRL::ComPtr<detail::provider> child;
+    child.Attach(new detail::provider{endpoint, button.id});
+    UiaRect bounds{};
+    ASSERT_EQ(child->get_BoundingRectangle(&bounds), S_OK);
+    EXPECT_DOUBLE_EQ(bounds.left, 12);
+    EXPECT_DOUBLE_EQ(bounds.top, 24);
+    EXPECT_DOUBLE_EQ(bounds.width, 48);
+    EXPECT_DOUBLE_EQ(bounds.height, 36);
+}
+
 /// @brief A real UIA client discovers the custom HWND fragment and queues its Invoke pattern.
 TEST_F(native_accessibility_test, UiAutomationClientFindsAndInvokesThePublishedButton)
 {

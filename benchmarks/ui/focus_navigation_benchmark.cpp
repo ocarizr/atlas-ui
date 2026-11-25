@@ -74,8 +74,9 @@ class focus_probe
 
     void step(unsigned iteration)
     {
-        if (!input.navigate(iteration % 2 ? focus_direction::left : focus_direction::right) ||
-            input.focused() != (iteration % 2 ? first : second))
+        const bool backward = (iteration % 2) != 0;
+        if (!input.navigate(backward ? focus_direction::left : focus_direction::right) ||
+            input.focused() != (backward ? first : second))
         {
             throw std::runtime_error("focus reference mismatch");
         }
