@@ -28,6 +28,7 @@ void input_session::close_lifecycle(std::uint64_t frame, bool terminal)
     impl_->tree.commands().begin_frame(frame);
     impl_->stats = {frame, 0, 0, false, false};
     impl_->terminal = terminal;
+    impl_->focus_shift = false;
     std::exception_ptr failure;
     const auto attempt = [&](auto action)
     {

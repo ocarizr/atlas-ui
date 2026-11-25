@@ -33,7 +33,8 @@ Directional sibling boundaries provide acyclic placement and remaining-space siz
 within intrinsic canvas domains.
 Ordered rectangle painting supports clipping, adjacent batching and streamed images.
 Owner-thread input adds clip-aware hit testing, capture/bubble routing, primary-pointer
-capture, focus and ordered lifecycle events. Independent input actions provide
+capture, focus and ordered lifecycle events. Scoped spatial/explicit navigation supports
+portable keyboard and semantic actions with optional wrapping. Independent input actions provide
 priority contexts, bindings, modifiers and hold/tap triggers. Native device packets
 and semantic actions feed owner-thread interaction; expensive work remains in joined job phases.
 Independent data-defined ViewModels provide observable typed slots, actions/events, XML authoring

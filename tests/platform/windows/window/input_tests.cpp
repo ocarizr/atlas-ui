@@ -83,7 +83,10 @@ TEST(native_input_test, MapsLettersDigitsAndNavigationToPortableIdentifiers)
     ASSERT_NE(handle, nullptr);
     const std::array cases{std::pair<WPARAM, input::key>{'A', input::key::a},
                            std::pair<WPARAM, input::key>{'9', input::key::digit_9},
-                           std::pair<WPARAM, input::key>{VK_LEFT, input::key::left}};
+                           std::pair<WPARAM, input::key>{VK_LEFT, input::key::left},
+                           std::pair<WPARAM, input::key>{VK_SHIFT, input::key::shift},
+                           std::pair<WPARAM, input::key>{VK_LSHIFT, input::key::shift},
+                           std::pair<WPARAM, input::key>{VK_RSHIFT, input::key::shift}};
     for (const auto& [key, expected] : cases)
     {
         SendMessageW(handle, WM_KEYDOWN, key, 0);

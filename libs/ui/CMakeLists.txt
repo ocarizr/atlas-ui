@@ -9,6 +9,7 @@ target_sources(atlas_ui PRIVATE src/virtual_list.cpp src/virtual_list_plan.cpp s
 target_sources(atlas_ui PRIVATE src/input_session.cpp src/input_frames.cpp src/input_lifecycle.cpp src/input_routing.cpp src/input_shutdown.cpp)
 target_sources(atlas_ui PRIVATE src/element_tree.cpp src/tree_hierarchy.cpp src/tree_application.cpp)
 target_sources(atlas_ui PRIVATE src/tree_snapshot.cpp src/frame_executor.cpp src/frame_work.cpp)
+target_sources(atlas_ui PRIVATE src/input_navigation_config.cpp src/input_navigation_select.cpp src/input_navigation_packets.cpp)
 add_library(atlas::ui ALIAS atlas_ui)
 target_sources(atlas_ui PRIVATE src/layout_scroll.cpp)
 target_sources(atlas_ui PRIVATE src/scrollbar.cpp src/tree_scrollbar.cpp src/layout_scrollbar.cpp)

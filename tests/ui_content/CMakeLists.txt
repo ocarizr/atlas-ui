@@ -8,7 +8,7 @@ add_custom_command(OUTPUT "${generated}"
     COMMAND $<TARGET_FILE:atlas_ui_content_fixture_generator> "${model_fixture}" "${generated}" make_ui_content_fixture
     DEPENDS atlas_ui_content_fixture_generator "${model_fixture}"
     VERBATIM)
-add_executable(atlas_ui_content_tests xml_tests.cpp composition_tests.cpp composition_failure_tests.cpp
+add_executable(atlas_ui_content_tests focus_navigation_tests.cpp xml_tests.cpp composition_tests.cpp composition_failure_tests.cpp
     animation_tests.cpp animation_transform_tests.cpp animation_transition_tests.cpp
     material_tests.cpp material_asset_tests.cpp event_action_tests.cpp flow_tests.cpp flow_runtime_tests.cpp
     flow_callable_tests.cpp prepared_flow_tests.cpp presentation_tests.cpp flow_presentation_tests.cpp flow_history_tests.cpp flow_typed_runtime_tests.cpp flow_viewport_tests.cpp flow_modeless_history_tests.cpp "${generated}")

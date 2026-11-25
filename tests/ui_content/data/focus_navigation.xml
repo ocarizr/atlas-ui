@@ -1,0 +1,7 @@
+<ui version="1">
+  <navigation-input keyboard="true" right-action="81"/>
+  <element id="root" panel="horizontal"><focus-scope wrap-horizontal="true"/></element>
+  <element id="first" parent="root"><layout intrinsic-width="20" intrinsic-height="20"/><interaction focusable="true"/><focus right-target="third"/></element>
+  <element id="second" parent="root"><layout intrinsic-width="20" intrinsic-height="20"/><interaction focusable="true"/></element>
+  <element id="third" parent="root"><layout intrinsic-width="20" intrinsic-height="20"/><interaction focusable="true"/></element>
+</ui>

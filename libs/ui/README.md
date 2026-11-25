@@ -215,3 +215,6 @@ Tree create/remove/reparent/apply operations emit optional `ui.cpu` scopes; fail
 operations log through the injected destination without replacing exceptions.
 Initialization/release messages use debug severity, with no per-write success logs.
 Diagnostic callbacks cannot reenter either the tree or its bound producer.
+
+See [focus navigation](../../docs/ui_focus_navigation.md) for scoped automatic/explicit
+traversal, semantic group actions and the authored XML/prepared contract.

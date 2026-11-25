@@ -172,6 +172,7 @@ void input_session::impl::broadcast(event_kind kind)
 /// @brief Earlier sealed publications survive; unsealed commands and stale input ownership do not.
 void input_session::impl::fail() noexcept
 {
+    focus_shift = false;
     stats.failed = true;
     stage = 5;
     focus_target = capture_target = hover_target = {};

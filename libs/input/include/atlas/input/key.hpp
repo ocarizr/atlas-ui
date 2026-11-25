@@ -58,7 +58,8 @@ enum class key : std::uint16_t
     home,         ///< Home navigation.
     end,          ///< End navigation.
     backspace,    ///< Backward deletion intent.
-    erase         ///< Forward deletion intent.
+    erase,        ///< Forward deletion intent.
+    shift         ///< Portable Shift modifier for ordered reverse navigation.
 };
 
 } // namespace atlas::input

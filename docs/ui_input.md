@@ -187,3 +187,6 @@ then routes those actions to focused handlers without device-specific behavior.
 
 [ViewModel adapters](mvvm.md) can map these routed events to data-authored model
 actions and publish dirty property bindings at explicit owner sync points.
+
+See [focus navigation](ui_focus_navigation.md) for scoped spatial/explicit targets,
+semantic group actions, optional wrapping and XML/prepared descriptors.

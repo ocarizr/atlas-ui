@@ -2,6 +2,7 @@
 #include "document_validation.hpp"
 #include "instance_state.hpp"
 #include "material_sources.hpp"
+#include "navigation_content.hpp"
 #include "routes.hpp"
 #include <atlas/ui_content/flow.hpp>
 
@@ -128,8 +129,8 @@ void instance::impl::bind_elements(const document& source, const construction& o
                 textures.emplace(node.id, *texture);
             }
 
-            if (node.interaction || !node.actions.empty() || !node.events.empty() || node.script ||
-                navigation.contains(node.id))
+            if (node.focus || node.interaction || !node.actions.empty() || !node.events.empty() ||
+                node.script || navigation.contains(node.id))
             {
                 const auto event_bindings =
                     std::span<const event_action>{events}.last(node.events.size());
@@ -145,6 +146,7 @@ void instance::impl::bind_elements(const document& source, const construction& o
         }
     }
 
+    detail::configure_navigation(input, elements, source);
     material_dependencies = std::move(materials.dependencies);
     material_shaders = std::move(materials.shaders);
 }

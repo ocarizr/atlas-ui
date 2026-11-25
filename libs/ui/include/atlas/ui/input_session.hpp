@@ -5,6 +5,7 @@
 #pragma once
 #include <atlas/input/input_system.hpp>
 #include <atlas/ui/element_tree.hpp>
+#include <atlas/ui/focus_navigation.hpp>
 
 namespace atlas::ui
 {
@@ -129,6 +130,7 @@ struct input_limits
     std::size_t max_events = 256;      ///< Validated input packets per frame, at most 4096.
     std::size_t max_route_depth = 64;  ///< Maximum registered target ancestry, at most 65536.
     std::size_t max_callbacks = 65536; ///< Includes lifecycle/route/state deliveries per frame.
+    std::size_t max_navigation_candidates = 1048576; ///< Per-frame candidate visit budget.
 }; ///< Metadata and command/scheduler allocations have separate accounting.
 
 /// @brief Last admitted frame and callback attempts, excluding arbitrary handler allocations.
@@ -139,6 +141,7 @@ struct input_statistics
     std::size_t callbacks = 0; ///< Callback attempts, including one that throws.
     bool closed = true;        ///< End-frame or shutdown completed.
     bool failed = false;       ///< Further dispatch waits for a newer begin-frame or shutdown.
+    std::size_t navigation_candidates = 0; ///< Cumulative visits across this frame.
 };
 
 /// @brief Optional semantic actions for list navigation; zero leaves an operation unmapped.
@@ -164,6 +167,19 @@ class input_session
     void configure(element_handle target, interaction_options options); ///< Between frames only.
     void configure_scroll_navigation(
         scroll_navigation_actions actions); ///< Between-frame semantic input mappings.
+    /// @brief Configure optional keyboard and global semantic navigation between frames.
+    void configure_navigation(focus_navigation_actions actions = {}, bool keyboard = true);
+    ///< Opt into keys and/or globally mapped semantic focus requests between frames.
+    /// @brief Set sparse explicit/blocked destinations and ordered traversal metadata.
+    void configure_navigation(element_handle target, const focus_navigation_options& options);
+    ///< Set sparse explicit destinations, blocked directions and ordered focus policy.
+    /// @brief Configure a search group and optional group-targeted semantic actions.
+    void configure_navigation_scope(element_handle root, focus_navigation_scope options = {});
+    ///< Configure a bounded group and optional independent next/previous actions.
+    void reset_navigation_scope(element_handle root); ///< Restore enclosing/root automatic policy.
+    /// @brief Move focus during an open owner frame without synthesizing activation.
+    [[nodiscard]] bool navigate(focus_direction direction, element_handle scope = {});
+    ///< Move focus during an open frame; never synthesize activation.
     void unbind(element_handle target); ///< Retire at next begin-frame, with disable/end cleanup.
     /// @brief Prepare matching geometry, begin commands, then start/enable registered handlers.
     void begin_frame(std::uint64_t frame, const element_snapshot& source,

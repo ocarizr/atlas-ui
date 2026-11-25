@@ -1,5 +1,6 @@
 /** @file @brief Deterministic half-open hit tests, state transitions and hierarchy routes. */
 #include "input_state.hpp"
+#include <atlas/input/key.hpp>
 #include <cmath>
 
 namespace atlas::ui
@@ -66,6 +67,13 @@ void input_session::impl::set_focus(element_handle target)
     focus_target = target;
     (void)send(target, event_kind::focus_gained, route_phase::direct, target);
     reveal(target);
+    if (focus_target == target && eligible(target))
+    {
+        if (auto* scope = focus_scope_for(focus_domain(target)))
+        {
+            scope->remembered = target;
+        }
+    }
 }
 
 /// @brief Explicit focus is not keyboard/gamepad navigation policy.
@@ -144,11 +152,11 @@ void input_session::impl::respond(input_binding& binding, const event_response& 
 }
 
 /// @brief A fixed identity path cannot be invalidated by registry removal inside a callback.
-void input_session::impl::route(input_event raw, element_handle target, event_kind kind)
+bool input_session::impl::route(input_event raw, element_handle target, event_kind kind)
 {
     if (!eligible(target))
     {
-        return;
+        return false;
     }
 
     path.clear();
@@ -181,22 +189,24 @@ void input_session::impl::route(input_event raw, element_handle target, event_ki
     {
         if (deliver(path[i], route_phase::capture))
         {
-            return;
+            return true;
         }
     }
 
     if (deliver(target, route_phase::target))
     {
-        return;
+        return true;
     }
 
     for (std::size_t i = 1; i < path.size(); ++i)
     {
         if (deliver(path[i], route_phase::bubble))
         {
-            return;
+            return true;
         }
     }
+
+    return false;
 }
 
 /// @brief Packet order, not timestamps or worker completion, defines replay semantics.
@@ -238,13 +248,25 @@ void input_session::impl::process_one(input_event raw)
             break;
         case input_kind::key_down:
         case input_kind::key_up:
-            route(raw, focus_target,
-                  raw.kind == input_kind::key_down ? event_kind::key_down : event_kind::key_up);
+            if (raw.key == static_cast<unsigned>(input::key::shift))
+            {
+                focus_shift = raw.kind == input_kind::key_down;
+            }
+            if (!route(raw, focus_target,
+                       raw.kind == input_kind::key_down ? event_kind::key_down
+                                                        : event_kind::key_up))
+            {
+                (void)focus_navigation_packet(raw, true);
+            }
             break;
         case input_kind::action:
-            route(raw, focus_target, event_kind::action);
+            if (!route(raw, focus_target, event_kind::action))
+            {
+                (void)focus_navigation_packet(raw, true);
+            }
             break;
         case input_kind::window_blur:
+            focus_shift = false;
             route(raw, capture_target, event_kind::pointer_cancel);
             clear_capture();
             set_focus({});

@@ -1,5 +1,6 @@
 /** @file @brief Validate stable IDs, hierarchy, and document-local references. */
 #include "document_validation.hpp"
+#include "navigation_content.hpp"
 #include <cmath>
 #include <map>
 #include <set>
@@ -267,5 +268,6 @@ void validate(const document& source)
     }
 
     validate_grids(source);
+    validate_navigation(source);
 }
 } // namespace atlas::ui_content::detail

@@ -10,7 +10,8 @@ input_session::impl::impl(element_tree& source, input_limits policy,
                           diagnostics::services services)
     : tree(source), limits(policy), memory(std::move(resource)), destinations(std::move(services)),
       bindings(0, memory.get()), regions(0, memory.get()), slots(0, memory.get()),
-      path(0, memory.get()), session(tree.snapshot().session())
+      path(0, memory.get()), focus_nodes(0, memory.get()), focus_scopes(0, memory.get()),
+      session(tree.snapshot().session())
 {
     bindings.reserve(limits.max_bindings);
     path.reserve(limits.max_route_depth);
@@ -74,7 +75,8 @@ input_session::input_session(element_tree& tree, input_limits limits,
     if (!limits.max_nodes || limits.max_nodes > 65536 || !limits.max_bindings ||
         limits.max_bindings > 65536 || !limits.max_events || limits.max_events > 4096 ||
         !limits.max_route_depth || limits.max_route_depth > 65536 || !limits.max_callbacks ||
-        limits.max_callbacks > 1048576)
+        limits.max_callbacks > 1048576 || !limits.max_navigation_candidates ||
+        limits.max_navigation_candidates > 16777216)
     {
         throw std::invalid_argument("invalid UI input limits");
     }
@@ -154,6 +156,11 @@ void input_session::unbind(element_handle target)
     }
 
     value->retiring = true;
+    std::erase_if(impl_->focus_nodes,
+                  [target](const auto& node)
+                  {
+                      return node.target == target;
+                  });
 }
 
 /// @brief No observer can bypass the callback reentrancy contract.

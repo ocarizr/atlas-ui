@@ -578,3 +578,6 @@ the uniform 192-card grid, shared GPU P50 matched sampled GPU P50 at
 for four layers over the same cells. The coverage count excludes any GPU
 work outside the submitted rectangle fragments and the timing includes
 the fixed target clear.
+
+See [focus navigation](ui_focus_navigation.md) for scoped spatial/explicit targets,
+semantic group actions, optional wrapping and XML/prepared descriptors.

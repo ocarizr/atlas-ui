@@ -1,4 +1,5 @@
 /** @file @brief Order-preserving XML element declarations. */
+#include "navigation_content.hpp"
 #include "xml_layout.hpp"
 #include <set>
 
@@ -28,7 +29,15 @@ void write_section(pugi::xml_node node, const char* name, const T& source, Codec
 bool read_metadata(pugi::xml_node node, element& target)
 {
     const std::string_view kind = node.name();
-    if (kind == "grid")
+    if (kind == "focus")
+    {
+        read_section(node, target.focus.emplace(), focus_fields);
+    }
+    else if (kind == "focus-scope")
+    {
+        read_section(node, target.focus_scope.emplace(), focus_scope_fields);
+    }
+    else if (kind == "grid")
     {
         read_grid(node, target);
     }
@@ -124,6 +133,16 @@ void write_element(pugi::xml_node node, const element& source)
     if (const auto* grid = std::get_if<ui::grid_layout>(&source.panel))
     {
         write_grid(node, *grid);
+    }
+
+    if (source.focus)
+    {
+        write_section(node, "focus", *source.focus, focus_fields);
+    }
+
+    if (source.focus_scope)
+    {
+        write_section(node, "focus-scope", *source.focus_scope, focus_scope_fields);
     }
 
     write_section(node, "layout", source.layout, layout_fields);

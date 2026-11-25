@@ -1,5 +1,6 @@
 /** @file @brief Private bounded interaction ownership and synchronous dispatch helpers. */
 #pragma once
+#include "input_navigation_state.hpp"
 #include "input_scroll_state.hpp"
 #include "paint_state.hpp"
 #include <algorithm>
@@ -52,11 +53,27 @@ class input_session::impl
     void clear_capture();                  ///< Reset before delivering capture-lost.
     void set_hover(element_handle target,
                    input_event raw = {}); ///< Direct leave/enter transitions.
-    void route(input_event raw, element_handle target, event_kind kind); ///< Capture/target/bubble.
+    bool route(input_event raw, element_handle target, event_kind kind); ///< Capture/target/bubble.
     /// @brief Validate response transitions before changing ownership.
     void respond(input_binding& binding, const event_response& response, input_event raw);
     ///< Validate requested state transitions before applying them.
-    void process_one(input_event raw);             ///< Semantic packet to routing/state changes.
+    void process_one(input_event raw); ///< Semantic packet to routing/state changes.
+    focus_navigation_options focus_options(element_handle target) const; ///< Sparse node policy.
+    detail::focus_scope* focus_scope_for(element_handle target);         ///< Exact group lookup.
+    element_handle
+    focus_domain(element_handle target) const;        ///< Nearest group or independent root.
+    bool focus_eligible(element_handle target) const; ///< Validate presented focus eligibility.
+    /// @brief Resolve an override without silently falling back for stale targets.
+    std::optional<element_handle> explicit_focus(element_handle origin,
+                                                 focus_direction direction) const;
+    ///< Resolve an override, including deliberately blocked/unavailable targets.
+    /// @brief Bound candidate visits while reducing immutable geometry without allocations.
+    element_handle scan_focus(focus_direction direction, element_handle origin,
+                              element_handle domain, bool wrap);
+    ///< Bounded allocation-free candidate ranking.
+    bool move_focus(focus_direction direction,
+                    element_handle scope = {});                  ///< Allocation-free search.
+    bool focus_navigation_packet(input_event raw, bool execute); ///< Semantic/keyboard adapter.
     pending_scroll* scroll(element_handle target); ///< Captured sparse viewport lookup.
     bool scroll_navigation(element_handle current,
                            input_event raw);                    ///< Ordered list focus navigation.
@@ -104,8 +121,13 @@ class input_session::impl
     std::pmr::vector<element_handle> path; ///< Reserved route scratch, bounded by ancestry policy.
     element_handle focus_target{}, capture_target{}, hover_target{}; ///< Separate ownership states.
     std::unique_ptr<scroll_input_frame> scrolling; ///< Immutable frame and sparse pending offsets.
-    scroll_navigation_actions navigation;          ///< Optional semantic action identities.
-    std::optional<scroll_drag> dragging;           ///< At most one primary-pointer drag.
+    std::pmr::vector<detail::focus_node> focus_nodes;   ///< Sparse author relationships.
+    std::pmr::vector<detail::focus_scope> focus_scopes; ///< Sparse search groups.
+    focus_navigation_actions focus_actions;             ///< Global device-independent actions.
+    bool focus_keyboard = false;                        ///< Opt-in portable keys.
+    bool focus_shift = false;                           ///< Owner-tracked portable Shift state.
+    scroll_navigation_actions navigation;               ///< Optional semantic action identities.
+    std::optional<scroll_drag> dragging;                ///< At most one primary-pointer drag.
     input_statistics stats; ///< Current/last admitted frame, not process memory.
     float delta = 0;        ///< Finite frame duration.
     unsigned stage = 0;     ///< 0 closed, 1 input, 2 tick, 3 late, 4 end, 5 failed.
