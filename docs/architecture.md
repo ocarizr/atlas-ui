@@ -21,6 +21,8 @@ requirements.
 | `ui_mvvm` | Compiled property/event bindings between UI and independent models |
 | `jobs` | Persistent workers, dispatch/dependencies, joins, ranges, cancellation and callbacks |
 | `memory` | Shared PMR resource policy and mimalloc/system adapters |
+| `accessibility` | Independent semantic snapshots and bounded asynchronous assistive requests |
+| `accessibility_host` | Platform-selected native accessibility window endpoint |
 | `diagnostics` | Logging, metric snapshots and bounded trace collection/export |
 | `jobs_diagnostics` | Optional scheduler observer forwarding logs and profiling |
 | `streaming` | Catalog, exact-range reads, retained-byte/request budgets and storage adapters |

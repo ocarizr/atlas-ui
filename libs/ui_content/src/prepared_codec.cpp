@@ -1,4 +1,5 @@
 /** @file @brief Version and integrity envelope for typed UI binary content. */
+#include "accessibility_content.hpp"
 #include "document_validation.hpp"
 #include "prepared_navigation.hpp"
 #include "prepared_ui_fields.hpp"
@@ -19,7 +20,7 @@ constexpr std::uint16_t wire_version = 2; ///< Add the embedded ViewModel defini
 /// @brief Encode the typed UI and its exact catalog closure in v2 field order.
 template <bool Reading>
 void serialize(detail::binary<Reading>& format, prepared_view& source, bool presentation,
-               bool events, bool scrollbars, bool grids, bool navigation)
+               bool events, bool scrollbars, bool grids, bool navigation, bool accessibility)
 {
     detail::reference(format, source.source);
     format.sequence(source.dependencies, detail::max_prepared_dependencies,
@@ -113,6 +114,11 @@ void serialize(detail::binary<Reading>& format, prepared_view& source, bool pres
     {
         detail::prepared_navigation(format, source.view);
     }
+
+    if (accessibility)
+    {
+        detail::prepared_accessibility(format, source.view);
+    }
 }
 } // namespace
 
@@ -152,8 +158,19 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
         {
             return std::holds_alternative<ui::grid_layout>(node.panel) || node.grid.has_value();
         });
+    const bool accessibility = std::ranges::any_of(
+        source.view.elements,
+        [](const auto& node)
+        {
+            return node.accessible.has_value() || node.decorative ||
+                   std::ranges::any_of(node.actions,
+                                       [](const auto& route)
+                                       {
+                                           return route.binding.event == ui::event_kind::activate;
+                                       });
+        });
     const bool navigation =
-        source.view.focus_input.has_value() ||
+        accessibility || source.view.focus_input.has_value() ||
         std::ranges::any_of(source.view.elements,
                             [](const auto& node)
                             {
@@ -161,9 +178,10 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
                             });
     serialize(payload, copy, presentation || events || scroll || scrollbars || grids || navigation,
               events || scroll || scrollbars || grids || navigation,
-              scrollbars || grids || navigation, grids || navigation, navigation);
+              scrollbars || grids || navigation, grids || navigation, navigation, accessibility);
     return mvvm_content::detail::seal_prepared(payload, magic,
-                                               navigation     ? std::uint16_t{8}
+                                               accessibility  ? std::uint16_t{9}
+                                               : navigation   ? std::uint16_t{8}
                                                : grids        ? std::uint16_t{7}
                                                : scrollbars   ? std::uint16_t{6}
                                                : scroll       ? std::uint16_t{5}
@@ -177,15 +195,15 @@ prepared_view decode_prepared(std::span<const std::byte> bytes)
 {
     const auto version = detail::prepared_version(bytes);
     if (version != wire_version && version != 3 && version != 4 && version != 5 && version != 6 &&
-        version != 7 && version != 8)
+        version != 7 && version != 8 && version != 9)
     {
         throw std::invalid_argument("Unsupported prepared UI version");
     }
 
     detail::binary<true> archive{mvvm_content::detail::open_prepared(bytes, magic, version)};
     prepared_view result;
-    serialize(archive, result, version >= 3, version >= 4, version >= 6, version >= 7,
-              version >= 8);
+    serialize(archive, result, version >= 3, version >= 4, version >= 6, version >= 7, version >= 8,
+              version >= 9);
     if (version < 5 && std::ranges::any_of(
                            result.view.elements,
                            [](const auto& node)
@@ -194,6 +212,21 @@ prepared_view decode_prepared(std::span<const std::byte> bytes)
                            }))
     {
         throw std::invalid_argument("Scroll panel requires prepared UI version 5");
+    }
+
+    if (version < 9 && std::ranges::any_of(
+                           result.view.elements,
+                           [](const auto& node)
+                           {
+                               return std::ranges::any_of(node.actions,
+                                                          [](const auto& route)
+                                                          {
+                                                              return route.binding.event ==
+                                                                     ui::event_kind::activate;
+                                                          });
+                           }))
+    {
+        throw std::invalid_argument("Semantic activation requires prepared UI version 9");
     }
 
     if (!archive.exhausted())

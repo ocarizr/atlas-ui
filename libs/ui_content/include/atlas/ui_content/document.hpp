@@ -120,6 +120,8 @@ struct element
     std::optional<ui::grid_slot> grid{}; ///< Grid-owned explicit coordinates or automatic spans.
     std::optional<focus_navigation> focus{}; ///< Explicit focus relationships and ordered policy.
     std::optional<ui::focus_navigation_scope> focus_scope{}; ///< Search group and semantic routes.
+    std::optional<ui::accessible_element> accessible{}; ///< Sparse semantic authoring override.
+    bool decorative = false; ///< Omit default semantics without hiding meaningful descendants.
 };
 
 /// @brief Popup defaults shared by source assets and optional Flow-instance overrides.

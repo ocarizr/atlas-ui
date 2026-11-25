@@ -54,3 +54,5 @@ target_compile_definitions(atlas_ui_tests PRIVATE ATLAS_UI_DATA_DIR="${CMAKE_CUR
 target_link_libraries(atlas_ui_tests PRIVATE atlas::ui GTest::gtest_main)
 atlas_configure_test(atlas_ui_tests)
 gtest_discover_tests(atlas_ui_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS ui TIMEOUT 30)
+
+target_sources(atlas_ui_tests PRIVATE accessibility_tests.cpp)

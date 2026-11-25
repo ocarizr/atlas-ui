@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <atlas/input/input_system.hpp>
+#include <atlas/ui/accessibility.hpp>
 #include <atlas/ui/element_tree.hpp>
 #include <atlas/ui/focus_navigation.hpp>
 
@@ -65,7 +66,8 @@ enum class event_kind : std::uint8_t
     focus_lost,     ///< Keyboard routing and focus transitions.
     action,         ///< Semantic action received from the reusable input library.
     ensure_visible, ///< Bubble a focus-reveal request.
-    pointer_scroll  ///< Signed wheel input routed under the pointer, independently from capture.
+    pointer_scroll, ///< Signed wheel input routed under the pointer, independently from capture.
+    activate        ///< Semantic activation without manufacturing physical pointer input.
 };
 
 /// @brief Direct notifications and the three ordered hierarchy routing phases.
@@ -180,6 +182,15 @@ class input_session
     /// @brief Move focus during an open owner frame without synthesizing activation.
     [[nodiscard]] bool navigate(focus_direction direction, element_handle scope = {});
     ///< Move focus during an open frame; never synthesize activation.
+    void configure_accessibility(element_handle target,
+                                 accessible_element value); ///< Between frames.
+    void
+    reset_accessibility(element_handle target); ///< Omit a decorative or no-longer-semantic node.
+    [[nodiscard]] std::vector<accessibility::node>
+    accessibility_nodes(accessibility_view view = {},
+                        const accessible_text& resolve = {}) const; ///< Owner capture.
+    void process_accessibility(std::span<const accessibility::request> requests,
+                               element_handle modal_root = {}); ///< Open input phase.
     void unbind(element_handle target); ///< Retire at next begin-frame, with disable/end cleanup.
     /// @brief Prepare matching geometry, begin commands, then start/enable registered handlers.
     void begin_frame(std::uint64_t frame, const element_snapshot& source,

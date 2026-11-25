@@ -21,3 +21,5 @@ target_link_libraries(atlas_ui_content_tests PRIVATE atlas::ui_content GTest::gt
 atlas_configure_test(atlas_ui_content_tests)
 gtest_discover_tests(atlas_ui_content_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 30
     PROPERTIES LABELS ui-content TIMEOUT 30)
+
+target_sources(atlas_ui_content_tests PRIVATE accessibility_tests.cpp)

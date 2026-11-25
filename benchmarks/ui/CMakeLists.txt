@@ -1,6 +1,6 @@
 add_executable(atlas_ui_benchmark frame_execution_benchmark.cpp)
 target_sources(atlas_ui_benchmark PRIVATE layout_benchmark.cpp layout_scenarios.cpp scroll_benchmark.cpp
-    virtual_list_benchmark.cpp grid_benchmark.cpp focus_navigation_benchmark.cpp
+    virtual_list_benchmark.cpp grid_benchmark.cpp focus_navigation_benchmark.cpp accessibility_benchmark.cpp
     ../jobs/allocation_counter.cpp ../jobs/allocation_counter_check.cpp)
 target_link_libraries(atlas_ui_benchmark PRIVATE atlas::ui)
 atlas_configure_target(atlas_ui_benchmark)
@@ -15,6 +15,8 @@ target_compile_definitions(atlas_ui_benchmark PRIVATE
     ATLAS_BENCHMARK_COMPILER="${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}"
     ATLAS_BENCHMARK_SYSTEM="${CMAKE_SYSTEM_NAME}")
 if(BUILD_TESTING)
+    add_test(NAME ui_accessibility_benchmark_smoke COMMAND atlas_ui_benchmark --accessibility-smoke)
+    set_tests_properties(ui_accessibility_benchmark_smoke PROPERTIES LABELS ui TIMEOUT 30)
     add_test(NAME ui_focus_benchmark_smoke COMMAND atlas_ui_benchmark --focus-smoke)
     set_tests_properties(ui_focus_benchmark_smoke PROPERTIES LABELS ui TIMEOUT 30)
     add_test(NAME ui_paint_benchmark_smoke COMMAND atlas_ui_paint_benchmark --smoke)

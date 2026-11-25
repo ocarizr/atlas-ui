@@ -75,9 +75,9 @@ struct layout_probe
 };
 
 int run_layout_benchmark(bool smoke, bool profile); ///< XML output; no timing threshold assertions.
-int run_scroll_benchmark(bool smoke); ///< Offset-only update, paint and sparse PMR census.
-int run_virtual_benchmark(
-    bool smoke); ///< Realization, layout, paint, input and bounded-memory census.
+int run_scroll_benchmark(bool smoke);  ///< Offset-only update, paint and sparse PMR census.
+int run_virtual_benchmark(bool smoke); ///< Realization, layout, paint, input and memory census.
+int run_accessibility_benchmark(bool smoke); ///< Full semantic capture/publication census.
 int run_focus_benchmark(bool smoke); ///< Compare identical automatic/explicit focus requests.
 int run_grid_benchmark(
     bool smoke); ///< Dirty-grid capture/layout/paint reference and memory census.

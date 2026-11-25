@@ -101,6 +101,12 @@ std::optional<int> run_named_probe(int argc, char** argv)
     if (argc == 2)
     {
         const std::string_view mode{argv[1]};
+        if (mode == "--accessibility" || mode == "--accessibility-smoke")
+        {
+            return atlas::ui::benchmarks::run_accessibility_benchmark(mode ==
+                                                                      "--accessibility-smoke");
+        }
+
         if (mode == "--focus" || mode == "--focus-smoke")
         {
             return atlas::ui::benchmarks::run_focus_benchmark(mode == "--focus-smoke");

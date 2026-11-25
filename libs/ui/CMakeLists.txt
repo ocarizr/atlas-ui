@@ -10,6 +10,7 @@ target_sources(atlas_ui PRIVATE src/input_session.cpp src/input_frames.cpp src/i
 target_sources(atlas_ui PRIVATE src/element_tree.cpp src/tree_hierarchy.cpp src/tree_application.cpp)
 target_sources(atlas_ui PRIVATE src/tree_snapshot.cpp src/frame_executor.cpp src/frame_work.cpp)
 target_sources(atlas_ui PRIVATE src/input_navigation_config.cpp src/input_navigation_select.cpp src/input_navigation_packets.cpp)
+target_sources(atlas_ui PRIVATE src/input_accessibility.cpp src/input_accessibility_capture.cpp)
 add_library(atlas::ui ALIAS atlas_ui)
 target_sources(atlas_ui PRIVATE src/layout_scroll.cpp)
 target_sources(atlas_ui PRIVATE src/scrollbar.cpp src/tree_scrollbar.cpp src/layout_scrollbar.cpp)
@@ -29,7 +30,7 @@ target_sources(atlas_ui PRIVATE src/layout_validation.cpp src/tree_layout.cpp sr
 target_compile_features(atlas_ui PUBLIC cxx_std_20)
 target_include_directories(atlas_ui PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-target_link_libraries(atlas_ui PUBLIC atlas::input atlas::diagnostics atlas::jobs)
+target_link_libraries(atlas_ui PUBLIC atlas::input atlas::diagnostics atlas::jobs atlas::accessibility)
 # EnTT is header-only implementation detail; installed consumers need only the compiled UI archive.
 target_link_libraries(atlas_ui PRIVATE $<BUILD_INTERFACE:EnTT::EnTT>)
 atlas_configure_target(atlas_ui)

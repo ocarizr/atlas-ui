@@ -58,6 +58,8 @@ class input_session::impl
     void respond(input_binding& binding, const event_response& response, input_event raw);
     ///< Validate requested state transitions before applying them.
     void process_one(input_event raw); ///< Semantic packet to routing/state changes.
+    const accessible_element*
+    accessibility_for(element_handle target) const; ///< Sparse sorted identity lookup.
     focus_navigation_options focus_options(element_handle target) const; ///< Sparse node policy.
     detail::focus_scope* focus_scope_for(element_handle target);         ///< Exact group lookup.
     element_handle
@@ -121,6 +123,8 @@ class input_session::impl
     std::pmr::vector<element_handle> path; ///< Reserved route scratch, bounded by ancestry policy.
     element_handle focus_target{}, capture_target{}, hover_target{}; ///< Separate ownership states.
     std::unique_ptr<scroll_input_frame> scrolling; ///< Immutable frame and sparse pending offsets.
+    std::pmr::vector<std::pair<element_handle, accessible_element>>
+        accessible;                                     ///< Sparse owner semantics.
     std::pmr::vector<detail::focus_node> focus_nodes;   ///< Sparse author relationships.
     std::pmr::vector<detail::focus_scope> focus_scopes; ///< Sparse search groups.
     focus_navigation_actions focus_actions;             ///< Global device-independent actions.

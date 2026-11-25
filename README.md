@@ -40,6 +40,8 @@ and semantic actions feed owner-thread interaction; expensive work remains in jo
 Independent data-defined ViewModels provide observable typed slots, actions/events, XML authoring
 and compiled factory generation. UI adapters publish property bindings and route events into
 model actions at explicit sync points.
+[Accessibility](docs/accessibility.md) provides independent semantic snapshots, owner-thread action
+requests and a platform-selected Windows UI Automation adapter.
 [Localization](docs/localization.md) adds independent language contexts, XML string tables,
 cardinal plurals and direction-aware text refresh.
 Owner-thread Lua behavior adds protected typed model commands, lifecycle/input adapters
@@ -82,6 +84,8 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 
 | Component | Debug/tests | Release/tests | ASan | MSVC analysis | clang-tidy | Coverage | SDK-free |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| [Accessibility](libs/accessibility/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Semantic contracts |
+| [Accessibility host](libs/accessibility_host/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Unavailable backend |
 | [UI](libs/ui/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tree/frame contracts |
 | [UI images](libs/ui_images/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Injected decode contracts |
 | [Localization](libs/localization/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tables and injected rules |

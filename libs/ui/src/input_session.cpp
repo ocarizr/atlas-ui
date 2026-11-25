@@ -10,8 +10,8 @@ input_session::impl::impl(element_tree& source, input_limits policy,
                           diagnostics::services services)
     : tree(source), limits(policy), memory(std::move(resource)), destinations(std::move(services)),
       bindings(0, memory.get()), regions(0, memory.get()), slots(0, memory.get()),
-      path(0, memory.get()), focus_nodes(0, memory.get()), focus_scopes(0, memory.get()),
-      session(tree.snapshot().session())
+      path(0, memory.get()), accessible(0, memory.get()), focus_nodes(0, memory.get()),
+      focus_scopes(0, memory.get()), session(tree.snapshot().session())
 {
     bindings.reserve(limits.max_bindings);
     path.reserve(limits.max_route_depth);
@@ -156,6 +156,11 @@ void input_session::unbind(element_handle target)
     }
 
     value->retiring = true;
+    std::erase_if(impl_->accessible,
+                  [target](const auto& item)
+                  {
+                      return item.first == target;
+                  });
     std::erase_if(impl_->focus_nodes,
                   [target](const auto& node)
                   {

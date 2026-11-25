@@ -218,3 +218,6 @@ Diagnostic callbacks cannot reenter either the tree or its bound producer.
 
 See [focus navigation](../../docs/ui_focus_navigation.md) for scoped automatic/explicit
 traversal, semantic group actions and the authored XML/prepared contract.
+
+See [accessibility](../../docs/accessibility.md) for sparse semantic metadata, frozen presentation
+capture and owner-phase assistive action delivery.

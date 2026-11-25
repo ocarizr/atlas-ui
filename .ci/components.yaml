@@ -1,4 +1,18 @@
 components:
+  accessibility-host:
+    paths: [libs/accessibility_host/**, libs/platform/windows/accessibility/**, tests/accessibility_host/**, tests/platform/windows/accessibility/**]
+    depends_on: [accessibility, window]
+    build_targets: [atlas_accessibility_host, atlas_accessibility_host_tests]
+    test_labels: [accessibility-host]
+    build_requires: [accessibility, window]
+    vendors: [testing, content]
+  accessibility:
+    paths: [libs/accessibility/**, tests/accessibility/**]
+    depends_on: [diagnostics]
+    build_targets: [atlas_accessibility, atlas_accessibility_tests]
+    test_labels: [accessibility]
+    build_requires: [diagnostics]
+    vendors: [testing, content]
   localization:
     paths: [libs/localization/**, tests/localization/**, benchmarks/localization/**, libs/platform/windows/localization/**, tests/platform/windows/localization/**]
     depends_on: [diagnostics]
@@ -252,6 +266,7 @@ components:
     - benchmarks/jobs/allocation_counter.hpp
     - benchmarks/jobs/allocation_counter_check.cpp
     depends_on:
+    - accessibility
     - input
     - diagnostics
     - jobs
@@ -263,6 +278,7 @@ components:
     test_labels:
     - ui
     build_requires:
+    - accessibility
     - input
     - diagnostics
     - jobs
@@ -689,6 +705,8 @@ global_paths:
 - vcpkg-configuration.json
 - dependencies/**
 documentation_paths:
+- libs/accessibility/README.md
+- libs/accessibility_host/README.md
 - libs/asset_catalog/README.md
 - libs/scripting/README.md
 - libs/ui_scripting/README.md

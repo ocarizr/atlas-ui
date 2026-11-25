@@ -1,0 +1,7 @@
+add_library(atlas_accessibility STATIC src/channel.cpp src/validation.cpp)
+add_library(atlas::accessibility ALIAS atlas_accessibility)
+target_include_directories(atlas_accessibility PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+target_compile_features(atlas_accessibility PUBLIC cxx_std_20)
+target_link_libraries(atlas_accessibility PUBLIC atlas::diagnostics)
+atlas_configure_target(atlas_accessibility)
+atlas_export_library(atlas_accessibility accessibility accessibility)

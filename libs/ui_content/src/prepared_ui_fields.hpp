@@ -145,7 +145,7 @@ template <class Archive> void binding_fields(Archive& format, element& node)
                     {
                         auto& action = value.binding;
                         archive.fields(value.model, action.action, action.input_action);
-                        archive.choice(action.event, ui::event_kind::pointer_scroll);
+                        archive.choice(action.event, ui::event_kind::activate);
                         archive.choice(action.route, ui::route_phase::bubble);
                         archive.choice(action.input_phase, input::action_phase::cancelled);
                         archive.sequence(action.arguments, 32,
