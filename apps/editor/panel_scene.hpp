@@ -19,7 +19,15 @@ class panel_scene
     /// @brief Return actions after all routing for the input batch has finished.
     [[nodiscard]] std::vector<control_action> dispatch(std::span<const input::event> events);
 
+    std::span<const ui::input_event>
+    begin_input(std::span<const input::event> events); ///< Open for shared-window routing.
+    std::vector<control_action> finish_input(); ///< Close after the drag domain releases its lease.
+    ui::input_session& input() noexcept; ///< Checked domain participation, no ownership transfer.
+    control_action destination(ui::element_handle target) const; ///< Resolve a native drop target.
+
   private:
+    std::vector<std::pair<ui::element_handle, control_action>>
+        destinations_;                           ///< Native transaction routing.
     std::vector<control_action> pending_;        ///< Short-lived actions emitted by input handlers.
     ui::element_tree tree_;                      ///< Main-thread chrome only.
     ui::input_session input_;                    ///< Control lifetime ends before the chrome tree.

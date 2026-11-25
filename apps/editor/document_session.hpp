@@ -34,14 +34,19 @@ class document_session
     [[nodiscard]] bool can_redo() const noexcept; ///< Whether an undone edit remains retained.
     void select(std::string_view id);             ///< Selection alone creates no history entry.
     bool apply(edit_kind command); ///< Validate and atomically publish a single authored edit.
-    bool undo();                   ///< Restore a retained authored revision and rebuild preview.
-    bool redo();                   ///< Reapply a retained authored revision and rebuild preview.
+    bool can_reparent(std::string_view source,
+                      std::string_view destination) const; ///< Pure structural preflight.
+    bool reparent(std::string_view source,
+                  std::string_view destination); ///< Atomic move with one undo.
+    bool undo(); ///< Restore a retained authored revision and rebuild preview.
+    bool redo(); ///< Reapply a retained authored revision and rebuild preview.
     void replace(ui_content::document source, bool saved); ///< Publish valid replacement only.
     void restore(ui_content::document source); ///< Restore recovery as an undoable dirty edit.
     void mark_saved() noexcept; ///< Record the current revision after persistence succeeds.
     /// @brief Assign an image or material through a retained immutable catalog mount.
     void assign_asset(assets::asset_ref reference,
-                      std::shared_ptr<streaming::catalog_streamer> mount);
+                      std::shared_ptr<streaming::catalog_streamer> mount,
+                      std::string_view element = {});
     /// @brief Refresh only derived preview services, preserving authoring and dirty state.
     void refresh_assets(std::shared_ptr<streaming::catalog_streamer> mount);
     bool

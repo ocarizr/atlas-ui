@@ -10,7 +10,8 @@ namespace atlas::scripting
 std::vector<mvvm::value> session::impl::call(std::string_view name,
                                              std::span<const mvvm::value> args,
                                              std::uint64_t native_request,
-                                             std::span<const mvvm::value_type> result_types)
+                                             std::span<const mvvm::value_type> result_types,
+                                             const result_validator& validate)
 {
     if (!native_request)
     {
@@ -85,6 +86,11 @@ std::vector<mvvm::value> session::impl::call(std::string_view name,
         if (model->inspect().frame != stats.frame || model->inspect().failed)
         {
             throw std::logic_error("model frame changed during script dispatch");
+        }
+
+        if (validate)
+        {
+            validate(results);
         }
 
         admit();

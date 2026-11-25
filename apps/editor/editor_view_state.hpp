@@ -17,7 +17,7 @@ class editor_view::impl
          const diagnostics::services& destinations, const tool_registry* sources)
         : legacy_session{&active}, jobs{workers}, file{std::move(path)}, sinks{destinations},
           layout{jobs.dispatcher(), {}, {}, sinks}, paint{jobs.dispatcher(), {}, {}, sinks},
-          tools{sources}
+          tools{sources}, drag{{}, {}, sinks}
     {
         if (tools)
         {
@@ -41,11 +41,15 @@ class editor_view::impl
         }
     }
 
-    void execute(const control_action& action); ///< Run only outside Atlas event callbacks.
+    void execute_controls(
+        std::span<const control_action> commands); ///< Retire input before owner mutation.
+    void execute(const control_action& action);    ///< Run only outside Atlas event callbacks.
     void rebuild(ui::layout_rect viewport, float scale); ///< Publish complete chrome candidate.
     void compose_flow(panel_plan& plan,
                       ui::layout_rect bounds); ///< Graph tool and explicit mode switch.
     void cycle_tool(); ///< Switch to the next valid contribution or the preview.
+    bool commit_drop(const ui::drop_request& request);  ///< One native editor document transaction.
+    std::shared_ptr<const editor_frame> presentation(); ///< Shared base plus small drag feedback.
     bool dispatch(std::span<const input::event> events); ///< Process isolated Lua and host actions.
 
     /// @brief Resolve the active owner only after pending UI routes finish.
@@ -88,6 +92,8 @@ class editor_view::impl
     ui::layout_rect tool_bounds; ///< Last arranged contribution viewport.
     std::function<std::shared_ptr<streaming::catalog_streamer>()>
         flow_mount;                   ///< Current catalog snapshot factory.
+    ui::drag_drop_session drag;       ///< One native-window interaction domain across panels.
+    std::uint64_t input_frame = 0;    ///< Domain identity is independent of panel reconstruction.
     std::unique_ptr<flow_panel> flow; ///< Optional persistent Atlas graph tool.
 };
 

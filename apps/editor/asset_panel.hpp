@@ -20,7 +20,11 @@ class asset_panel
     bool poll(document_workspace* documents, jobs::job_system& jobs,
               const diagnostics::services&
                   sinks); ///< Complete ready inspection and update visible status.
-    bool visible = false; ///< Toggle browser against the document preview.
+    void
+    drop(assets::asset_id identity, std::string_view target, document_session& document,
+         jobs::job_system& jobs,
+         const diagnostics::services& sinks); ///< Copy a reference in one document transaction.
+    bool visible = false;                     ///< Toggle browser against the document preview.
   private:
     assets::asset_ref selected() const; ///< Reject stale or absent selection.
     /// @brief Apply catalog history and deletion with document reference protection.

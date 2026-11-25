@@ -139,7 +139,7 @@ updates. Edit source comments rather than generated wiki pages.
 | Flow authoring | [Atlas graph workspace, typed inspectors, XML recovery and composed runtime preview](docs/editor_flow.md) |
 | Behavior | [Lua sessions, UI events and native jobs](docs/scripting.md), [shared domains and director](docs/scripting_domains.md), [runtime API](libs/scripting/README.md), [Lua development and debugging](docs/lua_development.md) |
 | Input | [Actions, contexts and adapters](docs/input.md), [API](libs/input/README.md) |
-| UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [painting and clipping](docs/ui_paint.md), [streamed images](docs/ui_images.md), [input and lifecycle](docs/ui_input.md), [API and examples](libs/ui/README.md) |
+| UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [painting and clipping](docs/ui_paint.md), [streamed images](docs/ui_images.md), [input and lifecycle](docs/ui_input.md), [drag-and-drop](docs/ui_drag_drop.md), [API and examples](libs/ui/README.md) |
 | Jobs | [Overview](docs/jobs.md), [dispatch](docs/job_dispatch.md), [graphs](docs/job_graphs.md), [scheduling](docs/job_scheduling.md), [callbacks](docs/job_callbacks.md), [measurement](docs/job_workloads.md), [safety](libs/jobs/README.md) |
 | Memory and storage | [PMR resources](libs/memory/README.md), [assets](docs/assets.md), [streaming](docs/streaming.md), [streaming API](libs/streaming/README.md) |
 | Rendering | [Contracts](docs/renderer.md), [resources](docs/renderer_resources.md), [passes](docs/renderer_passes.md), [recording](docs/renderer_recording.md), [content](docs/renderer_content.md), [render host/readiness](docs/render_host.md) |

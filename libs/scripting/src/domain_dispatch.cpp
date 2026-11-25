@@ -49,7 +49,8 @@ void domain::begin_frame(std::uint64_t frame)
 /// @brief Direct dispatch validates generation and activation before entering the director.
 std::vector<mvvm::value> domain::call(instance_handle instance, std::string_view handler,
                                       std::span<const mvvm::value> arguments,
-                                      std::span<const mvvm::value_type> result_types)
+                                      std::span<const mvvm::value_type> result_types,
+                                      const result_validator& validate)
 {
     impl_->check();
     auto& entry = impl_->get(instance);
@@ -59,7 +60,7 @@ std::vector<mvvm::value> domain::call(instance_handle instance, std::string_view
     }
 
     const detail::busy_guard guard{impl_->busy};
-    return entry.behavior->call(handler, arguments, result_types);
+    return entry.behavior->call(handler, arguments, result_types, validate);
 }
 
 /// @brief Each event observes registration order; completed earlier calls are not rolled back.

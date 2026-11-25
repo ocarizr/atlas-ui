@@ -9,6 +9,11 @@
 
 namespace atlas::ui
 {
+struct input_lifetime
+{
+    input_session* owner = nullptr; ///< Zeroed before the input owner is destroyed.
+}; ///< Weak drag leases never dereference a retired input session.
+
 struct input_binding
 {
     element_handle target;                  ///< Retained identity, never a registry pointer.
@@ -113,10 +118,16 @@ class input_session::impl
         } ///< Always leave, including callback exceptions.
     };
 
-    element_tree& tree;                                ///< Borrowed; must outlive this facade.
-    input_limits limits;                               ///< Independent metadata/callback bounds.
+    std::shared_ptr<input_lifetime> lifetime = std::make_shared<input_lifetime>(); ///< Owner lease.
+    const void* drag_frame = nullptr; ///< Window domain must release before tick/shutdown.
+    element_tree& tree;               ///< Borrowed; must outlive this facade.
+    input_limits limits;              ///< Independent metadata/callback bounds.
     std::shared_ptr<std::pmr::memory_resource> memory; ///< Outlives PMR vectors.
-    diagnostics::services destinations;                ///< Optional logging/profiling.
+    std::pmr::vector<std::pair<element_handle, drag_source_options>>
+        drag_sources; ///< Sparse sources.
+    std::pmr::vector<std::pair<element_handle, drop_target_options>>
+        drop_targets;                         ///< Sparse targets.
+    diagnostics::services destinations;       ///< Optional logging/profiling.
     std::pmr::vector<input_binding> bindings; ///< Sorted by slot/generation, no per-widget jobs.
     std::pmr::vector<detail::presentation_region> regions; ///< Immutable frozen frame geometry.
     std::pmr::vector<std::size_t> slots;   ///< Slot to region lookup; no live registry access.

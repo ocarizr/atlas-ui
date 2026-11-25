@@ -1,4 +1,5 @@
 /** @file @brief Increasing input frames and ordered serial event/work boundaries. */
+#include "drag_metadata.hpp"
 #include "input_state.hpp"
 #include <cmath>
 
@@ -9,7 +10,7 @@ void input_session::begin_frame(std::uint64_t frame, const element_snapshot& sou
                                 const layout_snapshot& geometry, float delta_seconds)
 {
     impl_->check();
-    if (impl_->terminal || (!impl_->stats.closed && !impl_->stats.failed))
+    if (impl_->drag_frame || impl_->terminal || (!impl_->stats.closed && !impl_->stats.failed))
     {
         throw std::logic_error("end the current UI input frame before beginning another");
     }
@@ -79,6 +80,7 @@ void input_session::begin_frame(std::uint64_t frame, const element_snapshot& sou
                       {
                           return value.ended;
                       });
+        detail::prune_drag_metadata(*impl_);
         impl_->start_bindings();
         impl_->reconcile();
     }
@@ -195,6 +197,11 @@ void input_session::impl::system_stage(event_kind kind)
                               : kind == event_kind::late_tick ? 3U
                                                               : 4U;
     const unsigned next = expected == 4 ? 0U : expected + 1;
+    if (drag_frame)
+    {
+        throw std::logic_error("end the window drag frame before UI system stages");
+    }
+
     if (stage != expected)
     {
         throw std::logic_error("UI system event stages are out of order");

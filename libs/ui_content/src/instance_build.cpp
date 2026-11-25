@@ -1,3 +1,4 @@
+#include "drag_content.hpp"
 /** @file @brief Prepare a complete tree, model graph and shared-domain candidate. */
 #include "accessibility_content.hpp"
 #include "document_validation.hpp"
@@ -130,8 +131,9 @@ void instance::impl::bind_elements(const document& source, const construction& o
                 textures.emplace(node.id, *texture);
             }
 
-            if (node.accessible || node.focus || node.interaction || !node.actions.empty() ||
-                !node.events.empty() || node.script || navigation.contains(node.id))
+            if (node.drag_source || node.drop_target || node.accessible || node.focus ||
+                node.interaction || !node.actions.empty() || !node.events.empty() || node.script ||
+                navigation.contains(node.id))
             {
                 const auto event_bindings =
                     std::span<const event_action>{events}.last(node.events.size());
@@ -142,6 +144,7 @@ void instance::impl::bind_elements(const document& source, const construction& o
             }
 
             detail::configure_accessibility(input, target, node);
+            detail::configure_drag(input, target, node);
         }
         catch (const std::logic_error& error)
         {

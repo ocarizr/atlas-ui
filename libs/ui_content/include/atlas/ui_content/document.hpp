@@ -94,7 +94,16 @@ struct navigation_input
     bool keyboard = true;                   ///< Opt-in arrows and Tab/Shift+Tab.
 };
 
-/// @brief Serializable element data without any live handles or registry identities.
+/// @brief Serializable source policy; an empty type requests a dynamic Lua prepare offer.
+struct drag_source_definition
+{
+    std::string type; ///< Stable payload type key.
+    std::string text; ///< Owned UTF-8 text, not a file path.
+    ui::drag_operations operations = ui::drag_operations::copy; ///< Copy/move capability.
+    float threshold = 4; ///< Logical pointer travel before lifting.
+};
+
+/// @brief Serializable element data without live handles or registry identities.
 struct element
 {
     std::string id;     ///< Unique stable ID in this document.
@@ -120,6 +129,8 @@ struct element
     std::optional<ui::grid_slot> grid{}; ///< Grid-owned explicit coordinates or automatic spans.
     std::optional<focus_navigation> focus{}; ///< Explicit focus relationships and ordered policy.
     std::optional<ui::focus_navigation_scope> focus_scope{}; ///< Search group and semantic routes.
+    std::optional<drag_source_definition> drag_source{};     ///< Optional typed offer.
+    std::optional<ui::drop_target_options> drop_target{};    ///< Accepted typed transfers.
     std::optional<ui::accessible_element> accessible{}; ///< Sparse semantic authoring override.
     bool decorative = false; ///< Omit default semantics without hiding meaningful descendants.
 };

@@ -56,3 +56,9 @@ atlas_configure_test(atlas_ui_tests)
 gtest_discover_tests(atlas_ui_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS ui TIMEOUT 30)
 
 target_sources(atlas_ui_tests PRIVATE accessibility_tests.cpp)
+
+target_sources(atlas_ui_tests PRIVATE drag_payload_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE drag_transfer_tests.cpp drag_failure_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE drag_boundary_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE drag_resource_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE drag_geometry_tests.cpp)

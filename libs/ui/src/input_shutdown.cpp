@@ -12,7 +12,7 @@ void input_session::close_lifecycle(std::uint64_t frame, bool terminal)
         return;
     }
 
-    if (!impl_->stats.closed && !impl_->stats.failed)
+    if (impl_->drag_frame || (!impl_->stats.closed && !impl_->stats.failed))
     {
         throw std::logic_error("end the UI input frame before shutdown");
     }

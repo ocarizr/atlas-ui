@@ -12,8 +12,9 @@ class click_handler final : public ui::input_handler
 {
   public:
     /// @brief Retain stable authored identity instead of a preview element handle.
-    click_handler(control_action action, std::vector<control_action>& output)
-        : action_{std::move(action)}, output_{output}
+    click_handler(control_action action, std::vector<control_action>& output,
+                  std::function<bool(const ui::drag_event&)> accepts = {})
+        : action_{std::move(action)}, output_{output}, accepts_{std::move(accepts)}
     {
     }
 
@@ -26,6 +27,18 @@ class click_handler final : public ui::input_handler
             pressed_ = false;
         }
 
+        if (event.kind == ui::event_kind::drag_query && event.drag && accepts_)
+        {
+            return {.acceptance = accepts_(*event.drag) ? ui::drag_acceptance::accept
+                                                        : ui::drag_acceptance::reject};
+        }
+
+        if (event.kind == ui::event_kind::activate)
+        {
+            output_.push_back(action_);
+            return {.stop = true};
+        }
+
         if (event.phase != ui::route_phase::target)
         {
             return {};
@@ -34,7 +47,7 @@ class click_handler final : public ui::input_handler
         if (event.kind == ui::event_kind::pointer_down)
         {
             pressed_ = true;
-            return {.stop = true, .capture_pointer = true};
+            return {.stop = true, .capture_pointer = true, .focus = true};
         }
 
         if (event.kind == ui::event_kind::pointer_up && std::exchange(pressed_, false) &&
@@ -50,9 +63,10 @@ class click_handler final : public ui::input_handler
     }
 
   private:
-    control_action action_;               ///< Immutable click intent.
-    std::vector<control_action>& output_; ///< Owned by the panel scene.
-    bool pressed_ = false;                ///< Reset on every matching release.
+    control_action action_;                              ///< Immutable click intent.
+    std::vector<control_action>& output_;                ///< Owned by the panel scene.
+    std::function<bool(const ui::drag_event&)> accepts_; ///< Pure editor transaction preflight.
+    bool pressed_ = false;                               ///< Reset on every matching release.
 };
 
 /// @brief Materialize a logical rectangle as a normal Atlas canvas leaf.
@@ -119,9 +133,23 @@ panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
         const auto node = make_element(tree_, root, item);
         if (item.action.kind != control_kind::none)
         {
-            input_.bind(node, std::make_shared<click_handler>(item.action, pending_));
+            input_.bind(node, std::make_shared<click_handler>(item.action, pending_, item.accepts),
+                        {.focusable = true});
+        }
+
+        if (item.source)
+        {
+            input_.configure_drag_source(node, *item.source);
+        }
+
+        if (item.destination)
+        {
+            input_.configure_drop_target(node, *item.destination);
+            destinations_.emplace_back(node, item.action);
         }
     }
+
+    input_.configure_navigation();
 
     tree_.set_viewport(viewport);
     source_ = tree_.snapshot();
@@ -160,7 +188,7 @@ const std::shared_ptr<const editor_frame>& panel_scene::packet() const noexcept
 }
 
 /// @brief Dispatch a batch in order and execute actions only after leaving callbacks.
-std::vector<control_action> panel_scene::dispatch(std::span<const input::event> events)
+std::span<const ui::input_event> panel_scene::begin_input(std::span<const input::event> events)
 {
     input_bridge_.clear();
     for (auto event : events)
@@ -179,12 +207,44 @@ std::vector<control_action> panel_scene::dispatch(std::span<const input::event> 
         input_bridge_.on_input(event);
     }
 
+    ui::validate_input_events(input_bridge_.values());
     input_.begin_frame(++frame_, source_, geometry_);
-    input_.process(input_bridge_.values());
+    input_.process({});
+    return input_bridge_.values();
+}
+
+/// @brief Seal only after all window drag callbacks and transactions have returned.
+std::vector<control_action> panel_scene::finish_input()
+{
     input_.tick();
     input_.late_tick();
     input_.end_frame();
     tree_.apply(tree_.commands().seal());
     return std::exchange(pending_, {});
+}
+
+/// @brief Standalone routing remains available for isolated panel tests.
+std::vector<control_action> panel_scene::dispatch(std::span<const input::event> events)
+{
+    const auto packets = begin_input(events);
+    input_.process_more(packets);
+    return finish_input();
+}
+
+/// @brief Borrow the serial owner during root-orchestrated dispatch.
+ui::input_session& panel_scene::input() noexcept
+{
+    return input_;
+}
+
+/// @brief Authored tool destinations are intentionally not mistaken for native editor controls.
+control_action panel_scene::destination(ui::element_handle target) const
+{
+    const auto found = std::ranges::find_if(destinations_,
+                                            [&](const auto& item)
+                                            {
+                                                return item.first == target;
+                                            });
+    return found == destinations_.end() ? control_action{} : found->second;
 }
 } // namespace atlas::editor

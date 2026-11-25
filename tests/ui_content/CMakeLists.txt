@@ -23,3 +23,5 @@ gtest_discover_tests(atlas_ui_content_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TI
     PROPERTIES LABELS ui-content TIMEOUT 30)
 
 target_sources(atlas_ui_content_tests PRIVATE accessibility_tests.cpp)
+
+target_sources(atlas_ui_content_tests PRIVATE drag_authoring_tests.cpp)

@@ -18,3 +18,5 @@ target_link_libraries(atlas_ui_content PUBLIC atlas::streaming atlas::ui_mvvm at
     PRIVATE atlas::mvvm_content pugixml::pugixml)
 atlas_configure_target(atlas_ui_content)
 atlas_export_library(atlas_ui_content ui_content ui_content)
+
+target_sources(atlas_ui_content PRIVATE src/drag_content.cpp)

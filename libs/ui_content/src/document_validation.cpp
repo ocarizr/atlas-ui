@@ -1,3 +1,4 @@
+#include "drag_content.hpp"
 /** @file @brief Validate stable IDs, hierarchy, and document-local references. */
 #include "document_validation.hpp"
 #include "navigation_content.hpp"
@@ -97,7 +98,7 @@ void validate_bindings(const element& node, const model_names& models)
     {
         const auto& action = route.binding;
         if (!models.contains(route.model) || action.action.empty() ||
-            action.arguments.size() > 32 || action.event > ui::event_kind::activate ||
+            action.arguments.size() > 32 || action.event > ui::event_kind::drag_cancelled ||
             action.route > ui::route_phase::bubble ||
             action.input_phase > input::action_phase::cancelled ||
             ((action.event == ui::event_kind::action) != (action.input_action != 0)))
@@ -262,6 +263,7 @@ void validate(const document& source)
 
     for (const auto& node : source.elements)
     {
+        validate_drag(node);
         if (node.accessible)
         {
             ui::validate_accessibility(*node.accessible);

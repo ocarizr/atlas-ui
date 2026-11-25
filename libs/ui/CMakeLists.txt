@@ -37,3 +37,7 @@ atlas_configure_target(atlas_ui)
 atlas_export_library(atlas_ui ui ui)
 
 target_sources(atlas_ui PRIVATE src/input_scroll_navigation.cpp)
+
+target_sources(atlas_ui PRIVATE src/drag_payload.cpp src/input_drag_config.cpp src/drag_session.cpp src/drag_targets.cpp src/drag_gesture.cpp src/drag_packets.cpp)
+
+target_sources(atlas_ui PRIVATE src/drag_delivery.cpp)

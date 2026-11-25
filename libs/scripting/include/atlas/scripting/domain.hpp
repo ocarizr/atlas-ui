@@ -135,7 +135,8 @@ class domain
     std::vector<mvvm::value>
     call(instance_handle instance, std::string_view handler,
          std::span<const mvvm::value> arguments = {},
-         std::span<const mvvm::value_type> result_types =
+         std::span<const mvvm::value_type> result_types = {},
+         const result_validator& validate =
              {}); ///< Route one generation-checked event through the Lua director.
     void dispatch(std::string_view handler,
                   std::span<const mvvm::value> arguments =

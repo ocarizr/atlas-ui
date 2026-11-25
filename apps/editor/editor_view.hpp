@@ -16,6 +16,8 @@ struct editor_frame final : render_host::frame_payload
     ui::layout_rect viewport;          ///< Full editor viewport in DIPs.
     std::vector<ui::paint_quad> quads; ///< Ordered chrome, preview, and label draws.
     std::shared_ptr<const ui_text::glyph_atlas> atlas; ///< Immutable masks shared across frames.
+    std::shared_ptr<const editor_frame> base{};        ///< Share unchanged chrome while dragging.
+    std::optional<ui::drag_feedback> drag{}; ///< Render-only feedback; never a hit-test target.
 };
 
 /// @brief Main-thread composition and editor control dispatch.

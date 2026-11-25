@@ -165,9 +165,10 @@ void session::begin_frame(std::uint64_t frame)
 
 /// @brief Enter the guarded owner-thread producer boundary; never flush the model implicitly.
 std::vector<mvvm::value> session::call(std::string_view handler, std::span<const mvvm::value> args,
-                                       std::span<const mvvm::value_type> result_types)
+                                       std::span<const mvvm::value_type> result_types,
+                                       const result_validator& validate)
 {
-    return impl_->call(handler, args, 0, result_types);
+    return impl_->call(handler, args, 0, result_types, validate);
 }
 
 /// @brief Cancel transport and release observers without waiting for caller-owned jobs.

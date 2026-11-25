@@ -96,6 +96,13 @@ void asset_panel::append(panel_plan& plan)
         button(4, 54 + static_cast<float>(i % per_page) * 25, std::max(1.F, bounds.width - 8),
                (row.missing ? "Missing " : "") + row.record.source.path,
                control_kind::assets_select, assets::format_id(row.record.reference.id));
+        if (!row.missing && (row.record.reference.type == assets::asset_type::texture ||
+                             row.record.reference.type == assets::asset_type::material))
+        {
+            plan.controls.back().source = ui::drag_source_options{
+                ui::drag_payload::text("atlas.asset", assets::format_id(row.record.reference.id)),
+                ui::drag_operations::copy};
+        }
     }
 
     button(4, 232, 62, "Next", control_kind::assets_next);

@@ -27,6 +27,10 @@ class tool_panel
     /// @brief Route one serial input phase and publish its owned results.
     [[nodiscard]] tool_input_result dispatch(std::span<const input::event> events, float density);
 
+    void begin_input(bool accepting); ///< Open the view for shared-window routing.
+    tool_input_result finish_input(); ///< Commit after the window drag frame closes.
+    ui::input_session& input();       ///< Borrow the serial input owner.
+
   private:
     class mailbox;                                ///< Scoped C++ editor capability exposed to Lua.
     std::shared_ptr<mailbox> mailbox_;            ///< Outlives the behavior instance.

@@ -1,5 +1,6 @@
 /** @file @brief Order-preserving XML element declarations. */
 #include "accessibility_content.hpp"
+#include "drag_content.hpp"
 #include "navigation_content.hpp"
 #include "xml_layout.hpp"
 #include <set>
@@ -30,7 +31,15 @@ void write_section(pugi::xml_node node, const char* name, const T& source, Codec
 bool read_metadata(pugi::xml_node node, element& target)
 {
     const std::string_view kind = node.name();
-    if (kind == "accessibility")
+    if (kind == "drag-source")
+    {
+        read_section(node, target.drag_source.emplace(), drag_source_fields);
+    }
+    else if (kind == "drop-target")
+    {
+        read_section(node, target.drop_target.emplace(), drop_target_fields);
+    }
+    else if (kind == "accessibility")
     {
         read_section(node, target.accessible.emplace(), accessibility_fields);
     }
@@ -139,6 +148,16 @@ void write_element(pugi::xml_node node, const element& source)
     if (const auto* grid = std::get_if<ui::grid_layout>(&source.panel))
     {
         write_grid(node, *grid);
+    }
+
+    if (source.drag_source)
+    {
+        write_section(node, "drag-source", *source.drag_source, drag_source_fields);
+    }
+
+    if (source.drop_target)
+    {
+        write_section(node, "drop-target", *source.drop_target, drop_target_fields);
     }
 
     if (source.accessible)

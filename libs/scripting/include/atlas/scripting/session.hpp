@@ -6,10 +6,15 @@
 #include <atlas/mvvm/view_model.hpp>
 #include <atlas/scripting/debugger.hpp>
 #include <atlas/scripting/diagnostics.hpp>
+#include <functional>
 #include <stop_token>
 
 namespace atlas::scripting
 {
+/// @brief Validate returned protocol values before any script demands are admitted; throw to
+/// reject.
+using result_validator = std::function<void(std::span<const mvvm::value>)>;
+
 namespace detail
 {
 class mailbox; ///< Thread-safe completion transport; never contains a Lua state.
@@ -79,7 +84,8 @@ class session
     /// @brief Run an optional named handler and admit its demands only after successful return.
     std::vector<mvvm::value> call(std::string_view handler,
                                   std::span<const mvvm::value> arguments = {},
-                                  std::span<const mvvm::value_type> result_types = {});
+                                  std::span<const mvvm::value_type> result_types = {},
+                                  const result_validator& validate = {});
     ///< Missing handlers are optional; successful calls atomically admit model demands.
     std::uint64_t watch(mvvm::field_handle field, std::string_view handler); ///< Compile observer.
     std::uint64_t watch(mvvm::action_handle action,

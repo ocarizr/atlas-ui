@@ -203,4 +203,32 @@ TEST_F(native_assets_test, ImportsTypedMenuAndRejectsWrongPresentationKind)
     EXPECT_FALSE(document_exists(root / "popup/incorrect.xml"));
     EXPECT_EQ(repository->snapshot().document().records.size(), 1U);
 }
+
+/// @brief Drag assignment resolves the offered identity rather than depending on browser selection.
+TEST_F(native_assets_test, DragAssignmentIsOneUndoAndPreservesSourceFiles)
+{
+    write_editor_source(files.path(), "abc");
+    auto repository = open_asset_repository(root, workers, {});
+    repository->begin({files.path(), {"texture", "icon.bin"}, assets::asset_type::texture});
+    ASSERT_TRUE(finish(*repository));
+    const auto reference = repository->snapshot().document().records.front().reference;
+    const auto mount = mount_editor_assets(repository->snapshot(), root, workers, {});
+    document_session document{new_document(), {*mount}, mount};
+    document.mark_saved();
+    asset_panel panel{*repository, root};
+    const auto before = ui_content::write_xml(document.document());
+    EXPECT_THROW(panel.drop(assets::asset_id{}, "element_0", document, workers, {}),
+                 std::invalid_argument);
+    EXPECT_EQ(ui_content::write_xml(document.document()), before);
+    EXPECT_FALSE(document.can_undo());
+    panel.drop(reference.id, "element_0", document, workers, {});
+    EXPECT_EQ(document.document().elements.back().texture, reference);
+    EXPECT_EQ(document.selected(), "root");
+    EXPECT_EQ(read_editor_source(root / "texture/icon.bin", workers, {}), "abc");
+    ASSERT_TRUE(document.undo());
+    EXPECT_EQ(ui_content::write_xml(document.document()), before);
+    EXPECT_FALSE(document.can_undo());
+    EXPECT_FALSE(document.dirty());
+}
+
 } // namespace atlas::editor::tests

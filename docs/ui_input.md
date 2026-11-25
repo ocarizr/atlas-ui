@@ -190,3 +190,5 @@ actions and publish dirty property bindings at explicit owner sync points.
 
 See [focus navigation](ui_focus_navigation.md) for scoped spatial/explicit targets,
 semantic group actions, optional wrapping and XML/prepared descriptors.
+
+Internal transfers across widgets and panels use the [window drag domain](ui_drag_drop.md).
