@@ -6,6 +6,41 @@
 
 namespace atlas::window::tests
 {
+namespace
+{
+/// @brief Keep multiple bounded native recordings off the test runner's stack.
+std::unique_ptr<input::event_batch> drain(window& target)
+{
+    return std::make_unique<input::event_batch>(target.take_input());
+}
+} // namespace
+
+/// @brief Committed UTF-16 message pairs become one scalar, never two surrogate key events.
+TEST(native_input_test, CommittedTextCombinesSurrogatesAndResetsOnBlur)
+{
+    const auto title = "Text replay fixture " + std::to_string(GetCurrentProcessId());
+    window target{{title, 80, 60, false}};
+    const std::wstring wide{title.begin(), title.end()};
+    const auto handle = FindWindowW(L"atlas_presentation_window", wide.c_str());
+    ASSERT_NE(handle, nullptr);
+    SendMessageW(handle, WM_CHAR, 0xd83d, 0);
+    EXPECT_TRUE(drain(target)->values().empty());
+    SendMessageW(handle, WM_CHAR, 0xde00, 0);
+    auto batch = drain(target);
+    ASSERT_EQ(batch->count, 1);
+    EXPECT_EQ(batch->events[0].kind, input::event_kind::text_input);
+    EXPECT_EQ(batch->events[0].control, 0x1f600U);
+    SendMessageW(handle, WM_CHAR, 0xd83d, 0);
+    SendMessageW(handle, WM_KILLFOCUS, 0, 0);
+    (void)drain(target);
+    SendMessageW(handle, WM_CHAR, 0xde00, 0);
+    EXPECT_TRUE(drain(target)->values().empty());
+    SendMessageW(handle, WM_CHAR, 0xe9, 0);
+    batch = drain(target);
+    ASSERT_EQ(batch->count, 1);
+    EXPECT_EQ(batch->events[0].control, 0xe9U);
+}
+
 /// @brief Native wheel deltas become signed notches with client-space pointer coordinates.
 TEST(native_input_test, NormalizesWheelAxesAndScreenCoordinates)
 {
@@ -24,15 +59,6 @@ TEST(native_input_test, NormalizesWheelAxesAndScreenCoordinates)
     EXPECT_EQ(batch->events[0].position, (input::input_value{13, 17}));
     EXPECT_EQ(batch->events[1].value, (input::input_value{1, 0}));
 }
-
-namespace
-{
-/// @brief Keep multiple bounded native recordings off the test runner's stack.
-std::unique_ptr<input::event_batch> drain(window& target)
-{
-    return std::make_unique<input::event_batch>(target.take_input());
-}
-} // namespace
 
 /// @brief Hidden windows allow deterministic message replay without injecting user input.
 TEST(native_input_test, ReplaysSignedPointerAndSemanticKeysInMessageOrder)

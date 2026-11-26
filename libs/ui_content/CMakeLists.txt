@@ -20,3 +20,5 @@ atlas_configure_target(atlas_ui_content)
 atlas_export_library(atlas_ui_content ui_content ui_content)
 
 target_sources(atlas_ui_content PRIVATE src/drag_content.cpp)
+
+target_sources(atlas_ui_content PRIVATE src/flow_accessibility.cpp)

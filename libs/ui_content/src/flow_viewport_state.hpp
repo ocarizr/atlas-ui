@@ -31,6 +31,11 @@ class flow_viewport::impl
     void activate(layer& entry, std::uint64_t frame,
                   float seconds);                   ///< Track host visibility and lifecycle.
     void begin(std::uint64_t frame, float seconds); ///< Open eligible frames and select focus.
+    void accessibility_begin(const flow_frame_options& options); ///< Owner-phase native admission.
+    /// @brief Keep one keyboard owner across the preview and independent editor chrome.
+    void accessibility_route(const ui::input_event& event, const flow_frame_options& options);
+    ///< One window-level keyboard owner, including independent editor chrome.
+    void accessibility_capture(const flow_frame_options& options); ///< Active layer snapshots.
     void finish(); ///< Close serial phases before immutable paint preparation.
     void route_pointer(const ui::input_event& event); ///< Front-to-back pointer admission.
     void route(const ui::input_event& event, std::uint32_t back_action); ///< Exactly one recipient.

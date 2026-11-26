@@ -186,6 +186,7 @@ class input_session
     /// @brief Configure optional keyboard and global semantic navigation between frames.
     void configure_navigation(focus_navigation_actions actions = {}, bool keyboard = true);
     ///< Opt into keys and/or globally mapped semantic focus requests between frames.
+    void configure_keyboard_activation(bool enabled = true); ///< Opt-in Enter/Space release policy.
     /// @brief Set sparse explicit/blocked destinations and ordered traversal metadata.
     void configure_navigation(element_handle target, const focus_navigation_options& options);
     ///< Set sparse explicit destinations, blocked directions and ordered focus policy.
@@ -229,9 +230,10 @@ class input_session
         element_handle viewport,
         layout_point delta); ///< Queue logical-unit scrolling, including semantic gamepad actions.
     [[nodiscard]] bool can_focus(element_handle target) const; ///< Check current input eligibility.
-    element_handle focused() const;  ///< Owner-only observation outside callbacks.
-    element_handle captured() const; ///< Primary-pointer capture, or empty.
-    element_handle hovered() const;  ///< Geometric hover, independent of capture.
+    element_handle focused() const;   ///< Owner-only observation outside callbacks.
+    std::uint64_t session_id() const; ///< Stable tree namespace, independent of focus/slot reuse.
+    element_handle captured() const;  ///< Primary-pointer capture, or empty.
+    element_handle hovered() const;   ///< Geometric hover, independent of capture.
     element_handle hit_test(layout_point point) const; ///< Half-open bounds and ancestor clips.
     void shutdown(std::uint64_t frame);  ///< New terminal command frame; disable/end exactly once.
     void suspend(std::uint64_t frame);   ///< Release interaction and disable until the next frame.

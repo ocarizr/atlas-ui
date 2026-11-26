@@ -227,7 +227,7 @@ void preview::impl::poll(ui::layout_rect bounds)
 /// @brief Sync before serial Lua/input; only immutable layout/paint work uses shared jobs.
 std::vector<ui::paint_quad> preview::frame(ui::layout_rect bounds,
                                            std::span<const ui::input_event> events,
-                                           ui_content::flow_frame_options options)
+                                           const ui_content::flow_frame_options& options)
 {
     impl_->check();
     const detail::owner_scope guard{impl_->busy};

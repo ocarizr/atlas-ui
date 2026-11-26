@@ -108,6 +108,9 @@ void editor_view::impl::execute(const control_action& action)
 
         switch (action.kind)
         {
+            case control_kind::accessibility:
+                (void)accessibility_fields.execute(action.target, session());
+                break;
             case control_kind::select:
                 session().select(action.target);
                 break;

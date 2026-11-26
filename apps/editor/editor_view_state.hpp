@@ -1,5 +1,6 @@
 /** @file @brief Private owner state shared by editor presentation and document commands. */
 #pragma once
+#include "accessibility_inspector.hpp"
 #include "asset_panel.hpp"
 #include "editor_view.hpp"
 #include "flow_panel.hpp"
@@ -47,10 +48,22 @@ class editor_view::impl
     void rebuild(ui::layout_rect viewport, float scale); ///< Publish complete chrome candidate.
     void compose_flow(panel_plan& plan,
                       ui::layout_rect bounds); ///< Graph tool and explicit mode switch.
+    void compose_workspace(panel_plan& plan,
+                           ui::layout_rect bounds); ///< Document lifecycle chrome.
     void cycle_tool(); ///< Switch to the next valid contribution or the preview.
     bool commit_drop(const ui::drop_request& request);  ///< One native editor document transaction.
     std::shared_ptr<const editor_frame> presentation(); ///< Shared base plus small drag feedback.
-    bool dispatch(std::span<const input::event> events); ///< Process isolated Lua and host actions.
+    bool dispatch(std::span<const input::event> events,
+                  ui::accessibility_frame* accessibility = nullptr); ///< Serial Lua and host input.
+    bool route_packets(std::span<const ui::input_event> packets,
+                       std::span<ui::input_session* const> views,
+                       ui::accessibility_frame* accessibility); ///< Window-domain dispatch/cleanup.
+    accessibility_inspector accessibility_fields; ///< Private staged inspector transaction.
+    std::shared_ptr<accessibility::channel>
+        accessibility_channel;                          ///< Active window endpoint, not native UI.
+    ui::accessibility_view accessibility_coordinates{}; ///< Captured client-to-screen transform.
+    ui::accessible_text accessible_text; ///< Optional owner-local localization resolver.
+    std::uint64_t focus_owner = 0; ///< Exclusive accessible/input tree across panel lifetimes.
 
     /// @brief Resolve the active owner only after pending UI routes finish.
     document_session& session()

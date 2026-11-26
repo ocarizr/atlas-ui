@@ -3,6 +3,7 @@
 #include "document_session.hpp"
 #include "document_workspace.hpp"
 #include <atlas/editor_flow/persistence.hpp>
+#include <atlas/ui/accessibility_frame.hpp>
 #include <atlas/ui_text/paint.hpp>
 
 namespace atlas::editor
@@ -47,6 +48,9 @@ class editor_view
     void bind_flow_preview(std::shared_ptr<streaming::catalog_streamer> storage,
                            std::shared_ptr<std::pmr::memory_resource> memory = {});
     ~editor_view(); ///< Retire UI and input on the main owner.
+    void bind_accessibility(std::shared_ptr<accessibility::channel> source,
+                            ui::accessible_text resolve = {}); ///< Borrow active-window ingress.
+    void accessibility_coordinates(ui::accessibility_view coordinates); ///< Owner screen transform.
     /// @brief Publish an updated immutable packet after dispatching native input.
     [[nodiscard]] std::shared_ptr<const editor_frame>
     snapshot(const window::window_state& state, std::span<const input::event> events);

@@ -39,6 +39,15 @@ void configure_accessibility(ui::input_session& input, ui::element_handle target
     }
 
     ui::accessible_element metadata{.role = accessibility::role::text, .name = node.caption};
+    for (const auto& action : node.actions)
+    {
+        if (action.binding.event == ui::event_kind::activate &&
+            action.binding.route == ui::route_phase::target)
+        {
+            metadata.role = accessibility::role::button;
+        }
+    }
+
     for (const auto& event : node.events)
     {
         if (event.event == authored_event::click)

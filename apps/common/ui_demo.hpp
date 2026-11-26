@@ -2,6 +2,7 @@
 #pragma once
 #include "demo_interaction.hpp"
 #include "input_adapter.hpp"
+#include <atlas/ui/accessibility_frame.hpp>
 #include <atlas/ui/element_tree.hpp>
 #include <atlas/ui_images/image_renderer.hpp>
 #include <chrono>
@@ -70,6 +71,9 @@ class ui_demo
                     {32, 32}, row % 2 == 0 ? ui::image_fit::contain : ui::image_fit::cover};
                 image_handles_.push_back(image);
                 input_.bind(image, std::make_shared<demo_interaction>(), {.focusable = true});
+                input_.configure_accessibility(
+                    image, {.role = accessibility::role::image,
+                            .name = "Sample thumbnail " + std::to_string(column * 9 + row + 1)});
                 appearance.color = {1, 1, 1, 0.9f};
                 tree_.set_paint(image, appearance);
                 const auto block = tree_.create(line);
@@ -83,10 +87,13 @@ class ui_demo
                 tree_.set_paint(block, appearance);
             }
         }
+
+        input_.configure_navigation();
     } ///< Author clipped panels and textured rows using shared runtime contracts.
 
-    std::shared_ptr<const render_host::frame_payload> snapshot(const window::window_state& window,
-                                                               std::span<const input::event> events)
+    std::shared_ptr<const render_host::frame_payload>
+    snapshot(const window::window_state& window, std::span<const input::event> events,
+             ui::accessibility_frame* accessible = nullptr)
     {
         const ui::layout_rect viewport{0, 0, static_cast<float>(window.width),
                                        static_cast<float>(window.height)};
@@ -125,6 +132,12 @@ class ui_demo
         routed_.clear();
         actions_.dispatch(frame_, input_time_, events, routed_);
         input_.process(routed_.values());
+        if (accessible)
+        {
+            accessible->route(input_);
+            accessible->capture(input_);
+        }
+
         input_.tick();
         input_.late_tick();
         input_.end_frame();

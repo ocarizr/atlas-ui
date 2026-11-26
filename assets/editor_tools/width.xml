@@ -6,8 +6,12 @@
   </element>
   <element id="wider" parent="root" panel="leaf" text="Widen selected element" width="180" height="30">
     <canvas-slot x-offset-min="8" y-offset-min="8"/>
+    <interaction focusable="true"/>
     <paint fill="true" r="0.18" g="0.37" b="0.55"/>
     <action model="commands" name="execute" event="pointer-up">
+      <arg type="text" value="wider"/>
+    </action>
+    <action model="commands" name="execute" event="activate">
       <arg type="text" value="wider"/>
     </action>
   </element>

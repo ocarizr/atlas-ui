@@ -11,6 +11,8 @@ target_sources(atlas_ui PRIVATE src/element_tree.cpp src/tree_hierarchy.cpp src/
 target_sources(atlas_ui PRIVATE src/tree_snapshot.cpp src/frame_executor.cpp src/frame_work.cpp)
 target_sources(atlas_ui PRIVATE src/input_navigation_config.cpp src/input_navigation_select.cpp src/input_navigation_packets.cpp)
 target_sources(atlas_ui PRIVATE src/input_accessibility.cpp src/input_accessibility_capture.cpp)
+target_sources(atlas_ui PRIVATE src/accessibility_frame.cpp)
+target_sources(atlas_ui PRIVATE src/input_keyboard_activation.cpp)
 add_library(atlas::ui ALIAS atlas_ui)
 target_sources(atlas_ui PRIVATE src/layout_scroll.cpp)
 target_sources(atlas_ui PRIVATE src/scrollbar.cpp src/tree_scrollbar.cpp src/layout_scrollbar.cpp)

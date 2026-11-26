@@ -130,7 +130,7 @@ void flow_viewport::impl::finish()
 /// @brief Finish every opened input session even if a script or action fails.
 std::vector<ui::paint_quad> flow_viewport::frame(std::uint64_t frame, ui::layout_rect bounds,
                                                  std::span<const ui::input_event> events,
-                                                 flow_frame_options options)
+                                                 const flow_frame_options& options)
 {
     const diagnostics::operation_scope scope{impl_->sinks, {"ui.flow.viewport", "ui.content"}};
     if (events.size() > 256)
@@ -145,10 +145,13 @@ std::vector<ui::paint_quad> flow_viewport::frame(std::uint64_t frame, ui::layout
     try
     {
         impl_->begin(frame, options.delta_seconds);
+        impl_->accessibility_begin(options);
         for (const auto& event : events)
         {
-            impl_->route(event, options.back_action);
+            impl_->accessibility_route(event, options);
         }
+
+        impl_->accessibility_capture(options);
 
         impl_->finish();
     }

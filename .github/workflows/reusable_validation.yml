@@ -369,6 +369,7 @@ jobs:
       upstream: ${{ toJSON(needs) }}
   game:
     needs:
+    - accessibility-host
     - ui-images
     - ui-renderer
     - plan
@@ -391,6 +392,7 @@ jobs:
       upstream: ${{ toJSON(needs) }}
   editor:
     needs:
+    - accessibility-host
     - plan
     - vendor-testing
     - vendor-ipc

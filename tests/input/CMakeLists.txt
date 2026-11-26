@@ -1,4 +1,5 @@
 add_executable(atlas_input_tests action_tests.cpp)
+target_sources(atlas_input_tests PRIVATE text_entry_tests.cpp)
 target_sources(atlas_input_tests PRIVATE context_tests.cpp interaction_tests.cpp failure_tests.cpp)
 target_link_libraries(atlas_input_tests PRIVATE atlas::input GTest::gtest_main)
 atlas_configure_test(atlas_input_tests)

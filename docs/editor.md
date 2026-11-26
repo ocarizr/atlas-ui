@@ -155,6 +155,15 @@ shell also has the document lifecycle commands New, Save, Reopen, Undo and
 Redo, and can queue `next_document`, `close_document`, and `recover`.
 These commands run on the editor owner after event routing finishes.
 
+Shipped controls bind both pointer release and semantic `activate`, so keyboard and assistive
+activation enter the same ViewModel/Lua command path. Tool panels keep explicit authored
+navigation mappings; panels without one use the standard keyboard navigation defaults.
+The shared shell exposes an `inspector_controls` region for its ordinary inspector controls.
+The host hides that region while the dedicated accessibility inspector is open, suppressing
+both pixels and semantic/input exposure. A custom shell without that region remains usable
+normally; opening the dedicated inspector falls back to the recovery chrome rather than
+exposing overlapping controls. See [accessibility](accessibility.md) for staged semantic edits.
+
 Tool panels use solid geometry and authored captions. Each origin can
 register up to 16 contributed panels, and each panel can contain up to 256
 elements. An invalid catalog is logged independently of the other origin.

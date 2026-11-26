@@ -1,50 +1,41 @@
 # Application hosts
 
-`atlas_game` and `atlas_editor` are composition roots for the same reusable
-libraries. Both display shared clipped UI panels and textured rows using a native window
-and Direct3D 12. Neither implements game-specific UI, gameplay or a visual editor.
+`atlas_game` and `atlas_editor` are composition roots for reusable libraries. The runtime host
+exercises clipped viewport UI, streamed thumbnails and shared Direct3D 12 rendering; it contains
+no game-specific UI or gameplay. The [editor](editor.md) provides document authoring, assets,
+Flow tools and isolated runtime previews using the same UI/rendering technology.
 
 ## Lifecycle
 
-Bootstrap parses command-line options and constructs shared memory, diagnostics and
-one jobs pool. Main owns native event pumping, the window and UI tree/layout/paint preparation. The application-owned
-render coordinator creates and destroys graphics/content services on its own
-thread. Immutable frame data crosses a bounded handoff with explicit identities
-and backpressure. Main continues pumping while waiting for capacity or shutdown.
+Bootstrap parses options and constructs diagnostics, shared memory and one jobs pool. Main owns
+native event pumping and serial input/UI production. The render coordinator owns native graphics
+and consumes immutable CPU frame packets through a bounded handoff. Storage and image decoding
+use the streamer and shared ready jobs. See [render ownership](render_host.md) and
+[streamed images](ui_images.md).
 
-Main also owns the streamer and UI image cache. Streamer ready jobs decode the
-shared demonstration image; frame boundaries poll completion and publish matching
-paint/image snapshots. Layout and gray placeholders remain available during
-loading. The render coordinator owns bounded GPU residency and records image
-last-use fences automatically. See [streamed images](ui_images.md).
+Each supported native window attaches the shared [accessibility adapter](accessibility.md).
+Main drains assistive requests into active UI input phases, publishes immutable semantic values
+and notifies the native adapter. Screen origin is refreshed even when only window position
+changes. Minimized windows expose no active semantic nodes. Provider queries cannot read live
+UI/Lua state or execute application handlers on a reader thread.
 
-Window callbacks enqueue bounded portable primary-pointer and basic key packets.
-Main drains and normalizes them into an owner-thread UI input session, then
-processes input, tick, late-tick and end-frame before command publication. Shared
-thumbnail handlers coalesce hover/press/focus feedback into one opacity demand
-per late tick. Appearance-only changes retain layout geometry. Input frames advance
-independently of render-queue admission; unchanged paint/image packets remain
-reusable. See [input and lifecycle](ui_input.md) for reset/overflow and scope limits.
-
-Orderly exit stops production, requests/drains accepted work, joins the render
-coordinator, releases the native window and tears down shared services. Render
-failure reaches the host rather than allowing continued use of a broken device.
-See [render-host ownership](render_host.md).
+Shutdown stops production, drains/joins rendering, cancels assistive requests, disconnects native
+providers before releasing the window, and tears down shared services. Render failures reach
+the composition root; the main owner continues pumping messages during joined teardown.
 
 ## Entry points
 
 | Command | Current behavior |
 | --- | --- |
-| `atlas_game`, `atlas_editor` | Generic clipped UI panels and streamed textured rows |
+| `atlas_game` | Generic clipped viewport UI and streamed thumbnail rendering |
+| `atlas_editor` | UI document, asset, authored-tool and Flow workspace |
 | `--warp` | Software graphics adapter |
-| `--graphics-smoke-test` | Hidden WARP presentation check requiring textured frames |
+| `--graphics-smoke-test` | Hidden WARP presentation check |
 | `--smoke-test` | Headless bootstrap check |
-| `--help` | Command-line help |
-| `atlas_cook`, `atlas_package` | Placeholder tool entry points |
+| `--help` | Executable-specific command-line help |
+| `atlas_cook`, `atlas_package` | Tool entry points; content preparation also has reusable APIs |
 
-There is no authoring document model, inspector, editable hierarchy, runtime
-preview session, native extension contribution pipeline or Lua VM. Existing
-gRPC/Protobuf contracts provide bootstrap infrastructure, not preview transport.
-Editor work is tracked in [Editor](https://github.com/ocarizr/atlas-ui/issues/28);
-optional process isolation is tracked separately in
+The runtime host is a technology exercise. Editor documents and Lua tools remain separate from
+project-specific gameplay. Existing gRPC/Protobuf contracts do not require ordinary editor UI
+to run in another process; optional preview-process isolation is tracked in
 [IPC](https://github.com/ocarizr/atlas-ui/issues/31).

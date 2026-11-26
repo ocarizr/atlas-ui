@@ -144,3 +144,12 @@ counters are not whole-process memory or fragmentation measurements.
 
 Accessibility/platform assistive technology and drag-and-drop have separate contracts;
 focus movement alone does not provide either capability or hardware gamepad support.
+
+
+Keyboard activation is a separate opt-in from navigation. Calling
+`input.configure_keyboard_activation()` between frames enables Enter/Space release activation
+for the original eligible focused control. Raw handlers can consume the key first. Repeats do
+not generate extra activations, and changing focus cancels the pending activation until that
+key is released. Default UI sessions retain application-defined activation conventions.
+The editor enables this policy for native chrome and authored tools; semantic `activate`
+bindings share the same operation used by assistive invocation.

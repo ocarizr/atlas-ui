@@ -7,8 +7,9 @@ namespace atlas::input::detail
 {
 struct native_input_state
 {
-    event_queue buffer;    ///< Portable bounded event storage.
-    bool tracking = false; ///< Mouse-leave tracking has been requested.
+    event_queue buffer;               ///< Portable bounded event storage.
+    bool tracking = false;            ///< Mouse-leave tracking has been requested.
+    std::uint32_t high_surrogate = 0; ///< Incomplete UTF-16 text; discarded on loss/reset.
 }; ///< Only the WNDPROC/window owner accesses mutable state.
 
 struct native_input_message

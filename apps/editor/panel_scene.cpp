@@ -122,8 +122,10 @@ void append_labels(editor_frame& packet, const panel_plan& plan, float scale,
 /// @brief Build independent layout snapshots for authoring chrome and its preview.
 panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
                          ui::layout_rect viewport, float scale, ui::layout_engine& layout,
-                         ui::paint_engine& paint, const diagnostics::services& sinks)
-    : tree_{{.max_elements = static_cast<std::uint32_t>(plan.controls.size() + 1)}, {}, sinks},
+                         ui::paint_engine& paint, const diagnostics::services& sinks,
+                         std::optional<control_action> focus)
+    : initial_focus_{std::move(focus)},
+      tree_{{.max_elements = static_cast<std::uint32_t>(plan.controls.size() + 1)}, {}, sinks},
       input_{tree_, {.max_events = 4096}, {}, sinks}, scale_{scale}
 {
     const auto root = tree_.create();
@@ -135,6 +137,12 @@ panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
         {
             input_.bind(node, std::make_shared<click_handler>(item.action, pending_, item.accepts),
                         {.focusable = true});
+            input_.configure_accessibility(node,
+                                           {.role = item.action.kind == control_kind::drop_asset
+                                                        ? accessibility::role::group
+                                                        : accessibility::role::button,
+                                            .name = item.label});
+            focus_targets_.emplace_back(node, item.action);
         }
 
         if (item.source)
@@ -150,6 +158,7 @@ panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
     }
 
     input_.configure_navigation();
+    input_.configure_keyboard_activation();
 
     tree_.set_viewport(viewport);
     source_ = tree_.snapshot();
@@ -210,7 +219,36 @@ std::span<const ui::input_event> panel_scene::begin_input(std::span<const input:
     ui::validate_input_events(input_bridge_.values());
     input_.begin_frame(++frame_, source_, geometry_);
     input_.process({});
+    if (initial_focus_)
+    {
+        const auto found =
+            std::ranges::find_if(focus_targets_,
+                                 [&](const auto& item)
+                                 {
+                                     return item.second.kind == initial_focus_->kind &&
+                                            item.second.target == initial_focus_->target;
+                                 });
+        if (found != focus_targets_.end())
+        {
+            input_.focus(found->first);
+        }
+
+        initial_focus_.reset();
+    }
+
     return input_bridge_.values();
+}
+
+/// @brief Rebuilds preserve keyboard intent without reusing a retired runtime identity.
+std::optional<control_action> panel_scene::focused_action() const
+{
+    const auto target = input_.focused();
+    const auto found = std::ranges::find(focus_targets_, target,
+                                         [](const auto& item)
+                                         {
+                                             return item.first;
+                                         });
+    return found == focus_targets_.end() ? std::nullopt : std::optional{found->second};
 }
 
 /// @brief Seal only after all window drag callbacks and transactions have returned.

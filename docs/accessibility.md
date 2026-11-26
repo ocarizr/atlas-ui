@@ -3,9 +3,9 @@
 `atlas::accessibility` is an independent semantic publication/request library. It has no UI,
 editor, Lua, renderer, storage or Windows SDK dependency. `atlas::ui` supplies the owner bridge;
 `atlas::accessibility_host` attaches the selected platform adapter to an existing window.
-Windows Desktop uses server-side UI Automation. Applications opt in by composing the adapter
-and publishing their active UI views; the current editor/runtime startup does not attach it
-automatically. Other platform builds report the native
+Windows Desktop uses server-side UI Automation. The editor and runtime composition roots attach
+the adapter to their native window and publish their active views. Other applications can reuse
+the same adapter and owner-frame bridge without linking editor code. Other platform builds report the native
 adapter unavailable. Native headers and COM implementations remain private.
 
 ## Ownership and frame integration
@@ -45,7 +45,8 @@ authored/native handlers. An unsupported or stale request has no application sid
 ## Semantic data
 
 Elements are generic layout/paint primitives. Focusability alone does not identify a button.
-Known authored click actions and captions can supply button/text defaults; explicit metadata
+Known authored click events, target-phase MVVM `activate` bindings and captions can supply
+button/text defaults; explicit metadata
 overrides those defaults. Purely decorative images need no descriptor. Omitting a decorative
 container reparents exposed descendants to their nearest semantic ancestor; hiding a subtree
 removes its descendants. Disabled controls remain readable and reject actions.
@@ -73,8 +74,41 @@ not a physical gamepad button. Custom native/Lua handlers can handle `activate`;
 
 An element can set `decorative="true"` to suppress inferred semantics. It cannot also declare
 an explicit accessibility section. That exclusion does not hide its meaningful descendants.
-The existing XML authoring/persistence model carries these fields; dedicated inspector controls
-for them are not implemented.
+The editor inspector exposes an **Accessibility** section for the selected element. Choose
+inferred, explicit or decorative semantics. Explicit descriptors include role, literal/localized
+name and description, read-only value/range, semantic action IDs, selection and checked state.
+Field edits remain private until Enter confirms the field and **Apply** validates the complete
+descriptor as one undo transaction. Escape cancels the field. Changing selection or document
+revision discards stale drafts. Assigning a literal clears its localization key and vice versa.
+The paginated inspector uses a bounded single-line UTF-8 edit buffer (1,024 bytes); committed
+Unicode text comes from the input backend rather than reconstructed physical key codes.
+It does not provide caret movement, selection, clipboard commands or UIA editable-text patterns.
+
+
+## Window and view composition
+
+`ui::accessibility_frame` drains a window channel once, routes queued requests through open
+input sessions, and captures owned semantic contributions before those phases close. It preserves
+session/generation identities across independent trees and publishes only changed values. The
+window owner carries the reported keyboard-domain identity into the following frame; native
+queries never retain these input sessions. At most 256 active-view contributions are admitted.
+
+The editor includes native chrome and currently visible authored tools. An authoring canvas is
+an inert visual preview, so it does not advertise executable controls. An explicitly running Flow
+preview supplies active menu/submenu/popup semantics through `flow_frame_options::accessibility`.
+Inactive/hidden Flow domains do not contribute nodes; modal policy follows the existing Flow
+input ownership. Replaced chrome is recaptured before publication; retired tool contributions
+are omitted until their next successful owner frame. Minimizing the window clears its publication.
+Shutdown closes the channel before disconnecting the adapter and destroying the window.
+
+Application resolvers are passed to `editor_view::bind_accessibility` and Flow frame options.
+The editor's default resolver presents a missing localization service's key as readable fallback
+text; an application with language tables supplies its resolver and republishes after language
+changes. Resolved strings are never looked up on native query threads.
+
+These small serial publication and request batches use existing diagnostic scopes. They do not
+create workers or per-query jobs. Comparing snapshots avoids redundant native notifications;
+it does not eliminate the cost of owner capture itself.
 
 ## Bounds and lifetime
 
@@ -117,3 +151,8 @@ Narrator acceptance walkthrough must record its Windows/reader version and resul
 names/help/value/state, directional focus, invoke, tab selection, modal popups, reveal, language
 changes, recycled entries and shutdown. Full editable-text selection/caret support and NVDA
 compatibility are outside the current menu-focused adapter contract.
+
+The editor restores a focused native command after rebuilding chrome, while retiring the old
+runtime identity. Repeated reconstruction and virtual-list reader navigation still require the
+interactive Narrator acceptance described above. Automated tests and tree inspection do not
+establish the reader's speech, traversal or announcement behavior.

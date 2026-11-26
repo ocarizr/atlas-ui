@@ -58,40 +58,9 @@ void editor_view::impl::compose_flow(panel_plan& plan, ui::layout_rect bounds)
                              {control_kind::flow_toggle, {}}});
 }
 
-/// @brief Build the render packet only when document, viewport or control state changes.
-void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
+/// @brief Workspace lifecycle controls remain independent from element inspector composition.
+void editor_view::impl::compose_workspace(panel_plan& plan, ui::layout_rect bounds)
 {
-    const diagnostics::operation_scope scope{sinks, {"editor.panels", "editor"}};
-    page = std::min(page, (session().document().elements.size() - 1) / hierarchy_page_size);
-    std::optional<shell_areas> areas;
-    ui::paint_snapshot shell_paint;
-    if (shell && bounds.width >= 520 && bounds.height >= 240)
-    {
-        try
-        {
-            shell_paint = shell->paint(bounds, layout, paint);
-            areas = shell_areas{shell->area("hierarchy"), shell->area("inspector"),
-                                shell->area("preview")};
-            if (areas->hierarchy.width < 100 || areas->inspector.width < 100 ||
-                areas->preview.width < 32)
-            {
-                throw std::invalid_argument("Editor shell panel slots are too small");
-            }
-        }
-        catch (const std::exception& error)
-        {
-            diagnostics::write(sinks, diagnostics::log_level::warning, "editor.shell",
-                               error.what());
-            shell.reset();
-            areas.reset();
-            shell_paint = {};
-            status = "Recovery mode";
-        }
-    }
-
-    auto plan = make_panels(session(), {bounds.width, bounds.height}, page, status,
-                            areas ? &*areas : nullptr);
-    plan.shell = std::move(shell_paint);
     if (workspace)
     {
         const auto y = bounds.height - 28;
@@ -114,6 +83,45 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
              path().filename().string() +
                  (workspace->recovery_pending() ? " | Recovery available" : "")});
     }
+}
+
+/// @brief Build the render packet only when document, viewport or control state changes.
+void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
+{
+    const diagnostics::operation_scope scope{sinks, {"editor.panels", "editor"}};
+    page = std::min(page, (session().document().elements.size() - 1) / hierarchy_page_size);
+    std::optional<shell_areas> areas;
+    ui::paint_snapshot shell_paint;
+    if (shell && bounds.width >= 520 && bounds.height >= 240)
+    {
+        try
+        {
+            shell->region_visible("inspector_controls", !accessibility_fields.visible);
+            shell_paint = shell->paint(bounds, layout, paint);
+            areas = shell_areas{shell->area("hierarchy"), shell->area("inspector"),
+                                shell->area("preview")};
+            if (areas->hierarchy.width < 100 || areas->inspector.width < 100 ||
+                areas->preview.width < 32)
+            {
+                throw std::invalid_argument("Editor shell panel slots are too small");
+            }
+        }
+        catch (const std::exception& error)
+        {
+            diagnostics::write(sinks, diagnostics::log_level::warning, "editor.shell",
+                               error.what());
+            shell.reset();
+            areas.reset();
+            shell_paint = {};
+            status = "Recovery mode";
+        }
+    }
+
+    auto plan = make_panels(session(), {bounds.width, bounds.height}, page, status,
+                            areas ? &*areas : nullptr);
+    accessibility_fields.append(plan, session());
+    plan.shell = std::move(shell_paint);
+    compose_workspace(plan, bounds);
 
     shell_visible = areas.has_value();
     if (shell_visible)
@@ -153,8 +161,15 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
 
     compose_flow(plan, bounds);
 
+    const auto focus = chrome ? chrome->focused_action() : std::nullopt;
+    const auto old_owner = chrome ? chrome->input().session_id() : 0;
     chrome = std::make_unique<panel_scene>(plan, session().preview(), bounds, scale, layout, paint,
-                                           sinks);
+                                           sinks, focus);
+    if (old_owner && focus_owner == old_owner)
+    {
+        focus_owner = chrome->input().session_id();
+    }
+
     viewport = bounds;
     density = scale;
 }
@@ -226,29 +241,4 @@ editor_view::editor_view(document_workspace& workspace, jobs::job_system& jobs,
     impl_->legacy_session = nullptr;
 }
 
-/// @brief Update layout for window changes, then route input and publish any resulting changes.
-std::shared_ptr<const editor_frame> editor_view::snapshot(const window::window_state& state,
-                                                          std::span<const input::event> events)
-{
-    const auto density = std::clamp(state.dpi_scale, 0.5f, 8.f);
-    const ui::layout_rect bounds{0, 0, static_cast<float>(state.width) / density,
-                                 static_cast<float>(state.height) / density};
-    if (impl_->assets && impl_->assets->poll(impl_->workspace, impl_->jobs, impl_->sinks))
-    {
-        impl_->chrome.reset();
-    }
-
-    if (!impl_->chrome || bounds != impl_->viewport || density != impl_->density)
-    {
-        impl_->rebuild(bounds, density);
-    }
-
-    const bool preview_changed = impl_->flow && impl_->flow->pump_preview(events, density);
-    if ((!events.empty() && impl_->dispatch(events)) || preview_changed)
-    {
-        impl_->rebuild(bounds, density);
-    }
-
-    return impl_->presentation();
-}
 } // namespace atlas::editor

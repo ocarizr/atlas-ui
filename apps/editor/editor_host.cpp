@@ -1,5 +1,6 @@
 /** @file @brief Main-owned editor window, storage and joined render-thread lifecycle. */
 #include "editor_host.hpp"
+#include "accessibility_window.hpp"
 #include "asset_files.hpp"
 #include "document_file.hpp"
 #include "editor_graphics.hpp"
@@ -91,7 +92,8 @@ launch_options parse_options(int argc, char** argv)
 /// @brief Keep pumping native messages during rendering and shutdown.
 void render_frames(window::window& window, editor_view& view, render_host::render_loop& loop,
                    const std::atomic<std::uint64_t>& presented, bool smoke,
-                   const diagnostics::services& sinks)
+                   const diagnostics::services& sinks,
+                   application::accessibility_window& accessible)
 {
     const auto pump = [&]
     {
@@ -124,6 +126,7 @@ void render_frames(window::window& window, editor_view& view, render_host::rende
             }
 
             const auto input = window.take_input();
+            view.accessibility_coordinates(accessible.coordinates());
             if (!state.minimized && state.width != 0 && state.height != 0)
             {
                 if (loop.try_submit({frame, state, view.snapshot(state, input.values())}))
@@ -131,6 +134,12 @@ void render_frames(window::window& window, editor_view& view, render_host::rende
                     ++frame;
                 }
             }
+            else if (!accessible.source()->read()->nodes().empty())
+            {
+                accessible.source()->publish({});
+            }
+
+            accessible.notify();
 
             window.wait_for_events(state.minimized ? 16U : 1U);
             if (smoke && std::chrono::steady_clock::now() - start > std::chrono::seconds{10})
@@ -168,6 +177,8 @@ void present_editor(editor_view& view, jobs::job_system& workers, const launch_o
                     const diagnostics::services& sinks)
 {
     window::window window{{"Atlas Editor", 960, 540, !options.smoke}};
+    application::accessibility_window accessible{window, sinks};
+    view.bind_accessibility(accessible.source());
     const auto target = window.share_presentation();
     std::atomic<std::uint64_t> presented{0};
     render_host::render_loop loop{[&]
@@ -178,7 +189,7 @@ void present_editor(editor_view& view, jobs::job_system& workers, const launch_o
                                   },
                                   {},
                                   sinks};
-    render_frames(window, view, loop, presented, options.smoke, sinks);
+    render_frames(window, view, loop, presented, options.smoke, sinks, accessible);
 }
 
 /// @brief Mount the editor's preview catalog and compose one application-owned worker pool.

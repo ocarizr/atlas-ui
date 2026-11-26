@@ -46,9 +46,9 @@ class preview
     void restart(); ///< Reconstruct the last applied snapshot, independent of current edits.
     void stop();    ///< Cancel and retire active views; no source document is modified.
     /// @brief Poll, synchronize and process real/replayed input through the shared viewport.
-    [[nodiscard]] std::vector<ui::paint_quad> frame(ui::layout_rect bounds,
-                                                    std::span<const ui::input_event> events = {},
-                                                    ui_content::flow_frame_options options = {});
+    [[nodiscard]] std::vector<ui::paint_quad>
+    frame(ui::layout_rect bounds, std::span<const ui::input_event> events = {},
+          const ui_content::flow_frame_options& options = {});
     [[nodiscard]] bool request(std::string_view route); ///< Explicit diagnostic traversal action.
     [[nodiscard]] bool running() const;                 ///< A complete preview has been installed.
     [[nodiscard]] bool applying() const; ///< A private replacement is still being validated.
