@@ -2,16 +2,27 @@
 #pragma once
 #include <atlas/ui_content/palette.hpp>
 #include <functional>
-#include <map>
+#include <vector>
 
 namespace atlas::editor
 {
+/// @brief One owned semantic override; contiguous storage supports allocation-free moves.
+struct theme_override
+{
+    std::string key;   ///< Validated semantic palette key.
+    std::string value; ///< Canonical sRGB8 hex color.
+};
+
 /// @brief YAML stores only a selected immutable preset and explicit semantic overrides.
 struct theme_preferences
 {
-    std::string preset = "dark";                               ///< Built-in dark or light preset.
-    std::map<std::string, std::string, std::less<>> overrides; ///< Key to canonical sRGB8 hex.
+    std::string preset = "dark";           ///< Built-in dark or light preset.
+    std::vector<theme_override> overrides; ///< Unique keys, normalized before publication.
 };
+
+void normalize_theme_overrides(
+    std::vector<theme_override>&
+        values); ///< Sort an owned candidate; reject duplicates and excess entries.
 
 [[nodiscard]] std::shared_ptr<const ui::palette>
 editor_preset(std::string_view name); ///< Native complete palettes share one semantic contract.

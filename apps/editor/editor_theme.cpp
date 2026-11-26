@@ -5,6 +5,21 @@
 
 namespace atlas::editor
 {
+/// @brief Keep native and YAML candidates unique and deterministic without node allocations.
+void normalize_theme_overrides(std::vector<theme_override>& values)
+{
+    if (values.size() > ui::max_palette_colors)
+    {
+        throw std::invalid_argument("Too many editor theme overrides");
+    }
+
+    std::ranges::sort(values, {}, &theme_override::key);
+    if (std::ranges::adjacent_find(values, {}, &theme_override::key) != values.end())
+    {
+        throw std::invalid_argument("Duplicate editor theme override");
+    }
+}
+
 /// @brief Centralized presets are native definitions using the same runtime palette compiler.
 std::shared_ptr<const ui::palette> editor_preset(std::string_view name)
 {
@@ -54,6 +69,7 @@ editor_theme::editor_theme(diagnostics::services sinks)
 void editor_theme::configure(theme_preferences candidate)
 {
     const auto selected = context_->snapshot();
+    normalize_theme_overrides(candidate.overrides);
     const auto compiled = resolve(candidate);
     if (!selected->compatible(*compiled) ||
         context_->revision() == std::numeric_limits<std::uint64_t>::max())

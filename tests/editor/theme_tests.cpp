@@ -2,9 +2,45 @@
 #include "document_session.hpp"
 #include "editor_theme.hpp"
 #include <gtest/gtest.h>
+#include <type_traits>
 
 namespace atlas::editor::tests
 {
+static_assert(std::is_nothrow_move_constructible_v<theme_preferences>,
+              "Preference ownership must transfer without allocating after persistence");
+static_assert(std::is_nothrow_move_assignable_v<theme_preferences>,
+              "Preference publication must not fail after persistence succeeds");
+
+/// @brief An invalid native candidate cannot persist or replace accepted preferences.
+TEST(editor_theme, DuplicateNativeOverridesDoNotPersistOrPublish)
+{
+    editor_theme theme;
+    const auto before = theme.context()->snapshot();
+    unsigned saves = 0;
+    theme.persist(
+        [&](std::string_view)
+        {
+            ++saves;
+        });
+    const theme_preferences duplicate{"dark", {{"accent", "#000000FF"}, {"accent", "#FFFFFFFF"}}};
+    EXPECT_THROW(theme.configure(duplicate), std::invalid_argument);
+    EXPECT_THROW((void)write_theme_preferences(duplicate), std::invalid_argument);
+    EXPECT_EQ(saves, 0);
+    EXPECT_EQ(theme.context()->snapshot(), before);
+    EXPECT_TRUE(theme.preferences().overrides.empty());
+}
+
+/// @brief Serialized YAML stays canonical regardless of native override declaration order.
+TEST(editor_theme, CanonicalPreferencesDoNotDependOnOverrideOrder)
+{
+    const theme_preferences first{"light", {{"text", "#010203FF"}, {"accent", "#123456FF"}}};
+    const theme_preferences second{"light", {{"accent", "#123456FF"}, {"text", "#010203FF"}}};
+    EXPECT_EQ(write_theme_preferences(first), write_theme_preferences(second));
+    const auto restored = parse_theme_preferences(write_theme_preferences(first));
+    ASSERT_EQ(restored.overrides.size(), 2);
+    EXPECT_EQ(restored.overrides.front().key, "accent");
+}
+
 /// @brief Semantic source edits preserve literal data, undo history and failure atomicity.
 TEST(editor_theme, AuthoredColorReferenceUsesOneValidatedUndoTransaction)
 {

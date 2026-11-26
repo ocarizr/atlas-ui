@@ -67,6 +67,7 @@ theme_preferences parse_theme_preferences(std::string_view yaml)
                 throw std::invalid_argument("Invalid theme overrides");
             }
 
+            result.overrides.reserve(overrides.size());
             for (const auto& field : overrides)
             {
                 if (!field.first.IsScalar() || !field.second.IsScalar())
@@ -78,13 +79,11 @@ theme_preferences parse_theme_preferences(std::string_view yaml)
                 (void)preset->find(key);
                 const auto value = ui_content::format_color(
                     ui_content::parse_color(field.second.as<std::string>()));
-                if (!result.overrides.emplace(key, value).second)
-                {
-                    throw std::invalid_argument("Duplicate theme override");
-                }
+                result.overrides.push_back({key, value});
             }
         }
 
+        normalize_theme_overrides(result.overrides);
         return result;
     }
     catch (const YAML::Exception& error)
@@ -101,10 +100,12 @@ theme_preferences parse_theme_preferences(std::string_view yaml)
 std::string write_theme_preferences(const theme_preferences& value)
 {
     const auto preset = editor_preset(value.preset);
+    auto overrides = value.overrides;
+    normalize_theme_overrides(overrides);
     YAML::Emitter out;
     out << YAML::BeginMap << YAML::Key << "version" << YAML::Value << 1 << YAML::Key << "preset"
         << YAML::Value << value.preset << YAML::Key << "overrides" << YAML::Value << YAML::BeginMap;
-    for (const auto& [key, hex] : value.overrides)
+    for (const auto& [key, hex] : overrides)
     {
         (void)preset->find(key);
         out << YAML::Key << key << YAML::Value

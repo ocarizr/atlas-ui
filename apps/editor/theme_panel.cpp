@@ -82,8 +82,18 @@ void theme_panel::execute(std::string_view action, editor_theme& theme)
 
         try
         {
-            candidate.overrides[color.key] =
-                ui_content::format_color(ui_content::parse_color(draft_.value()));
+            const auto hex = ui_content::format_color(ui_content::parse_color(draft_.value()));
+            const auto found =
+                std::ranges::find(candidate.overrides, color.key, &theme_override::key);
+            if (found == candidate.overrides.end())
+            {
+                candidate.overrides.push_back({color.key, hex});
+            }
+            else
+            {
+                found->value = hex;
+            }
+
             theme.configure(std::move(candidate));
             editing_ = false;
             status_ = "Swatch saved";
@@ -97,7 +107,11 @@ void theme_panel::execute(std::string_view action, editor_theme& theme)
     {
         if (action == "reset")
         {
-            candidate.overrides.erase(color.key);
+            std::erase_if(candidate.overrides,
+                          [&](const auto& entry)
+                          {
+                              return entry.key == color.key;
+                          });
         }
         else
         {

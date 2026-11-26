@@ -85,6 +85,7 @@ TEST(editor_theme, RecolorsCachedChromeWithoutRebuildingPreviewOrInput)
 TEST(editor_theme, InspectorEditsUseValidatedPreferenceTransactions)
 {
     editor_theme theme;
+    theme.configure({"dark", {{"accent", "#000000FF"}, {"background", "#010203FF"}}});
     theme_panel panel;
     panel.execute("toggle", theme);
     EXPECT_TRUE(panel.visible);
@@ -107,8 +108,18 @@ TEST(editor_theme, InspectorEditsUseValidatedPreferenceTransactions)
     EXPECT_TRUE(panel.input(input));
     EXPECT_EQ(theme.context()->snapshot(), before);
     panel.execute("apply", theme);
-    EXPECT_EQ(theme.preferences().overrides.size(), 1);
+    EXPECT_EQ(theme.preferences().overrides.size(), 2);
+    const auto accent = theme.context()->snapshot()->find("accent");
+    EXPECT_EQ(theme.context()->snapshot()->color(accent), ui_content::parse_color("#123456FF"));
+    panel.execute("reset", theme);
+    ASSERT_EQ(theme.preferences().overrides.size(), 1);
+    EXPECT_EQ(theme.preferences().overrides.front().key, "background");
     panel.execute("reset-all", theme);
     EXPECT_TRUE(theme.preferences().overrides.empty());
+    panel.execute("edit", theme);
+    EXPECT_TRUE(panel.input(input));
+    panel.execute("apply", theme);
+    ASSERT_EQ(theme.preferences().overrides.size(), 1);
+    EXPECT_EQ(theme.preferences().overrides.front().key, "accent");
 }
 } // namespace atlas::editor::tests
