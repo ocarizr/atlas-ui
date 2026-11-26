@@ -15,7 +15,7 @@ TEST(editor_accessibility, ChromeExposesNamedSemanticControls)
     (void)preview.create();
     panel_plan plan;
     plan.preview = {0, 40, 200, 100};
-    plan.controls.push_back({{0, 0, 80, 30}, {1, 1, 1, 1}, "Save", {control_kind::save}});
+    plan.controls.push_back({{0, 0, 80, 30}, {1, 1, 1, 1}, "Save", {control_kind::save, {}}});
     panel_scene chrome{plan, preview, {0, 0, 200, 140}, 1, layout, paint, {}};
     (void)chrome.begin_input({});
     const auto nodes = chrome.input().accessibility_nodes();
