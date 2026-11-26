@@ -37,6 +37,7 @@ def test_graph_products_include_content_inputs_without_native_graphics_or_ipc(co
     """Compiling graph authoring needs UI-content products but no editor or graphics backend."""
     plan = plan_components(configuration, {"editor-flow"})
     assert plan["prerequisites"]["editor-flow"] == [
+        "accessibility",
         "asset-catalog",
         "diagnostics",
         "input",
@@ -51,6 +52,7 @@ def test_graph_products_include_content_inputs_without_native_graphics_or_ipc(co
         "ui-scripting",
     ]
     assert set(plan["components"]) == {
+        "accessibility",
         "asset-catalog",
         "diagnostics",
         "editor-flow",

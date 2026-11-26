@@ -188,15 +188,30 @@ tool_input_result tool_panel::dispatch(std::span<const input::event> events, flo
         bridge_.on_input(event);
     }
 
+    ui::validate_input_events(bridge_.values());
+    begin_input(!events.empty());
+    view_->input().process_more(bridge_.values());
+    return finish_input();
+}
+
+/// @brief All visible panels remain in their input phase while a window gesture is routed.
+void tool_panel::begin_input(bool accepting)
+{
     auto& input = view_->input();
-    auto& tree = view_->tree();
     view_->begin_models(++frame_);
     input.begin_frame(frame_, source_, geometry_);
     view_->synchronize();
-    mailbox_->accepting = !events.empty();
+    mailbox_->accepting = accepting;
+    input.process({});
+}
+
+/// @brief Retain the original successful model/command publication boundary.
+tool_input_result tool_panel::finish_input()
+{
+    auto& input = view_->input();
+    auto& tree = view_->tree();
     try
     {
-        input.process(bridge_.values());
         input.tick();
         input.late_tick();
         input.end_frame();
@@ -212,5 +227,11 @@ tool_input_result tool_panel::dispatch(std::span<const input::event> events, flo
         mailbox_->commands.clear();
         throw;
     }
+}
+
+/// @brief The composition root borrows this owner without exposing Lua state.
+ui::input_session& tool_panel::input()
+{
+    return view_->input();
 }
 } // namespace atlas::editor

@@ -42,6 +42,23 @@ void hierarchy(panel_plan& result, const document_session& session, ui::layout_r
                  node.id == session.selected() ? selected_color : button_color,
                  node.id,
                  {control_kind::select, node.id}});
+            auto& row = result.controls.back();
+            if (!node.parent.empty())
+            {
+                row.source =
+                    ui::drag_source_options{ui::drag_payload::text("atlas.editor.element", node.id),
+                                            ui::drag_operations::move};
+            }
+
+            if (!std::holds_alternative<ui::leaf_layout>(node.panel))
+            {
+                row.destination =
+                    ui::drop_target_options{{"atlas.editor.element"}, ui::drag_operations::move};
+                row.accepts = [&session, id = node.id](const ui::drag_event& event)
+                {
+                    return session.can_reparent(event.payload.text(), id);
+                };
+            }
         }
     }
 
@@ -69,7 +86,12 @@ void inspector(panel_plan& result, const document_session& session, ui::layout_r
 
     const float x = bounds.x + 8;
     const float w = bounds.width - 16;
-    result.controls.push_back({{x, bounds.y + 36, w, 26}, clear_color, selected->id});
+    result.controls.push_back({{x, bounds.y + 36, w, 26},
+                               button_color,
+                               selected->id + " (drop texture/material)",
+                               {control_kind::drop_asset, selected->id}});
+    result.controls.back().destination =
+        ui::drop_target_options{{"atlas.asset"}, ui::drag_operations::copy};
     auto width = selected->requested.width_fixed
                      ? std::format("Width {:.0f}", selected->requested.width)
                      : std::string{"Width auto"};

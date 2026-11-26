@@ -1,4 +1,5 @@
 /** @file @brief UI event dispatch produces model demands without entering Lua from worker jobs. */
+#include "drag_protocol.hpp"
 #include <array>
 #include <atlas/ui_scripting/event_handler.hpp>
 #include <stdexcept>
@@ -54,7 +55,9 @@ ui::event_response event_handler::on_event(const ui::routed_event& event, ui::co
         "tick",           "late_tick",      "end_frame",     "pointer_move",  "pointer_down",
         "pointer_up",     "pointer_cancel", "pointer_enter", "pointer_leave", "capture_lost",
         "key_down",       "key_up",         "focus_gained",  "focus_lost",    "action",
-        "ensure_visible", "pointer_scroll"};
+        "ensure_visible", "pointer_scroll", "activate",      "drag_prepare",  "drag_started",
+        "drag_query",     "drag_enter",     "drag_over",     "drag_leave",    "drag_drop",
+        "drag_completed", "drag_cancelled"};
     const auto kind = static_cast<std::size_t>(event.kind);
     if (kind >= names.size())
     {
@@ -62,26 +65,28 @@ ui::event_response event_handler::on_event(const ui::routed_event& event, ui::co
     }
 
     const diagnostics::operation_scope scope{destinations_, {"ui.script.event", "ui.dispatch"}};
-    const std::array<mvvm::value, 10> args{
-        static_cast<double>(event.delta_seconds),
-        static_cast<std::int64_t>(event.phase),
-        static_cast<double>(event.local.x),
-        static_cast<double>(event.local.y),
-        static_cast<std::int64_t>(event.key),
-        event.action ? std::to_string(event.action->action) : std::string{},
-        event.action ? static_cast<std::int64_t>(event.action->phase) : std::int64_t{-1},
-        event.target_alive,
-        static_cast<double>(event.scroll.x),
-        static_cast<double>(event.scroll.y)};
-    const std::array<mvvm::value_type, 5> types{
+    const auto args = detail::arguments(event);
+    const bool drag = event.kind >= ui::event_kind::drag_prepare;
+    const auto arguments = std::span<const mvvm::value>{args}.first(drag ? 18 : 10);
+    const std::array<mvvm::value_type, 9> types{
         mvvm::value_type::boolean, mvvm::value_type::boolean, mvvm::value_type::boolean,
-        mvvm::value_type::boolean, mvvm::value_type::boolean};
-    const auto values = domain_ ? domain_->call(instance_, names[kind], args, types)
-                                : behavior_->call(names[kind], args, types);
-    const auto flag = [&](std::size_t index)
+        mvvm::value_type::boolean, mvvm::value_type::boolean, mvvm::value_type::text,
+        mvvm::value_type::text,    mvvm::value_type::integer, mvvm::value_type::integer};
+    ui::event_response response;
+    const auto results = std::span<const mvvm::value_type>{types}.first(drag ? 9 : 5);
+    const scripting::result_validator validate = [&](std::span<const mvvm::value> values)
     {
-        return index < values.size() && std::get<bool>(values[index]);
+        response = detail::response(values, event.kind);
     };
-    return {flag(0), flag(1), flag(2), flag(3), flag(4)};
+    if (domain_)
+    {
+        (void)domain_->call(instance_, names[kind], arguments, results, validate);
+    }
+    else
+    {
+        (void)behavior_->call(names[kind], arguments, results, validate);
+    }
+
+    return response;
 }
 } // namespace atlas::ui_scripting

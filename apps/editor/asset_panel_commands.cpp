@@ -4,6 +4,27 @@
 
 namespace atlas::editor
 {
+/// @brief Look up the stable ID in the current catalog, never a dragged path or selected row.
+void asset_panel::drop(assets::asset_id identity, std::string_view target,
+                       document_session& document, jobs::job_system& jobs,
+                       const diagnostics::services& sinks)
+{
+    const auto catalog = repository_.snapshot();
+    const auto& records = catalog.document().records;
+    const auto found = std::ranges::find_if(records,
+                                            [&](const auto& row)
+                                            {
+                                                return row.reference.id == identity;
+                                            });
+    if (found == records.end())
+    {
+        throw std::invalid_argument("Asset drop identity is unavailable");
+    }
+
+    document.assign_asset(found->reference, mount_editor_assets(catalog, root_, jobs, sinks),
+                          target);
+}
+
 /// @brief The repository validates the destination before accepting the selected source.
 void asset_panel::transfer(control_kind kind)
 {

@@ -65,7 +65,8 @@ document_session::make_preview(const ui_content::document& source,
 
 /// @brief Selection-based reference editing is transactional and participates in document history.
 void document_session::assign_asset(assets::asset_ref reference,
-                                    std::shared_ptr<streaming::catalog_streamer> mount)
+                                    std::shared_ptr<streaming::catalog_streamer> mount,
+                                    std::string_view element)
 {
     if (!mount)
     {
@@ -75,8 +76,15 @@ void document_session::assign_asset(assets::asset_ref reference,
     (void)mount->describe(reference);
     auto candidate = document();
     auto selected_id = current_.selected;
-    auto& node =
-        *std::ranges::find(candidate.elements, current_.selected, &ui_content::element::id);
+    const auto found =
+        std::ranges::find(candidate.elements, element.empty() ? current_.selected : element,
+                          &ui_content::element::id);
+    if (found == candidate.elements.end())
+    {
+        throw std::invalid_argument("Unknown asset drop destination");
+    }
+
+    auto& node = *found;
     if (reference.type == assets::asset_type::texture)
     {
         node.texture = reference;

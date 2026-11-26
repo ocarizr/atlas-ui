@@ -44,6 +44,7 @@ enum class control_kind : std::uint8_t
     assets_next,      ///< Cycle the next page.
     assets_settings,  ///< Advance importer settings.
     flow_toggle,      ///< Switch between the graph workspace and ordinary UI authoring.
+    drop_asset,       ///< Assign a dragged stable asset reference.
     flow              ///< Typed graph/inspector command, applied after Atlas input dispatch.
 };
 
@@ -57,10 +58,13 @@ struct control_action
 /// @brief One chrome rectangle and optional shaped label.
 struct control
 {
-    ui::layout_rect bounds;     ///< Logical rectangle.
-    std::array<float, 4> color; ///< Linear panel or control background.
-    std::string label;          ///< User-facing caption.
-    control_action action{};    ///< Optional pointer action.
+    ui::layout_rect bounds;                               ///< Logical rectangle.
+    std::array<float, 4> color;                           ///< Linear panel or control background.
+    std::string label;                                    ///< User-facing caption.
+    control_action action{};                              ///< Optional pointer action.
+    std::optional<ui::drag_source_options> source{};      ///< Immutable drag offer.
+    std::optional<ui::drop_target_options> destination{}; ///< Typed drop policy.
+    std::function<bool(const ui::drag_event&)> accepts{}; ///< Pure dynamic target guard.
 };
 
 /// @brief Shared output of hierarchy, toolbar, inspector, and preview arrangement.

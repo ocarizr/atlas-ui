@@ -7,6 +7,7 @@ namespace atlas::ui::tests
 /// @brief Unrealized focus targets are realized/revealed before input can observe their handles.
 TEST_F(virtual_list_fixture, first_last_reveal_and_logical_keyboard_navigation)
 {
+    input.configure_navigation();
     update();
     list->request_focus(100);
     list->update(data, 80);

@@ -8,6 +8,7 @@ add_library(atlas_ui_content STATIC src/xml_document.cpp src/xml_fields.cpp src/
     src/flow_manager.cpp src/flow_publication.cpp src/flow_history.cpp src/flow_exits.cpp
     src/flow_conditions.cpp src/flow_presentation.cpp src/flow_viewport.cpp src/flow_viewport_input.cpp src/flow_viewport_geometry.cpp
     src/prepared_flow.cpp src/prepared_flow_codec.cpp)
+target_sources(atlas_ui_content PRIVATE src/accessibility_content.cpp src/navigation_content.cpp src/navigation_xml.cpp)
 add_library(atlas::ui_content ALIAS atlas_ui_content)
 target_sources(atlas_ui_content PRIVATE src/xml_grid.cpp src/grid_validation.cpp)
 target_compile_features(atlas_ui_content PUBLIC cxx_std_20)
@@ -17,3 +18,5 @@ target_link_libraries(atlas_ui_content PUBLIC atlas::streaming atlas::ui_mvvm at
     PRIVATE atlas::mvvm_content pugixml::pugixml)
 atlas_configure_target(atlas_ui_content)
 atlas_export_library(atlas_ui_content ui_content ui_content)
+
+target_sources(atlas_ui_content PRIVATE src/drag_content.cpp)

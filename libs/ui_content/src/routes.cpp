@@ -42,12 +42,14 @@ class composite_handler final : public ui::input_handler
                                     binding.input_action != 0 &&
                                     event.action->action == binding.input_action &&
                                     event.action->phase == input::action_phase::performed;
-            const bool matches =
-                (binding.event == authored_event::click && (click || activation)) ||
-                (binding.event == authored_event::focus_enter &&
-                 event.kind == ui::event_kind::focus_gained) ||
-                (binding.event == authored_event::focus_exit &&
-                 event.kind == ui::event_kind::focus_lost);
+            const bool matches = (binding.event == authored_event::click &&
+                                  (click || activation ||
+                                   (event.kind == ui::event_kind::activate &&
+                                    event.phase == ui::route_phase::target))) ||
+                                 (binding.event == authored_event::focus_enter &&
+                                  event.kind == ui::event_kind::focus_gained) ||
+                                 (binding.event == authored_event::focus_exit &&
+                                  event.kind == ui::event_kind::focus_lost);
             if (matches && dispatch_event)
             {
                 dispatch_event(binding);
@@ -59,7 +61,8 @@ class composite_handler final : public ui::input_handler
             for (const auto& route : navigation)
             {
                 const bool matches =
-                    route.action == 0 ? event.kind == ui::event_kind::pointer_up
+                    route.action == 0 ? (event.kind == ui::event_kind::pointer_up ||
+                                         event.kind == ui::event_kind::activate)
                                       : event.kind == ui::event_kind::action && event.action &&
                                             event.action->action == route.action &&
                                             event.action->phase == input::action_phase::performed;

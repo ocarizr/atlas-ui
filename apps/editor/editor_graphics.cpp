@@ -1,5 +1,6 @@
 /** @file @brief Present editor chrome and preview without crossing mutable thread ownership. */
 #include "editor_graphics.hpp"
+#include "drag_feedback.hpp"
 
 namespace atlas::editor
 {
@@ -35,6 +36,11 @@ void editor_graphics::update_atlas(std::shared_ptr<const editor_frame> incoming)
     {
         active_atlas_ = std::move(pending_atlas_);
         active_ = std::move(pending_);
+    }
+
+    if (!pending_atlas_ && active_ && active_->atlas == incoming->atlas)
+    {
+        active_ = incoming;
     }
 
     if (!pending_atlas_ && (!active_ || active_->atlas != incoming->atlas))
@@ -79,14 +85,23 @@ void editor_graphics::render(const render_host::frame_snapshot& frame)
     auto& fence = fences_[frame.id % fences_.size()];
     resources_.wait(fence);
     resources_.collect();
-    update_atlas(packet);
+    const auto base = packet->base ? packet->base : packet;
+    update_atlas(base);
     if (!active_)
     {
         return;
     }
 
     prepare_target(extent);
-    fence = painter_.submit_quads({active_->viewport, active_->quads}, target_, extent,
+    std::span<const ui::paint_quad> quads = active_->quads;
+    if (packet->drag && active_ == base)
+    {
+        drag_quads_.assign(quads.begin(), quads.end());
+        drag_quads_.push_back(drag_marker(*packet->drag, active_->viewport));
+        quads = drag_quads_;
+    }
+
+    fence = painter_.submit_quads({active_->viewport, quads}, target_, extent,
                                   active_atlas_->bindings(), &recording_);
     if (surface_.present(resources_, target_) == renderer::frame_result::presented)
     {

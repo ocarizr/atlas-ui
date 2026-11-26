@@ -1,5 +1,6 @@
 /** @file @brief Parse and save versioned viewport UI without opening files. */
 #include "document_validation.hpp"
+#include "navigation_content.hpp"
 #include "presentation_xml.hpp"
 #include "xml_fields.hpp"
 
@@ -124,8 +125,16 @@ document read_document(pugi::xml_node root)
         try
         {
             const std::string_view name = node.name();
-            if (node.type() == pugi::node_element && name == "model" &&
-                result.models.size() < detail::max_models)
+            if (node.type() == pugi::node_element && name == "navigation-input" &&
+                !result.focus_input)
+            {
+                detail::fields xml{node, true};
+                detail::navigation_input_fields(xml, result.focus_input.emplace());
+                xml.finish();
+                detail::expect_empty(node);
+            }
+            else if (node.type() == pugi::node_element && name == "model" &&
+                     result.models.size() < detail::max_models)
             {
                 detail::fields xml{node, true};
                 model_fields(xml, result.models.emplace_back());
@@ -222,6 +231,13 @@ std::string write_xml(const document& source, const diagnostics::services& sinks
     pugi::xml_document xml;
     auto root = xml.append_child("ui");
     detail::write_presentation(root, source.presentation);
+    if (source.focus_input)
+    {
+        auto value = *source.focus_input;
+        detail::fields fields{root.append_child("navigation-input"), false};
+        detail::navigation_input_fields(fields, value);
+    }
+
     for (auto model : source.models)
     {
         detail::fields fields{root.append_child("model"), false};

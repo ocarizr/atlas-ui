@@ -3,6 +3,7 @@
 #include "document_file.hpp"
 #include "editor_view.hpp"
 #include <gtest/gtest.h>
+#include <limits>
 
 namespace atlas::editor::tests
 {
@@ -120,4 +121,79 @@ TEST(editor_authoring, ResizedDensePreviewSurvivesRejectedReopen)
     EXPECT_FALSE(session.dirty());
     EXPECT_TRUE(view.snapshot(compact, {}));
 }
+
+/// @brief A real multi-frame hierarchy drag publishes one revision and shares feedback geometry.
+TEST(editor_authoring, HierarchyDragUsesCaptureAndOneUndoAcrossFrames)
+{
+    streaming::tests::temporary_assets files;
+    jobs::job_system jobs{2};
+    const auto catalog =
+        assets::catalog::compile({assets::parse_namespace("018d0b95cf2673c6a0d7dd8ce5d29b23")});
+    streaming::catalog_streamer storage{jobs, catalog, {}};
+    auto source = new_document();
+    ui_content::element panel;
+    panel.id = "panel";
+    panel.parent = "root";
+    panel.panel = ui::vertical_layout{};
+    source.elements.push_back(panel);
+    document_session session{source, {storage}};
+    session.mark_saved();
+    editor_view view{session, jobs, files.path(), {}};
+    const window::window_state state{960, 540, 1};
+    const auto initial = view.snapshot(state, {});
+    const input::event press{.device = {1, input::device_kind::pointer},
+                             .control = input::pointer_control::primary,
+                             .value = {1, 0},
+                             .position = {40, 115}};
+    (void)view.snapshot(state, std::span{&press, 1});
+    const input::event motion{.kind = input::event_kind::pointer_motion,
+                              .device = {1, input::device_kind::pointer},
+                              .value = {40, 140},
+                              .position = {40, 140}};
+    const auto feedback = view.snapshot(state, std::span{&motion, 1});
+    ASSERT_TRUE(feedback->drag);
+    EXPECT_EQ(feedback->base, initial);
+    EXPECT_TRUE(feedback->quads.empty());
+    EXPECT_EQ(feedback->drag.value_or(ui::drag_feedback{}).operation, ui::drag_operation::move);
+    const input::event release{.device = {1, input::device_kind::pointer},
+                               .control = input::pointer_control::primary,
+                               .position = {40, 140}};
+    const auto committed = view.snapshot(state, std::span{&release, 1});
+    EXPECT_FALSE(committed->drag);
+    EXPECT_EQ(session.document().elements.back().id, "element_0");
+    EXPECT_EQ(session.document().elements.back().parent, "panel");
+    ASSERT_TRUE(session.undo());
+    EXPECT_EQ(ui_content::write_xml(session.document()), ui_content::write_xml(source));
+    EXPECT_FALSE(session.can_undo());
+    EXPECT_FALSE(session.dirty());
+}
+
+/// @brief A malformed suffix rejects the entire native batch before a valid click can edit data.
+TEST(editor_authoring, RejectsMalformedInputBeforeExecutingValidPrefix)
+{
+    streaming::tests::temporary_assets files;
+    jobs::job_system jobs{2};
+    const auto catalog =
+        assets::catalog::compile({assets::parse_namespace("018d0b95cf2673c6a0d7dd8ce5d29b23")});
+    streaming::catalog_streamer storage{jobs, catalog, {}};
+    document_session session{new_document(), {storage}};
+    editor_view view{session, jobs, files.path(), {}};
+    const window::window_state state{960, 540, 1};
+    (void)view.snapshot(state, {});
+    const auto before = ui_content::write_xml(session.document());
+    const std::array events{input::event{.device = {1, input::device_kind::pointer},
+                                         .control = input::pointer_control::primary,
+                                         .value = {1, 0},
+                                         .position = {750, 225}},
+                            input::event{.device = {1, input::device_kind::pointer},
+                                         .control = input::pointer_control::primary,
+                                         .position = {750, 225}},
+                            input::event{.kind = input::event_kind::pointer_motion,
+                                         .device = {1, input::device_kind::pointer},
+                                         .value = {std::numeric_limits<float>::quiet_NaN(), 0}}};
+    EXPECT_THROW((void)view.snapshot(state, events), std::invalid_argument);
+    EXPECT_EQ(ui_content::write_xml(session.document()), before);
+    EXPECT_FALSE(session.can_undo());
+}
+
 } // namespace atlas::editor::tests

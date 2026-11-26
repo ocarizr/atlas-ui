@@ -36,57 +36,6 @@ void editor_view::impl::cycle_tool()
     tool_index = 0;
 }
 
-/// @brief Apply owned actions after all live input dispatch has completed.
-bool editor_view::impl::dispatch(std::span<const input::event> events)
-{
-    auto commands = chrome->dispatch(events);
-    bool changed = flow && flow->visible && flow->input(events, density);
-    changed |= !(flow && flow->visible) && assets && assets->visible && assets->keyboard(events);
-    const auto route = [&](std::unique_ptr<tool_panel>& panel, bool is_shell)
-    {
-        try
-        {
-            auto result = panel->dispatch(events, density);
-            changed |= result.changed;
-            commands.insert(commands.end(), std::make_move_iterator(result.commands.begin()),
-                            std::make_move_iterator(result.commands.end()));
-        }
-        catch (const std::exception& error)
-        {
-            diagnostics::write(sinks, diagnostics::log_level::warning, "editor.tools",
-                               error.what());
-            panel.reset();
-            changed = true;
-            status = is_shell ? "Recovery mode" : "Tool stopped";
-            if (!is_shell)
-            {
-                tool_index = 0;
-            }
-        }
-    };
-    if (shell_visible && !(flow && flow->visible))
-    {
-        route(shell, true);
-    }
-
-    if (active_tool && !(assets && assets->visible) && !(flow && flow->visible))
-    {
-        route(active_tool, false);
-    }
-
-    for (const auto& command : commands)
-    {
-        const auto owner = workspace ? workspace->active_id() : 0;
-        execute(command);
-        if (workspace && owner != workspace->active_id())
-        {
-            break;
-        }
-    }
-
-    return changed || !commands.empty();
-}
-
 /// @brief Compose the graph tool independently from ordinary document panels.
 void editor_view::impl::compose_flow(panel_plan& plan, ui::layout_rect bounds)
 {
@@ -300,6 +249,6 @@ std::shared_ptr<const editor_frame> editor_view::snapshot(const window::window_s
         impl_->rebuild(bounds, density);
     }
 
-    return impl_->chrome->packet();
+    return impl_->presentation();
 }
 } // namespace atlas::editor

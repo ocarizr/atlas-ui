@@ -78,7 +78,32 @@ struct scrollbar_link
     std::array<float, 4> color{0.7f, 0.7f, 0.7f, 1};  ///< Solid thumb color.
 };
 
-/// @brief Serializable element data without any live handles or registry identities.
+/// @brief Document-local focus destinations without transient runtime identities.
+struct focus_navigation
+{
+    std::array<std::string, 6> destinations{}; ///< Direction-indexed stable element IDs.
+    std::array<bool, 6> blocked{};             ///< Explicitly disabled directions.
+    std::int32_t tab_order = 0;                ///< Ordered focus priority.
+    bool tab_stop = true;                      ///< Ordered traversal participation.
+};
+
+/// @brief Optional view-level portable keyboard and semantic action configuration.
+struct navigation_input
+{
+    ui::focus_navigation_actions actions{}; ///< IDs defined by the host's input contexts.
+    bool keyboard = true;                   ///< Opt-in arrows and Tab/Shift+Tab.
+};
+
+/// @brief Serializable source policy; an empty type requests a dynamic Lua prepare offer.
+struct drag_source_definition
+{
+    std::string type; ///< Stable payload type key.
+    std::string text; ///< Owned UTF-8 text, not a file path.
+    ui::drag_operations operations = ui::drag_operations::copy; ///< Copy/move capability.
+    float threshold = 4; ///< Logical pointer travel before lifting.
+};
+
+/// @brief Serializable element data without live handles or registry identities.
 struct element
 {
     std::string id;     ///< Unique stable ID in this document.
@@ -102,6 +127,12 @@ struct element
     std::vector<event_action> events{};          ///< Editor-authored semantic action bindings.
     std::optional<scrollbar_link> scrollbar{};   ///< Sparse authored chrome behavior.
     std::optional<ui::grid_slot> grid{}; ///< Grid-owned explicit coordinates or automatic spans.
+    std::optional<focus_navigation> focus{}; ///< Explicit focus relationships and ordered policy.
+    std::optional<ui::focus_navigation_scope> focus_scope{}; ///< Search group and semantic routes.
+    std::optional<drag_source_definition> drag_source{};     ///< Optional typed offer.
+    std::optional<ui::drop_target_options> drop_target{};    ///< Accepted typed transfers.
+    std::optional<ui::accessible_element> accessible{}; ///< Sparse semantic authoring override.
+    bool decorative = false; ///< Omit default semantics without hiding meaningful descendants.
 };
 
 /// @brief Popup defaults shared by source assets and optional Flow-instance overrides.
@@ -131,6 +162,7 @@ struct document
     std::vector<model_context> models;   ///< Named ViewModel instances.
     std::vector<element> elements;       ///< Parent-before-child order preserves sibling order.
     presentation_options presentation{}; ///< Stable authored kind and popup defaults.
+    std::optional<navigation_input> focus_input{}; ///< Device-independent navigation opt-in.
 };
 
 /// @brief Borrowed XML payload and diagnostic identity.

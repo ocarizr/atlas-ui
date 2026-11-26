@@ -1,5 +1,7 @@
+#include "drag_content.hpp"
 /** @file @brief Validate stable IDs, hierarchy, and document-local references. */
 #include "document_validation.hpp"
+#include "navigation_content.hpp"
 #include <cmath>
 #include <map>
 #include <set>
@@ -96,7 +98,7 @@ void validate_bindings(const element& node, const model_names& models)
     {
         const auto& action = route.binding;
         if (!models.contains(route.model) || action.action.empty() ||
-            action.arguments.size() > 32 || action.event > ui::event_kind::pointer_scroll ||
+            action.arguments.size() > 32 || action.event > ui::event_kind::drag_cancelled ||
             action.route > ui::route_phase::bubble ||
             action.input_phase > input::action_phase::cancelled ||
             ((action.event == ui::event_kind::action) != (action.input_action != 0)))
@@ -261,11 +263,29 @@ void validate(const document& source)
 
     for (const auto& node : source.elements)
     {
+        validate_drag(node);
+        if (node.accessible)
+        {
+            ui::validate_accessibility(*node.accessible);
+            if (node.decorative)
+            {
+                throw std::invalid_argument(
+                    "decorative UI element cannot declare accessible semantics");
+            }
+
+            if ((node.accessible->invoke_action || node.accessible->select_action) &&
+                !node.interaction && node.events.empty() && node.actions.empty() && !node.script)
+            {
+                throw std::invalid_argument("accessible action requires a semantic input handler");
+            }
+        }
+
         validate_sibling(node, node.horizontal, seen);
         validate_sibling(node, node.vertical, seen);
         validate_scrollbar(node, seen);
     }
 
     validate_grids(source);
+    validate_navigation(source);
 }
 } // namespace atlas::ui_content::detail

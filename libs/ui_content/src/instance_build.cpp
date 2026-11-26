@@ -1,7 +1,10 @@
+#include "drag_content.hpp"
 /** @file @brief Prepare a complete tree, model graph and shared-domain candidate. */
+#include "accessibility_content.hpp"
 #include "document_validation.hpp"
 #include "instance_state.hpp"
 #include "material_sources.hpp"
+#include "navigation_content.hpp"
 #include "routes.hpp"
 #include <atlas/ui_content/flow.hpp>
 
@@ -128,7 +131,8 @@ void instance::impl::bind_elements(const document& source, const construction& o
                 textures.emplace(node.id, *texture);
             }
 
-            if (node.interaction || !node.actions.empty() || !node.events.empty() || node.script ||
+            if (node.drag_source || node.drop_target || node.accessible || node.focus ||
+                node.interaction || !node.actions.empty() || !node.events.empty() || node.script ||
                 navigation.contains(node.id))
             {
                 const auto event_bindings =
@@ -138,6 +142,9 @@ void instance::impl::bind_elements(const document& source, const construction& o
                     detail::make_handler(node, models, domain, registered, options, event_bindings),
                     node.interaction.value_or(ui::interaction_options{}));
             }
+
+            detail::configure_accessibility(input, target, node);
+            detail::configure_drag(input, target, node);
         }
         catch (const std::logic_error& error)
         {
@@ -145,6 +152,7 @@ void instance::impl::bind_elements(const document& source, const construction& o
         }
     }
 
+    detail::configure_navigation(input, elements, source);
     material_dependencies = std::move(materials.dependencies);
     material_shaders = std::move(materials.shaders);
 }

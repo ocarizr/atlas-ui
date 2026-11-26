@@ -8,9 +8,11 @@ namespace atlas::ui
 input_session::impl::impl(element_tree& source, input_limits policy,
                           std::shared_ptr<std::pmr::memory_resource> resource,
                           diagnostics::services services)
-    : tree(source), limits(policy), memory(std::move(resource)), destinations(std::move(services)),
-      bindings(0, memory.get()), regions(0, memory.get()), slots(0, memory.get()),
-      path(0, memory.get()), session(tree.snapshot().session())
+    : tree(source), limits(policy), memory(std::move(resource)), drag_sources(0, memory.get()),
+      drop_targets(0, memory.get()), destinations(std::move(services)), bindings(0, memory.get()),
+      regions(0, memory.get()), slots(0, memory.get()), path(0, memory.get()),
+      accessible(0, memory.get()), focus_nodes(0, memory.get()), focus_scopes(0, memory.get()),
+      session(tree.snapshot().session())
 {
     bindings.reserve(limits.max_bindings);
     path.reserve(limits.max_route_depth);
@@ -30,7 +32,7 @@ void input_session::impl::check() const
 void input_session::impl::idle() const
 {
     check();
-    if (terminal || (!stats.closed && !stats.failed))
+    if (drag_frame || terminal || (!stats.closed && !stats.failed))
     {
         throw std::logic_error("configure UI input between successful frames");
     }
@@ -74,7 +76,8 @@ input_session::input_session(element_tree& tree, input_limits limits,
     if (!limits.max_nodes || limits.max_nodes > 65536 || !limits.max_bindings ||
         limits.max_bindings > 65536 || !limits.max_events || limits.max_events > 4096 ||
         !limits.max_route_depth || limits.max_route_depth > 65536 || !limits.max_callbacks ||
-        limits.max_callbacks > 1048576)
+        limits.max_callbacks > 1048576 || !limits.max_navigation_candidates ||
+        limits.max_navigation_candidates > 16777216)
     {
         throw std::invalid_argument("invalid UI input limits");
     }
@@ -87,6 +90,7 @@ input_session::input_session(element_tree& tree, input_limits limits,
     }
 
     impl_ = std::make_unique<impl>(tree, limits, std::move(memory), std::move(destinations));
+    impl_->lifetime->owner = this;
 }
 
 /// @brief Destruction releases retained callbacks; orderly lifecycle uses explicit shutdown.
@@ -97,6 +101,7 @@ input_session::~input_session()
         std::terminate();
     }
 
+    impl_->lifetime->owner = nullptr;
     impl_->busy = true;
 }
 
@@ -154,6 +159,16 @@ void input_session::unbind(element_handle target)
     }
 
     value->retiring = true;
+    std::erase_if(impl_->accessible,
+                  [target](const auto& item)
+                  {
+                      return item.first == target;
+                  });
+    std::erase_if(impl_->focus_nodes,
+                  [target](const auto& node)
+                  {
+                      return node.target == target;
+                  });
 }
 
 /// @brief No observer can bypass the callback reentrancy contract.

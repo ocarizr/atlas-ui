@@ -37,6 +37,8 @@ class editor_graphics final : public render_host::frame_handler
     std::unique_ptr<ui_text::uploaded_atlas> pending_atlas_; ///< At most one replacement uploads.
     std::shared_ptr<const editor_frame> active_;             ///< Packet matching the active atlas.
     std::shared_ptr<const editor_frame> pending_; ///< Packet matching the uploading atlas.
+    std::vector<ui::paint_quad>
+        drag_quads_; ///< Reused render-thread scratch; no main-thread packet copy.
     std::atomic<std::uint64_t>& presented_; ///< Only successful native presentations cross back.
 };
 } // namespace atlas::editor

@@ -1,0 +1,4 @@
+add_executable(atlas_accessibility_tests channel_tests.cpp)
+target_link_libraries(atlas_accessibility_tests PRIVATE atlas::accessibility GTest::gtest_main)
+atlas_configure_test(atlas_accessibility_tests)
+gtest_discover_tests(atlas_accessibility_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 30 PROPERTIES LABELS accessibility TIMEOUT 30)

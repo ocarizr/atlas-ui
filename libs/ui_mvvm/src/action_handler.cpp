@@ -41,7 +41,7 @@ action_handler::action_handler(std::shared_ptr<mvvm::view_model> model,
                                              {"ui.mvvm.actions.compile", "ui.cpu"}};
     for (const auto& binding : bindings)
     {
-        if (binding.event > ui::event_kind::pointer_scroll ||
+        if (binding.event > ui::event_kind::drag_cancelled ||
             binding.route > ui::route_phase::bubble ||
             binding.input_phase > input::action_phase::cancelled ||
             ((binding.event == ui::event_kind::action) != (binding.input_action != 0)))

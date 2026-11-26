@@ -4,7 +4,10 @@
  */
 #pragma once
 #include <atlas/input/input_system.hpp>
+#include <atlas/ui/accessibility.hpp>
+#include <atlas/ui/drag_drop.hpp>
 #include <atlas/ui/element_tree.hpp>
+#include <atlas/ui/focus_navigation.hpp>
 
 namespace atlas::ui
 {
@@ -64,7 +67,17 @@ enum class event_kind : std::uint8_t
     focus_lost,     ///< Keyboard routing and focus transitions.
     action,         ///< Semantic action received from the reusable input library.
     ensure_visible, ///< Bubble a focus-reveal request.
-    pointer_scroll  ///< Signed wheel input routed under the pointer, independently from capture.
+    pointer_scroll, ///< Signed wheel input routed under the pointer, independently from capture.
+    activate,       ///< Semantic activation without manufacturing physical pointer input.
+    drag_prepare,   ///< Source may supply an immutable payload.
+    drag_started,   ///< Pointer capture transferred to a drag.
+    drag_query,     ///< Pure destination policy query.
+    drag_enter,     ///< Destination became current.
+    drag_over,      ///< Destination remains current.
+    drag_leave,     ///< Destination no longer current.
+    drag_drop,      ///< Transfer requested; application must confirm.
+    drag_completed, ///< Application committed the transfer.
+    drag_cancelled  ///< No transfer committed.
 };
 
 /// @brief Direct notifications and the three ordered hierarchy routing phases.
@@ -92,8 +105,9 @@ struct routed_event
     float delta_seconds = 0;    ///< Finite nonnegative frame delta.
     bool target_alive = false;  ///< Cleanup can refer to an already removed identity.
     std::optional<input::action_event>
-        action{};          ///< Copied semantic payload, independent of devices.
-    layout_point scroll{}; ///< Copied signed wheel notches.
+        action{};                     ///< Copied semantic payload, independent of devices.
+    layout_point scroll{};            ///< Copied signed wheel notches.
+    std::optional<drag_event> drag{}; ///< Owned drag metadata, present only on drag notifications.
 }; ///< Borrowed only for callback duration; copying this value is safe.
 
 struct event_response
@@ -103,6 +117,9 @@ struct event_response
     bool release_pointer = false; ///< Release current capture from a pointer route.
     bool focus = false;           ///< Focus current if configured focusable.
     bool blur = false;            ///< Clear keyboard focus.
+    drag_payload offer{};         ///< Optional replacement from drag_prepare only.
+    drag_acceptance acceptance = drag_acceptance::defer; ///< drag_query policy.
+    drag_operation operation = drag_operation::none;     ///< Optional negotiated query choice.
 }; ///< Direct notifications ignore responses; ensure-visible honors only stop.
 
 /// @brief Retained adapter for native behavior and future Lua dispatch.
@@ -129,6 +146,7 @@ struct input_limits
     std::size_t max_events = 256;      ///< Validated input packets per frame, at most 4096.
     std::size_t max_route_depth = 64;  ///< Maximum registered target ancestry, at most 65536.
     std::size_t max_callbacks = 65536; ///< Includes lifecycle/route/state deliveries per frame.
+    std::size_t max_navigation_candidates = 1048576; ///< Per-frame candidate visit budget.
 }; ///< Metadata and command/scheduler allocations have separate accounting.
 
 /// @brief Last admitted frame and callback attempts, excluding arbitrary handler allocations.
@@ -139,6 +157,7 @@ struct input_statistics
     std::size_t callbacks = 0; ///< Callback attempts, including one that throws.
     bool closed = true;        ///< End-frame or shutdown completed.
     bool failed = false;       ///< Further dispatch waits for a newer begin-frame or shutdown.
+    std::size_t navigation_candidates = 0; ///< Cumulative visits across this frame.
 };
 
 /// @brief Optional semantic actions for list navigation; zero leaves an operation unmapped.
@@ -164,6 +183,34 @@ class input_session
     void configure(element_handle target, interaction_options options); ///< Between frames only.
     void configure_scroll_navigation(
         scroll_navigation_actions actions); ///< Between-frame semantic input mappings.
+    /// @brief Configure optional keyboard and global semantic navigation between frames.
+    void configure_navigation(focus_navigation_actions actions = {}, bool keyboard = true);
+    ///< Opt into keys and/or globally mapped semantic focus requests between frames.
+    /// @brief Set sparse explicit/blocked destinations and ordered traversal metadata.
+    void configure_navigation(element_handle target, const focus_navigation_options& options);
+    ///< Set sparse explicit destinations, blocked directions and ordered focus policy.
+    /// @brief Configure a search group and optional group-targeted semantic actions.
+    void configure_navigation_scope(element_handle root, focus_navigation_scope options = {});
+    ///< Configure a bounded group and optional independent next/previous actions.
+    void reset_navigation_scope(element_handle root); ///< Restore enclosing/root automatic policy.
+    /// @brief Move focus during an open owner frame without synthesizing activation.
+    [[nodiscard]] bool navigate(focus_direction direction, element_handle scope = {});
+    ///< Move focus during an open frame; never synthesize activation.
+    void configure_accessibility(element_handle target,
+                                 accessible_element value); ///< Between frames.
+    void
+    reset_accessibility(element_handle target); ///< Omit a decorative or no-longer-semantic node.
+    [[nodiscard]] std::vector<accessibility::node>
+    accessibility_nodes(accessibility_view view = {},
+                        const accessible_text& resolve = {}) const; ///< Owner capture.
+    void process_accessibility(std::span<const accessibility::request> requests,
+                               element_handle modal_root = {}); ///< Open input phase.
+    void configure_drag_source(element_handle target,
+                               drag_source_options options); ///< Between frames.
+    void configure_drop_target(element_handle target,
+                               drop_target_options options); ///< Between frames.
+    void reset_drag_source(element_handle target);           ///< Remove a source at a boundary.
+    void reset_drop_target(element_handle target); ///< Remove a destination at a boundary.
     void unbind(element_handle target); ///< Retire at next begin-frame, with disable/end cleanup.
     /// @brief Prepare matching geometry, begin commands, then start/enable registered handlers.
     void begin_frame(std::uint64_t frame, const element_snapshot& source,
@@ -190,6 +237,7 @@ class input_session
     void suspend(std::uint64_t frame);   ///< Release interaction and disable until the next frame.
     input_statistics statistics() const; ///< Serial owner observation.
   private:
+    friend class drag_drop_session;  ///< Window domain borrows checked input phases.
     friend class detail::input_edit; ///< Prepare recycling without publishing partial handlers.
     void process_packets(std::span<const input_event> events, bool append); ///< Shared preflight.
     void close_lifecycle(std::uint64_t frame, bool terminal); ///< Shared suspension and teardown.

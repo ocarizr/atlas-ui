@@ -252,7 +252,8 @@ class session::impl : public std::enable_shared_from_this<session::impl>
     /// @brief Guard dispatch and commit the successful producer batch.
     std::vector<mvvm::value> call(std::string_view name, std::span<const mvvm::value> args,
                                   std::uint64_t native_request = 0,
-                                  std::span<const mvvm::value_type> result_types = {});
+                                  std::span<const mvvm::value_type> result_types = {},
+                                  const result_validator& validate = {});
     std::uint64_t
     watch(std::variant<mvvm::field_handle, mvvm::action_handle, mvvm::event_handle> slot,
           std::string_view handler,

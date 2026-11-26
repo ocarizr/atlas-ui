@@ -1,5 +1,8 @@
 /** @file @brief Version and integrity envelope for typed UI binary content. */
+#include "accessibility_content.hpp"
 #include "document_validation.hpp"
+#include "drag_content.hpp"
+#include "prepared_navigation.hpp"
 #include "prepared_ui_fields.hpp"
 #include "prepared_versions.hpp"
 #include <algorithm>
@@ -15,20 +18,10 @@ constexpr mvvm_content::detail::signature magic{std::byte{'A'}, std::byte{'U'}, 
                                                 std::byte{'P'}};
 constexpr std::uint16_t wire_version = 2; ///< Add the embedded ViewModel definition table.
 
-/// @brief Encode the typed UI and its exact catalog closure in v2 field order.
+/// @brief Retain exact typed ViewModel schema construction in all prepared versions.
 template <bool Reading>
-void serialize(detail::binary<Reading>& format, prepared_view& source, bool presentation,
-               bool events, bool scrollbars, bool grids)
+void serialize_models(detail::binary<Reading>& format, prepared_view& source)
 {
-    detail::reference(format, source.source);
-    format.sequence(source.dependencies, detail::max_prepared_dependencies,
-                    [](auto& archive, prepared_dependency& entry)
-                    {
-                        detail::reference(archive, entry.source);
-                        archive.field(entry.revision);
-                    });
-    format.sequence(source.materials, detail::max_prepared_materials,
-                    detail::material_record_fields);
     format.sequence(source.models, detail::max_models,
                     [](auto& archive, prepared_model_record& record)
                     {
@@ -50,6 +43,24 @@ void serialize(detail::binary<Reading>& format, prepared_view& source, bool pres
                             record.value = mvvm::compile(definition);
                         }
                     });
+}
+
+/// @brief Encode the typed UI and its exact catalog closure in v2 field order.
+template <bool Reading>
+void serialize(detail::binary<Reading>& format, prepared_view& source, bool presentation,
+               bool events, bool scrollbars, bool grids, bool navigation, bool accessibility,
+               bool drag)
+{
+    detail::reference(format, source.source);
+    format.sequence(source.dependencies, detail::max_prepared_dependencies,
+                    [](auto& archive, prepared_dependency& entry)
+                    {
+                        detail::reference(archive, entry.source);
+                        archive.field(entry.revision);
+                    });
+    format.sequence(source.materials, detail::max_prepared_materials,
+                    detail::material_record_fields);
+    serialize_models(format, source);
     format.sequence(source.view.models, detail::max_models,
                     [](auto& archive, model_context& model)
                     {
@@ -107,6 +118,21 @@ void serialize(detail::binary<Reading>& format, prepared_view& source, bool pres
                             });
         }
     }
+
+    if (navigation)
+    {
+        detail::prepared_navigation(format, source.view);
+    }
+
+    if (accessibility)
+    {
+        detail::prepared_accessibility(format, source.view);
+    }
+
+    if (drag)
+    {
+        detail::prepared_drag(format, source.view);
+    }
 }
 } // namespace
 
@@ -146,15 +172,51 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
         {
             return std::holds_alternative<ui::grid_layout>(node.panel) || node.grid.has_value();
         });
-    serialize(payload, copy, presentation || events || scroll || scrollbars || grids,
-              events || scroll || scrollbars || grids, scrollbars || grids, grids);
+    const bool drag = std::ranges::any_of(
+        source.view.elements,
+        [](const auto& node)
+        {
+            return node.drag_source || node.drop_target ||
+                   std::ranges::any_of(node.actions,
+                                       [](const auto& route)
+                                       {
+                                           return route.binding.event > ui::event_kind::activate;
+                                       });
+        });
+    const bool accessibility =
+        drag ||
+        std::ranges::any_of(source.view.elements,
+                            [](const auto& node)
+                            {
+                                return node.accessible.has_value() || node.decorative ||
+                                       std::ranges::any_of(node.actions,
+                                                           [](const auto& route)
+                                                           {
+                                                               return route.binding.event ==
+                                                                      ui::event_kind::activate;
+                                                           });
+                            });
+    const bool navigation =
+        accessibility || source.view.focus_input.has_value() ||
+        std::ranges::any_of(source.view.elements,
+                            [](const auto& node)
+                            {
+                                return node.focus.has_value() || node.focus_scope.has_value();
+                            });
+    serialize(payload, copy, presentation || events || scroll || scrollbars || grids || navigation,
+              events || scroll || scrollbars || grids || navigation,
+              scrollbars || grids || navigation, grids || navigation, navigation, accessibility,
+              drag);
     return mvvm_content::detail::seal_prepared(payload, magic,
-                                               grids          ? std::uint16_t{7}
-                                               : scrollbars   ? std::uint16_t{6}
-                                               : scroll       ? std::uint16_t{5}
-                                               : events       ? std::uint16_t{4}
-                                               : presentation ? std::uint16_t{3}
-                                                              : wire_version);
+                                               drag            ? std::uint16_t{10}
+                                               : accessibility ? std::uint16_t{9}
+                                               : navigation    ? std::uint16_t{8}
+                                               : grids         ? std::uint16_t{7}
+                                               : scrollbars    ? std::uint16_t{6}
+                                               : scroll        ? std::uint16_t{5}
+                                               : events        ? std::uint16_t{4}
+                                               : presentation  ? std::uint16_t{3}
+                                                               : wire_version);
 }
 
 /// @brief Reject incorrect extent, version and checksum before decoding typed records.
@@ -162,14 +224,15 @@ prepared_view decode_prepared(std::span<const std::byte> bytes)
 {
     const auto version = detail::prepared_version(bytes);
     if (version != wire_version && version != 3 && version != 4 && version != 5 && version != 6 &&
-        version != 7)
+        version != 7 && version != 8 && version != 9 && version != 10)
     {
         throw std::invalid_argument("Unsupported prepared UI version");
     }
 
     detail::binary<true> archive{mvvm_content::detail::open_prepared(bytes, magic, version)};
     prepared_view result;
-    serialize(archive, result, version >= 3, version >= 4, version >= 6, version >= 7);
+    serialize(archive, result, version >= 3, version >= 4, version >= 6, version >= 7, version >= 8,
+              version >= 9, version >= 10);
     if (version < 5 && std::ranges::any_of(
                            result.view.elements,
                            [](const auto& node)
@@ -178,6 +241,36 @@ prepared_view decode_prepared(std::span<const std::byte> bytes)
                            }))
     {
         throw std::invalid_argument("Scroll panel requires prepared UI version 5");
+    }
+
+    if (version < 9 && std::ranges::any_of(
+                           result.view.elements,
+                           [](const auto& node)
+                           {
+                               return std::ranges::any_of(node.actions,
+                                                          [](const auto& route)
+                                                          {
+                                                              return route.binding.event ==
+                                                                     ui::event_kind::activate;
+                                                          });
+                           }))
+    {
+        throw std::invalid_argument("Semantic activation requires prepared UI version 9");
+    }
+
+    if (version < 10 && std::ranges::any_of(
+                            result.view.elements,
+                            [](const auto& node)
+                            {
+                                return std::ranges::any_of(node.actions,
+                                                           [](const auto& route)
+                                                           {
+                                                               return route.binding.event >
+                                                                      ui::event_kind::activate;
+                                                           });
+                            }))
+    {
+        throw std::invalid_argument("Drag events require prepared UI version 10");
     }
 
     if (!archive.exhausted())

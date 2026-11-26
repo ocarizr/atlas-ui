@@ -15,7 +15,9 @@ from tree_sitter import Language, Parser
 def cpp_declarations(source):
     """Yield documentable declarations and their template-aware comment attachment points."""
     parser = Parser(Language(tree_sitter_cpp.language()))
-    tree = parser.parse(source)
+    # Preserve byte/line positions while parsing the SDK calling-convention annotation.
+    normalized = re.sub(rb"\bSTDMETHODCALLTYPE\b", lambda match: b" " * len(match[0]), source)
+    tree = parser.parse(normalized)
 
     def visit(node):
         """Visit named declarations while keeping template wrappers as documentation anchors."""

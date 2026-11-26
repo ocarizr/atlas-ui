@@ -1,4 +1,4 @@
-add_executable(atlas_ui_tests command_merge_tests.cpp command_validation_tests.cpp)
+add_executable(atlas_ui_tests focus_navigation_tests.cpp focus_navigation_input_tests.cpp focus_navigation_budget_tests.cpp command_merge_tests.cpp command_validation_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE grid_geometry_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE grid_placement_tests.cpp grid_state_tests.cpp grid_validation_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE grid_execution_tests.cpp)
@@ -54,3 +54,11 @@ target_compile_definitions(atlas_ui_tests PRIVATE ATLAS_UI_DATA_DIR="${CMAKE_CUR
 target_link_libraries(atlas_ui_tests PRIVATE atlas::ui GTest::gtest_main)
 atlas_configure_test(atlas_ui_tests)
 gtest_discover_tests(atlas_ui_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS ui TIMEOUT 30)
+
+target_sources(atlas_ui_tests PRIVATE accessibility_tests.cpp)
+
+target_sources(atlas_ui_tests PRIVATE drag_payload_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE drag_transfer_tests.cpp drag_failure_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE drag_boundary_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE drag_resource_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE drag_geometry_tests.cpp)

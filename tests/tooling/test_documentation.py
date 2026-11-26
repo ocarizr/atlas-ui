@@ -85,3 +85,25 @@ def test_cpp_reference_returns_and_namespace_state_need_contracts(tmp_path):
     errors = check_documentation(path)
     assert any("read()" in error for error in errors)
     assert any("current" in error for error in errors)
+
+
+@pytest.mark.parametrize(
+    "documented", [True, False], ids=["documented-com-method", "missing-com-method"]
+)
+def test_cpp_com_calling_convention_keeps_one_documented_declaration(tmp_path, documented):
+    """Treat the SDK calling-convention token as syntax, preserving original diagnostic offsets."""
+    path = tmp_path / "provider.hpp"
+    comment = "/// Invoke the existing action.\n" if documented else ""
+    source = (
+        "/** @file provider.hpp */\n/// Native provider.\nstruct provider {\n"
+        + comment
+        + "HRESULT STDMETHODCALLTYPE Invoke() override;\n};\n"
+    )
+    path.write_text(source, encoding="utf-8")
+    errors = check_documentation(path)
+    if documented:
+        assert errors == []
+    else:
+        assert len(errors) == 1
+        assert "Invoke()" in errors[0]
+        assert f"{path}:4:" in errors[0]

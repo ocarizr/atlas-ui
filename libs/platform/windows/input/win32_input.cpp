@@ -29,6 +29,10 @@ key semantic_key(WPARAM native_key) noexcept
 
     switch (native_key)
     {
+        case VK_SHIFT:
+        case VK_LSHIFT:
+        case VK_RSHIFT:
+            return key::shift;
         case VK_TAB:
             return key::tab;
         case VK_RETURN:

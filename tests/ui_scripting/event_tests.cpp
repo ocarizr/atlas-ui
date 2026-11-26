@@ -10,8 +10,8 @@ TEST(ui_script_events, DispatchesWheelMetadataWithoutChangingExistingArguments)
     auto model = std::make_shared<mvvm::view_model>(mvvm::compile({"state"}));
     auto behavior = std::make_shared<scripting::session>(model);
     behavior->load(
-        "return {pointer_scroll=function(dt,phase,x,y,key,action,action_phase,alive,sx,sy) "
-        "assert(sx==0.5 and sy==-1 and alive); return true end}");
+        "return {pointer_scroll=function(dt,phase,x,y,key,action,action_phase,alive,sx,sy,...) "
+        "assert(select('#',...)==0 and sx==0.5 and sy==-1 and alive); return true end}");
     model->begin_frame(1);
     behavior->begin_frame(1);
     event_handler handler{behavior};

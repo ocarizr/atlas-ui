@@ -33,12 +33,15 @@ Directional sibling boundaries provide acyclic placement and remaining-space siz
 within intrinsic canvas domains.
 Ordered rectangle painting supports clipping, adjacent batching and streamed images.
 Owner-thread input adds clip-aware hit testing, capture/bubble routing, primary-pointer
-capture, focus and ordered lifecycle events. Independent input actions provide
+capture, focus and ordered lifecycle events. Scoped spatial/explicit navigation supports
+portable keyboard and semantic actions with optional wrapping. Independent input actions provide
 priority contexts, bindings, modifiers and hold/tap triggers. Native device packets
 and semantic actions feed owner-thread interaction; expensive work remains in joined job phases.
 Independent data-defined ViewModels provide observable typed slots, actions/events, XML authoring
 and compiled factory generation. UI adapters publish property bindings and route events into
 model actions at explicit sync points.
+[Accessibility](docs/accessibility.md) provides independent semantic snapshots, owner-thread action
+requests and a platform-selected Windows UI Automation adapter.
 [Localization](docs/localization.md) adds independent language contexts, XML string tables,
 cardinal plurals and direction-aware text refresh.
 Owner-thread Lua behavior adds protected typed model commands, lifecycle/input adapters
@@ -81,6 +84,8 @@ on each PR/main workflow run. Formatting and asset validation run globally.
 
 | Component | Debug/tests | Release/tests | ASan | MSVC analysis | clang-tidy | Coverage | SDK-free |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| [Accessibility](libs/accessibility/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Semantic contracts |
+| [Accessibility host](libs/accessibility_host/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Unavailable backend |
 | [UI](libs/ui/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tree/frame contracts |
 | [UI images](libs/ui_images/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Injected decode contracts |
 | [Localization](libs/localization/CMakeLists.txt) | Yes | Yes | Yes | Yes | Yes | Yes | Tables and injected rules |
@@ -134,7 +139,7 @@ updates. Edit source comments rather than generated wiki pages.
 | Flow authoring | [Atlas graph workspace, typed inspectors, XML recovery and composed runtime preview](docs/editor_flow.md) |
 | Behavior | [Lua sessions, UI events and native jobs](docs/scripting.md), [shared domains and director](docs/scripting_domains.md), [runtime API](libs/scripting/README.md), [Lua development and debugging](docs/lua_development.md) |
 | Input | [Actions, contexts and adapters](docs/input.md), [API](libs/input/README.md) |
-| UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [painting and clipping](docs/ui_paint.md), [streamed images](docs/ui_images.md), [input and lifecycle](docs/ui_input.md), [API and examples](libs/ui/README.md) |
+| UI | [Commands](docs/ui_commands.md), [frame execution](docs/ui_frames.md), [layout](docs/ui_layout.md), [painting and clipping](docs/ui_paint.md), [streamed images](docs/ui_images.md), [input and lifecycle](docs/ui_input.md), [drag-and-drop](docs/ui_drag_drop.md), [API and examples](libs/ui/README.md) |
 | Jobs | [Overview](docs/jobs.md), [dispatch](docs/job_dispatch.md), [graphs](docs/job_graphs.md), [scheduling](docs/job_scheduling.md), [callbacks](docs/job_callbacks.md), [measurement](docs/job_workloads.md), [safety](libs/jobs/README.md) |
 | Memory and storage | [PMR resources](libs/memory/README.md), [assets](docs/assets.md), [streaming](docs/streaming.md), [streaming API](libs/streaming/README.md) |
 | Rendering | [Contracts](docs/renderer.md), [resources](docs/renderer_resources.md), [passes](docs/renderer_passes.md), [recording](docs/renderer_recording.md), [content](docs/renderer_content.md), [render host/readiness](docs/render_host.md) |

@@ -97,6 +97,7 @@ void element_fields(fields& xml, element& data)
 {
     xml.value("id", data.id, true);
     xml.optional("text", data.caption, !data.caption.empty());
+    xml.optional("decorative", data.decorative, data.decorative);
     xml.optional("parent", data.parent, !data.parent.empty());
     panel(xml, data.panel);
     auto& requested = data.requested;

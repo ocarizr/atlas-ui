@@ -112,7 +112,7 @@ bool input_session::impl::scroll_response(element_handle current, event_kind kin
 
     if (kind == event_kind::key_down || kind == event_kind::action)
     {
-        return scroll_navigation(current, raw);
+        return !focus_navigation_packet(raw, false) && scroll_navigation(current, raw);
     }
 
     const auto bar = scrolling->geometry.find_scrollbar(current);
