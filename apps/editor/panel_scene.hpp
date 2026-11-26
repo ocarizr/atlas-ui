@@ -6,6 +6,13 @@
 
 namespace atlas::editor
 {
+/// @brief Named authored paint ranges prevent exchanging shell and tool contributions.
+struct chrome_paint_sources
+{
+    std::span<const ui::paint_quad> shell; ///< Current shell, including alpha culling.
+    std::span<const ui::paint_quad> tool;  ///< Current optional tool contribution.
+};
+
 /// @brief One main-thread panel layout and its input registrations.
 class panel_scene
 {
@@ -25,8 +32,16 @@ class panel_scene
     ui::input_session& input() noexcept; ///< Checked domain participation, no ownership transfer.
     control_action destination(ui::element_handle target) const; ///< Resolve a native drop target.
     std::optional<control_action> focused_action() const; ///< Bookmark a logical chrome command.
+    void recolor(std::shared_ptr<const ui::palette> palette, chrome_paint_sources sources,
+                 ui::paint_engine& painter); ///< Reuse layout.
 
   private:
+    std::vector<std::pair<ui::element_handle, ui::palette_slot>>
+        colors_;                 ///< Resolved chrome slots.
+    std::size_t tool_begin_ = 0; ///< Optional tool start.
+    bool tool_visible_ = false;  ///< A tool owns the middle range even when transparent.
+    std::size_t text_begin_ = 0; ///< Chrome label suffix.
+    std::shared_ptr<const ui::palette> palette_; ///< Exact chrome contract and previous colors.
     std::vector<std::pair<ui::element_handle, control_action>>
         destinations_;                    ///< Native transaction routing.
     std::vector<control_action> pending_; ///< Short-lived actions emitted by input handlers.

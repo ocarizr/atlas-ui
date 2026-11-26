@@ -4,6 +4,7 @@
 #include <atlas/mvvm_content/document.hpp>
 #include <atlas/ui_content/flow.hpp>
 #include <atlas/ui_content/material.hpp>
+#include <atlas/ui_content/palette.hpp>
 
 namespace atlas::editor
 {
@@ -51,6 +52,11 @@ std::vector<assets::asset_ref> inspect_asset(assets::asset_type type,
         const auto source = ui_content::parse_xml({text});
         ui_content::validate_presentation(source.presentation, type);
         return asset_references(source);
+    }
+
+    if (type == assets::asset_type::palette)
+    {
+        (void)ui_content::parse_palette_xml({text});
     }
 
     if (type == assets::asset_type::view_model)

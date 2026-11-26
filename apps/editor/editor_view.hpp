@@ -2,6 +2,7 @@
 #pragma once
 #include "document_session.hpp"
 #include "document_workspace.hpp"
+#include "editor_theme.hpp"
 #include <atlas/editor_flow/persistence.hpp>
 #include <atlas/ui/accessibility_frame.hpp>
 #include <atlas/ui_text/paint.hpp>
@@ -25,6 +26,7 @@ struct editor_frame final : render_host::frame_payload
 class editor_view
 {
   public:
+    editor_theme& theme(); ///< Chrome preferences; never aliases the document preview context.
     /// @brief Retain one authored session and its selected file.
     editor_view(document_session& session, jobs::job_system& jobs, std::filesystem::path file,
                 const diagnostics::services& sinks, const tool_registry* tools = nullptr);

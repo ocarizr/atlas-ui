@@ -98,6 +98,19 @@ class instance::impl
     void collect_state_writes();   ///< Append resolved state samples to command scratch.
     void admit_animation_writes(); ///< Preflight the complete batch before queueing writes.
     void select_state(state_group& group, std::size_t pose); ///< Retarget using allocated scratch.
+    void bind_palette(const document& source,
+                      std::shared_ptr<ui::palette_context> context); ///< Resolve once.
+    void synchronize_palette(); ///< Publish changed colors without touching layout.
+    bool palette_base(ui::element_handle target, ui::property field,
+                      float value); ///< Retain animated output.
+
+    /// @brief Sparse resolved tint dependency; no per-frame source string lookup.
+    struct palette_binding
+    {
+        ui::element_handle target;                ///< Exact tree generation.
+        std::optional<ui::palette_slot> paint;    ///< Optional paint tint slot.
+        std::optional<ui::palette_slot> material; ///< Optional material tint slot.
+    };
 
     ui::element_tree tree;                ///< First constructed and last released.
     detail::elements elements;            ///< Authored IDs resolved into this tree only.
@@ -128,6 +141,10 @@ class instance::impl
     std::vector<ui::property_write> animation_writes; ///< Reused validated command scratch.
     std::uint64_t animation_sequence = 0;             ///< Monotonic source of player identities.
     bool reduced_motion = false;                      ///< Host policy for concurrent playback.
+    std::shared_ptr<ui::palette_context>
+        palette; ///< Explicit owner selection, retained by instance.
+    std::vector<palette_binding> palette_bindings;       ///< Bounded by authored element capacity.
+    std::shared_ptr<const ui::palette> palette_snapshot; ///< Last applied immutable colors.
 
   private:
     void bind_elements(const document& source, const construction& options); ///< Wire each ID.

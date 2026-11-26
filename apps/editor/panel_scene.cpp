@@ -113,7 +113,11 @@ void append_labels(editor_frame& packet, const panel_plan& plan, float scale,
     {
         const auto& bounds = plan.controls[i].bounds;
         const auto glyphs = ui_text::glyph_quads(
-            *packet.atlas, {.label = i, .origin = {bounds.x + 6, bounds.y + 3}, .clip = bounds});
+            *packet.atlas, {.label = i,
+                            .origin = {bounds.x + 6, bounds.y + 3},
+                            .clip = bounds,
+                            .color = plan.palette ? plan.palette->color(plan.palette->find("text"))
+                                                  : ui::rgba{1, 1, 1, 1}});
         packet.quads.insert(packet.quads.end(), glyphs.begin(), glyphs.end());
     }
 }
@@ -129,10 +133,23 @@ panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
       input_{tree_, {.max_events = 4096}, {}, sinks}, scale_{scale}
 {
     const auto root = tree_.create();
+    palette_ = plan.palette;
     tree_.set_panel(root, ui::canvas_layout{});
     for (const auto& item : plan.controls)
     {
         const auto node = make_element(tree_, root, item);
+        if (plan.palette && item.color[3] > 0)
+        {
+            const auto key = item.color_key.empty()
+                                 ? (item.action.kind == control_kind::none ? "surface" : "control")
+                                 : item.color_key;
+            const auto slot = plan.palette->find(key);
+            auto style = tree_.paint(node);
+            style.color = plan.palette->color(slot);
+            tree_.set_paint(node, style);
+            colors_.emplace_back(node, slot);
+        }
+
         if (item.action.kind != control_kind::none)
         {
             input_.bind(node, std::make_shared<click_handler>(item.action, pending_, item.accepts),
@@ -168,6 +185,7 @@ panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
     result->viewport = viewport;
     result->quads.assign(plan.shell.quads().begin(), plan.shell.quads().end());
     result->quads.insert(result->quads.end(), chrome.quads().begin(), chrome.quads().end());
+    tool_begin_ = result->quads.size();
     if (plan.flow_preview)
     {
         result->quads.insert(result->quads.end(), plan.flow_preview->begin(),
@@ -175,6 +193,7 @@ panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
     }
     else if (plan.tool)
     {
+        tool_visible_ = true;
         result->quads.insert(result->quads.end(), plan.tool->quads().begin(),
                              plan.tool->quads().end());
     }
@@ -186,6 +205,7 @@ panel_scene::panel_scene(const panel_plan& plan, ui::element_tree& preview,
                              displayed.quads().end());
     }
 
+    text_begin_ = result->quads.size();
     append_labels(*result, plan, scale_, sinks);
     packet_ = std::move(result);
 }

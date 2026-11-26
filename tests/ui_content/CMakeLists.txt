@@ -13,6 +13,8 @@ add_executable(atlas_ui_content_tests focus_navigation_tests.cpp xml_tests.cpp c
     material_tests.cpp material_asset_tests.cpp event_action_tests.cpp flow_tests.cpp flow_runtime_tests.cpp
     flow_callable_tests.cpp prepared_flow_tests.cpp presentation_tests.cpp flow_presentation_tests.cpp flow_history_tests.cpp flow_typed_runtime_tests.cpp flow_viewport_tests.cpp flow_modeless_history_tests.cpp "${generated}")
 target_sources(atlas_ui_content_tests PRIVATE scrollbar_tests.cpp)
+target_sources(atlas_ui_content_tests PRIVATE palette_tests.cpp)
+target_sources(atlas_ui_content_tests PRIVATE palette_storage_tests.cpp)
 target_sources(atlas_ui_content_tests PRIVATE grid_tests.cpp)
 target_compile_definitions(atlas_ui_content_tests PRIVATE
     ATLAS_UI_DOCUMENT="${CMAKE_CURRENT_SOURCE_DIR}/data/dashboard.xml"

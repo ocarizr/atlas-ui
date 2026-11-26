@@ -133,6 +133,8 @@ struct element
     std::optional<ui::drop_target_options> drop_target{};    ///< Accepted typed transfers.
     std::optional<ui::accessible_element> accessible{}; ///< Sparse semantic authoring override.
     bool decorative = false; ///< Omit default semantics without hiding meaningful descendants.
+    std::string color_key{}; ///< Optional semantic paint tint; literal color remains the fallback.
+    std::string material_color_key{}; ///< Optional semantic material tint, separate from paint.
 };
 
 /// @brief Popup defaults shared by source assets and optional Flow-instance overrides.

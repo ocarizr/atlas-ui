@@ -2,6 +2,7 @@
 /** @file @brief Validate stable IDs, hierarchy, and document-local references. */
 #include "document_validation.hpp"
 #include "navigation_content.hpp"
+#include <atlas/ui/palette.hpp>
 #include <cmath>
 #include <map>
 #include <set>
@@ -46,6 +47,19 @@ using model_names = std::set<std::string_view>; ///< Borrowed document-local con
 /// @brief Validate independent descriptor names and storage limits before construction.
 void validate_bindings(const element& node, const model_names& models)
 {
+    for (const auto key : std::array<std::string_view, 2>{node.color_key, node.material_color_key})
+    {
+        if (!key.empty() && !ui::valid_palette_key(key))
+        {
+            throw std::invalid_argument("Invalid semantic color key");
+        }
+    }
+
+    if (!node.material_color_key.empty() && !node.material && !node.paint.material)
+    {
+        throw std::invalid_argument("Material color key requires a material");
+    }
+
     if (node.properties.size() > 4 || node.actions.size() > 64 || node.events.size() > 64)
     {
         throw std::invalid_argument("UI element descriptor limit exceeded");

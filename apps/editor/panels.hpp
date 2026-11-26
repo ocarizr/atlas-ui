@@ -46,6 +46,8 @@ enum class control_kind : std::uint8_t
     flow_toggle,      ///< Switch between the graph workspace and ordinary UI authoring.
     drop_asset,       ///< Assign a dragged stable asset reference.
     accessibility,    ///< Stage or apply a dedicated accessibility inspector edit.
+    theme,            ///< Edit chrome theme preferences independently from project UI.
+    color_source,     ///< Select a literal or preview-contract semantic tint.
     flow              ///< Typed graph/inspector command, applied after Atlas input dispatch.
 };
 
@@ -66,13 +68,15 @@ struct control
     std::optional<ui::drag_source_options> source{};      ///< Immutable drag offer.
     std::optional<ui::drop_target_options> destination{}; ///< Typed drop policy.
     std::function<bool(const ui::drag_event&)> accepts{}; ///< Pure dynamic target guard.
+    std::string_view color_key{}; ///< Optional chrome swatch; empty uses control/surface role.
 };
 
 /// @brief Shared output of hierarchy, toolbar, inspector, and preview arrangement.
 struct panel_plan
 {
-    ui::layout_rect inspector{};            ///< Dedicated authoring inspector bounds.
-    std::vector<control> controls;          ///< Insertion order, back to front.
+    std::shared_ptr<const ui::palette> palette; ///< Chrome-only colors; preview unchanged.
+    ui::layout_rect inspector{};                ///< Dedicated authoring inspector bounds.
+    std::vector<control> controls;              ///< Insertion order, back to front.
     ui::layout_rect preview;                ///< Clip and viewport for the isolated runtime tree.
     ui::paint_snapshot shell;               ///< Authored editor background, panels and controls.
     std::optional<ui::paint_snapshot> tool; ///< Active authored contribution in the center.

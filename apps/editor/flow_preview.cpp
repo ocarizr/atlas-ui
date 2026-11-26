@@ -1,4 +1,5 @@
 /** @file @brief Explicit Atlas Flow preview controls, isolated runtime and owned diagnostics. */
+#include "editor_theme.hpp"
 #include "flow_panel.hpp"
 #include <algorithm>
 
@@ -106,7 +107,11 @@ void flow_panel::apply_preview()
                 return false;
             }
         });
-    const auto factory = ui_content::make_flow_loader({*mount, {}, preview_memory_, sinks_});
+    const auto factory = ui_content::make_flow_loader(
+        {.storage = *mount,
+         .memory = preview_memory_,
+         .diagnostics = sinks_,
+         .palette = std::make_shared<ui::palette_context>(editor_preset("dark"))});
     ui_content::flow_loader loader = [mount, factory](auto request)
     {
         return factory(std::move(request));

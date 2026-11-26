@@ -17,7 +17,8 @@ class tool_panel
 {
   public:
     /// @brief Install scoped editor capabilities before constructing Lua instances.
-    tool_panel(const tool_entry& source, bool shell, const diagnostics::services& sinks);
+    tool_panel(const tool_entry& source, bool shell, const diagnostics::services& sinks,
+               std::shared_ptr<ui::palette_context> palette = {});
     ~tool_panel(); ///< Retire behavior and its mailbox together on the owner.
     [[nodiscard]] ui::layout_rect area(std::string_view id) const; ///< Arranged named shell slot.
     void append_labels(std::vector<control>& target) const; ///< Append authored text overlays.

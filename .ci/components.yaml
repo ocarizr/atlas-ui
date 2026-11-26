@@ -424,7 +424,7 @@ components:
     - testing
     - memory
     - ipc
-    - content
+    - content # XML content and yaml-cpp editor theme preferences.
     - graphics
   tools:
     paths:

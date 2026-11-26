@@ -1,4 +1,5 @@
 add_library(atlas_ui STATIC src/commands.cpp src/command_sealing.cpp src/command_batch.cpp)
+target_sources(atlas_ui PRIVATE src/palette.cpp)
 target_sources(atlas_ui PRIVATE src/grid_layout.cpp src/tree_grid_slots.cpp)
 target_sources(atlas_ui PRIVATE src/grid_placement.cpp)
 target_sources(atlas_ui PRIVATE src/layout_grid_prepare.cpp src/layout_grid_measure.cpp src/layout_grid_arrange.cpp)

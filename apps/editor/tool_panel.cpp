@@ -1,5 +1,6 @@
 /** @file @brief Compose XML and Lua using the shared UI runtime and explicit owner phases. */
 #include "tool_panel.hpp"
+#include "editor_theme.hpp"
 #include <algorithm>
 #include <limits>
 #include <utility>
@@ -70,13 +71,18 @@ class tool_panel::mailbox final : public scripting::synchronous_service
 };
 
 /// @brief Load through the origin mount and register host commands before Lua executes.
-tool_panel::tool_panel(const tool_entry& source, bool shell, const diagnostics::services& sinks)
+tool_panel::tool_panel(const tool_entry& source, bool shell, const diagnostics::services& sinks,
+                       std::shared_ptr<ui::palette_context> palette)
     : mailbox_{std::make_shared<mailbox>(shell)}
 {
     const std::array services{
         scripting::service_definition{"editor.command", {mvvm::value_type::text}, {}, mailbox_}};
     const ui_content::construction options{
-        .storage = *source.storage, .diagnostics = sinks, .services = services};
+        .storage = *source.storage,
+        .diagnostics = sinks,
+        .services = services,
+        .palette = palette ? std::move(palette)
+                           : std::make_shared<ui::palette_context>(editor_preset("dark"))};
     const auto document = ui_content::load(source.reference, options);
     if (document.elements.size() > 256)
     {
@@ -190,6 +196,7 @@ void tool_panel::append_labels(std::vector<control>& target) const
 ui::paint_snapshot tool_panel::paint(ui::layout_rect bounds, ui::layout_engine& layout,
                                      ui::paint_engine& painter)
 {
+    view_->refresh_palette();
     auto& tree = view_->tree();
     geometry_ = layout.update(tree, bounds);
     source_ = tree.snapshot();

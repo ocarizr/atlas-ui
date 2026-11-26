@@ -73,6 +73,7 @@ instance::impl::impl(const document& source, const construction& options)
     }
 
     bind_elements(source, options);
+    bind_palette(source, options.palette);
 }
 
 /// @brief Resolve binding targets once, retaining their runtime reverse-write handles privately.

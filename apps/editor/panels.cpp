@@ -43,6 +43,7 @@ void hierarchy(panel_plan& result, const document_session& session, ui::layout_r
                  node.id,
                  {control_kind::select, node.id}});
             auto& row = result.controls.back();
+            row.color_key = node.id == session.selected() ? "accent" : "control";
             if (!node.parent.empty())
             {
                 row.source =

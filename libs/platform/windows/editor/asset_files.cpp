@@ -103,7 +103,7 @@ class native_asset_store final : public asset_store
 std::vector<streaming::source_root> source_roots(const std::filesystem::path& root)
 {
     std::vector<streaming::source_root> output;
-    for (unsigned value = 0; value <= static_cast<unsigned>(assets::asset_type::widget); ++value)
+    for (unsigned value = 0; value <= static_cast<unsigned>(assets::asset_type::palette); ++value)
     {
         const auto type = static_cast<assets::asset_type>(value);
         const auto name = std::string{assets::format_type(type)};
