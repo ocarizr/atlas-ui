@@ -43,8 +43,9 @@ enum class event_kind : std::uint8_t
     source_reset,        ///< Overflow/source reset; cancel rather than invent release success.
     device_connected,    ///< Device lifecycle observation.
     device_disconnected, ///< Cancel this source/device's controls.
-    pointer_scroll       ///< Signed wheel notches in value; positive right/down, client position in
+    pointer_scroll,      ///< Signed wheel notches in value; positive right/down, client position in
                          ///< position.
+    text_input           ///< Committed Unicode scalar in control; never a held physical key.
 }; ///< Backends enqueue values; application handlers run during explicit owner dispatch.
 
 namespace pointer_control

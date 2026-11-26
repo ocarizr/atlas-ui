@@ -137,6 +137,7 @@ panel_plan make_panels(const document_session& session, ui::layout_extent size, 
     const auto center =
         shell ? shell->preview
               : ui::layout_rect{side + 16, 48, std::max(1.f, right.x - side - 24), height};
+    result.inspector = right;
     result.preview = {center.x, center.y + 32, center.width, std::max(1.f, center.height - 32)};
     if (!shell)
     {

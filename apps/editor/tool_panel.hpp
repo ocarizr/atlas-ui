@@ -30,6 +30,7 @@ class tool_panel
     void begin_input(bool accepting); ///< Open the view for shared-window routing.
     tool_input_result finish_input(); ///< Commit after the window drag frame closes.
     ui::input_session& input();       ///< Borrow the serial input owner.
+    void region_visible(std::string_view id, bool visible); ///< Host-owned authored region policy.
 
   private:
     class mailbox;                                ///< Scoped C++ editor capability exposed to Lua.

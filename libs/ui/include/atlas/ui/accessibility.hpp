@@ -26,6 +26,7 @@ struct accessible_element
     double minimum = 0;    ///< Numeric lower bound.
     double maximum = 1;    ///< Numeric upper bound.
     bool checked = false;  ///< Current application checkbox state.
+    bool operator==(const accessible_element&) const = default; ///< Authored value equality.
 };
 
 /// @brief Client-to-screen conversion supplied by the window owner for one publication.

@@ -362,6 +362,7 @@ components:
     - tests/game/**
     - apps/common/**
     depends_on:
+    - accessibility-host
     - ui-renderer
     - ui-images
     - application
@@ -375,6 +376,7 @@ components:
     test_labels:
     - game
     build_requires:
+    - accessibility-host
     - ui-renderer
     - ui-images
     - application
@@ -389,6 +391,7 @@ components:
     - graphics
   editor:
     paths:
+    - apps/common/accessibility_window.hpp
     - apps/editor/**
     - assets/editor_tools/**
     - libs/platform/windows/editor/**
@@ -396,6 +399,7 @@ components:
     - tests/platform/windows/editor/**
     - apps/common/input_adapter.hpp
     depends_on:
+    - accessibility-host
     - application
     - renderer-jobs
     - editor-flow
@@ -409,6 +413,7 @@ components:
     test_labels:
     - editor
     build_requires:
+    - accessibility-host
     - application
     - renderer-jobs
     - editor-flow

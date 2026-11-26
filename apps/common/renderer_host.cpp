@@ -1,5 +1,6 @@
 /** @file @brief Main-owned window messages and application-owned persistent render coordination. */
 #include "renderer_host.hpp"
+#include "accessibility_window.hpp"
 #include "graphics_handler.hpp"
 #include "input_adapter.hpp"
 #include "ui_demo.hpp"
@@ -17,6 +18,8 @@ void run_frames(window::window& target, render_host::render_loop& loop, bool smo
                 const presentation_feedback& presented, const diagnostics::services& destinations,
                 ui_demo& ui)
 {
+    accessibility_window accessible{target, destinations};
+    std::uint64_t focus_owner = 0;
     const auto pump = [&]
     {
         target.poll_events();
@@ -43,7 +46,18 @@ void run_frames(window::window& target, render_host::render_loop& loop, bool smo
                                    "native input overflow; logical ownership reset");
             }
 
-            if (loop.try_submit({next_id, state, ui.snapshot(state, native_input.values())}))
+            ui::accessibility_frame semantics{*accessible.source(), accessible.coordinates(false),
+                                              focus_owner};
+            auto packet = ui.snapshot(state, native_input.values(), &semantics);
+            if (state.minimized)
+            {
+                semantics.clear();
+            }
+
+            semantics.publish();
+            focus_owner = semantics.focus_owner();
+            accessible.notify();
+            if (loop.try_submit({next_id, state, std::move(packet)}))
             {
                 ++next_id;
             }

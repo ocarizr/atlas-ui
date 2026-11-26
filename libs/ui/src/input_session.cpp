@@ -4,6 +4,13 @@
 
 namespace atlas::ui
 {
+/// @brief Return the immutable tree namespace on the checked input owner.
+std::uint64_t input_session::session_id() const
+{
+    impl_->check();
+    return impl_->session;
+}
+
 /// @brief No tree pointer or callback is copied to a worker.
 input_session::impl::impl(element_tree& source, input_limits policy,
                           std::shared_ptr<std::pmr::memory_resource> resource,

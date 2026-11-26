@@ -53,6 +53,8 @@ void input_session::impl::set_focus(element_handle target)
         return;
     }
 
+    activation_target = {};
+
     const auto previous = std::exchange(focus_target, {});
     if (previous.generation != 0)
     {
@@ -248,16 +250,7 @@ void input_session::impl::process_one(input_event raw)
             break;
         case input_kind::key_down:
         case input_kind::key_up:
-            if (raw.key == static_cast<unsigned>(input::key::shift))
-            {
-                focus_shift = raw.kind == input_kind::key_down;
-            }
-            if (!route(raw, focus_target,
-                       raw.kind == input_kind::key_down ? event_kind::key_down
-                                                        : event_kind::key_up))
-            {
-                (void)focus_navigation_packet(raw, true);
-            }
+            process_key(raw);
             break;
         case input_kind::action:
             if (!route(raw, focus_target, event_kind::action))

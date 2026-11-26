@@ -1,11 +1,54 @@
 /** @file @brief Exercise authored shell commands, project registration and recovery. */
 #include "../../../streaming/temporary_assets.hpp"
 #include "tool_panel.hpp"
+#include <algorithm>
 #include <fstream>
 #include <gtest/gtest.h>
 
 namespace atlas::editor::tests
 {
+/// @brief Authored shell activation follows the same MVVM/Lua mailbox as a physical click.
+TEST(editor_tools, ExposesAndInvokesAuthoredShellCommands)
+{
+    jobs::job_system workers{1};
+    const tool_registry registry{{installed_tools_root(), {}}, workers, {}};
+    ASSERT_TRUE(registry.shell());
+    tool_panel shell{*registry.shell(), true, {}};
+    ui::layout_engine layout{workers.dispatcher()};
+    ui::paint_engine paint{workers.dispatcher()};
+    (void)shell.paint({0, 0, 960, 540}, layout, paint);
+    shell.begin_input(true);
+    const auto nodes = shell.input().accessibility_nodes();
+    const auto found = std::ranges::find(nodes, "Save", &accessibility::node::name);
+    ASSERT_NE(found, nodes.end());
+    EXPECT_EQ(found->kind, accessibility::role::button);
+    EXPECT_TRUE(found->focusable);
+    ASSERT_TRUE(found->invoke);
+    const accessibility::request request{found->id, accessibility::action::invoke};
+    shell.input().process_accessibility({&request, 1});
+    const auto result = shell.finish_input();
+    ASSERT_EQ(result.commands.size(), 1);
+    EXPECT_EQ(result.commands.front().kind, control_kind::save);
+    shell.region_visible("inspector_controls", false);
+    (void)shell.paint({0, 0, 960, 540}, layout, paint);
+    shell.begin_input(true);
+    const auto hidden = shell.input().accessibility_nodes();
+    EXPECT_EQ(std::ranges::find(hidden, "+ Width", &accessibility::node::name), hidden.end());
+    const auto save = std::ranges::find(hidden, "Save", &accessibility::node::name);
+    ASSERT_NE(save, hidden.end());
+    const accessibility::request focus{save->id, accessibility::action::focus};
+    shell.input().process_accessibility({&focus, 1});
+    const ui::input_event enter{.kind = ui::input_kind::key_down,
+                                .key = static_cast<unsigned>(input::key::enter)};
+    shell.input().process_more({&enter, 1});
+    auto release = enter;
+    release.kind = ui::input_kind::key_up;
+    shell.input().process_more({&release, 1});
+    const auto keyboard = shell.finish_input();
+    ASSERT_EQ(keyboard.commands.size(), 1);
+    EXPECT_EQ(keyboard.commands.front().kind, control_kind::save);
+}
+
 namespace
 {
 /// @brief Produce an exact pointer click through the portable window ingress.

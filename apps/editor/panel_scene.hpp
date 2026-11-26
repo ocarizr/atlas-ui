@@ -13,7 +13,7 @@ class panel_scene
     /// @brief Build chrome and append the isolated preview before producing the render packet.
     panel_scene(const panel_plan& plan, ui::element_tree& preview, ui::layout_rect viewport,
                 float scale, ui::layout_engine& layout, ui::paint_engine& paint,
-                const diagnostics::services& sinks);
+                const diagnostics::services& sinks, std::optional<control_action> focus = {});
     /// @brief Borrow the immutable presentation packet.
     [[nodiscard]] const std::shared_ptr<const editor_frame>& packet() const noexcept;
     /// @brief Return actions after all routing for the input batch has finished.
@@ -24,16 +24,20 @@ class panel_scene
     std::vector<control_action> finish_input(); ///< Close after the drag domain releases its lease.
     ui::input_session& input() noexcept; ///< Checked domain participation, no ownership transfer.
     control_action destination(ui::element_handle target) const; ///< Resolve a native drop target.
+    std::optional<control_action> focused_action() const; ///< Bookmark a logical chrome command.
 
   private:
     std::vector<std::pair<ui::element_handle, control_action>>
-        destinations_;                           ///< Native transaction routing.
-    std::vector<control_action> pending_;        ///< Short-lived actions emitted by input handlers.
-    ui::element_tree tree_;                      ///< Main-thread chrome only.
-    ui::input_session input_;                    ///< Control lifetime ends before the chrome tree.
-    ui::element_snapshot source_;                ///< Matching input state.
-    ui::layout_snapshot geometry_;               ///< Frozen chrome geometry for hit testing.
-    std::shared_ptr<const editor_frame> packet_; ///< Retained by either thread.
+        destinations_;                    ///< Native transaction routing.
+    std::vector<control_action> pending_; ///< Short-lived actions emitted by input handlers.
+    std::vector<std::pair<ui::element_handle, control_action>>
+        focus_targets_;                           ///< Current controls.
+    std::optional<control_action> initial_focus_; ///< Restore the logical command after rebuilding.
+    ui::element_tree tree_;                       ///< Main-thread chrome only.
+    ui::input_session input_;                     ///< Control lifetime ends before the chrome tree.
+    ui::element_snapshot source_;                 ///< Matching input state.
+    ui::layout_snapshot geometry_;                ///< Frozen chrome geometry for hit testing.
+    std::shared_ptr<const editor_frame> packet_;  ///< Retained by either thread.
     application::ui_input_batch input_bridge_{nullptr}; ///< Reusable normalized input scratch.
     float scale_;                                       ///< Physical pixels per logical DIP.
     std::uint64_t frame_ = 0;                           ///< Scoped to this chrome input lifetime.

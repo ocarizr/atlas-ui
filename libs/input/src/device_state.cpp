@@ -16,6 +16,11 @@ auto control_key(const control_record& value)
 void input_system::impl::apply_to(const event& value, std::pmr::vector<control_record>& states,
                                   std::pmr::vector<device_record>& instances)
 {
+    if (value.kind == event_kind::text_input)
+    {
+        return;
+    }
+
     const auto source_matches = [&](std::uint64_t source)
     {
         return !value.source || value.source == source;
@@ -119,9 +124,17 @@ void input_system::impl::preflight(std::span<const event> values)
     {
         validate_value(value.value);
         validate_value(value.position);
-        if (value.kind > event_kind::pointer_scroll || value.device.kind > device_kind::gamepad)
+        if (value.kind > event_kind::text_input || value.device.kind > device_kind::gamepad)
         {
             throw std::invalid_argument("invalid input event category");
+        }
+
+        if (value.kind == event_kind::text_input &&
+            (value.device.kind != device_kind::keyboard || value.control < 0x20 ||
+             (value.control >= 0x7f && value.control <= 0x9f) || value.control > 0x10ffff ||
+             (value.control >= 0xd800 && value.control <= 0xdfff)))
+        {
+            throw std::invalid_argument("text input needs a committed Unicode scalar");
         }
 
         const bool reset =

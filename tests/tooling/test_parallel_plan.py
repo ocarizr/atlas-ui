@@ -41,6 +41,7 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
     plan = plan_components(configuration, {"editor"})
     assert set(plan["components"]) == {
         "accessibility",
+        "accessibility-host",
         "editor",
         "editor-flow",
         "ui",
@@ -70,6 +71,7 @@ def test_editor_requires_link_inputs_without_selecting_game(configuration):
     assert "game" not in plan["components"]
     assert plan["prerequisites"]["editor"] == [
         "accessibility",
+        "accessibility-host",
         "application",
         "asset-catalog",
         "diagnostics",

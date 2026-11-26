@@ -131,8 +131,73 @@ void editor_view::impl::execute_controls(std::span<const control_action> command
     }
 }
 
+/// @brief Keep domain leases and failure cleanup inside one bounded serial packet operation.
+bool editor_view::impl::route_packets(std::span<const ui::input_event> packets,
+                                      std::span<ui::input_session* const> views,
+                                      ui::accessibility_frame* accessibility)
+{
+    bool changed = false;
+    try
+    {
+        if (accessibility)
+        {
+            for (auto* view : views)
+            {
+                accessibility->route(*view);
+            }
+        }
+
+        drag.begin_frame(++input_frame, views);
+        for (const auto& packet : packets)
+        {
+            if (!drag.process(packet))
+            {
+                for (auto* view : views)
+                {
+                    const auto owner = accessibility ? accessibility->focus_owner() : focus_owner;
+                    const bool keyboard = packet.kind == ui::input_kind::key_down ||
+                                          packet.kind == ui::input_kind::key_up ||
+                                          packet.kind == ui::input_kind::action;
+                    if (keyboard && ((owner && view->session_id() != owner) ||
+                                     (!owner && view != views.back())))
+                    {
+                        continue;
+                    }
+
+                    view->process_more(std::span{&packet, 1});
+                }
+            }
+        }
+
+        if (const auto request = drag.pending_drop())
+        {
+            const bool committed = commit_drop(*request);
+            changed |= committed;
+            drag.resolve(request->transfer, committed);
+        }
+
+        drag.end_frame();
+        if (accessibility)
+        {
+            for (auto* view : views)
+            {
+                accessibility->capture(*view, accessible_text);
+            }
+        }
+    }
+    catch (const std::exception& error)
+    {
+        diagnostics::write(sinks, diagnostics::log_level::warning, "editor.drag", error.what());
+        cancel_drag(drag, sinks);
+        changed = true;
+    }
+
+    return changed;
+}
+
 /// @brief Route once through the window domain; normal packets keep their previous view routing.
-bool editor_view::impl::dispatch(std::span<const input::event> events)
+bool editor_view::impl::dispatch(std::span<const input::event> events,
+                                 ui::accessibility_frame* accessibility)
 {
     const diagnostics::operation_scope scope{sinks, {"editor.input", "editor"}};
     const auto packets = chrome->begin_input(events);
@@ -143,7 +208,8 @@ bool editor_view::impl::dispatch(std::span<const input::event> events)
     {
         try
         {
-            panel->begin_input(!events.empty());
+            panel->begin_input(!events.empty() ||
+                               (accessibility && !accessibility->requests().empty()));
             views.push_back(&panel->input());
             panels.push_back(&panel);
         }
@@ -167,35 +233,7 @@ bool editor_view::impl::dispatch(std::span<const input::event> events)
 
     // Native chrome is the topmost control layer over authored tools.
     std::rotate(views.begin(), views.begin() + 1, views.end());
-    try
-    {
-        drag.begin_frame(++input_frame, views);
-        for (const auto& packet : packets)
-        {
-            if (!drag.process(packet))
-            {
-                for (auto* view : views)
-                {
-                    view->process_more(std::span{&packet, 1});
-                }
-            }
-        }
-
-        if (const auto request = drag.pending_drop())
-        {
-            const bool committed = commit_drop(*request);
-            changed |= committed;
-            drag.resolve(request->transfer, committed);
-        }
-
-        drag.end_frame();
-    }
-    catch (const std::exception& error)
-    {
-        diagnostics::write(sinks, diagnostics::log_level::warning, "editor.drag", error.what());
-        cancel_drag(drag, sinks);
-        changed = true;
-    }
+    changed |= route_packets(packets, views, accessibility);
 
     std::vector<control_action> commands;
     if (!chrome->input().statistics().failed)

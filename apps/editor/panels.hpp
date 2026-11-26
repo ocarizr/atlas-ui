@@ -45,6 +45,7 @@ enum class control_kind : std::uint8_t
     assets_settings,  ///< Advance importer settings.
     flow_toggle,      ///< Switch between the graph workspace and ordinary UI authoring.
     drop_asset,       ///< Assign a dragged stable asset reference.
+    accessibility,    ///< Stage or apply a dedicated accessibility inspector edit.
     flow              ///< Typed graph/inspector command, applied after Atlas input dispatch.
 };
 
@@ -70,6 +71,7 @@ struct control
 /// @brief Shared output of hierarchy, toolbar, inspector, and preview arrangement.
 struct panel_plan
 {
+    ui::layout_rect inspector{};            ///< Dedicated authoring inspector bounds.
     std::vector<control> controls;          ///< Insertion order, back to front.
     ui::layout_rect preview;                ///< Clip and viewport for the isolated runtime tree.
     ui::paint_snapshot shell;               ///< Authored editor background, panels and controls.

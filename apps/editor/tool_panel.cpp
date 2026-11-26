@@ -1,6 +1,7 @@
 /** @file @brief Compose XML and Lua using the shared UI runtime and explicit owner phases. */
 #include "tool_panel.hpp"
 #include <algorithm>
+#include <limits>
 #include <utility>
 
 namespace atlas::editor
@@ -91,6 +92,12 @@ tool_panel::tool_panel(const tool_entry& source, bool shell, const diagnostics::
     }
 
     view_ = ui_content::instance::build(document, options);
+    view_->input().configure_keyboard_activation();
+    if (!document.focus_input)
+    {
+        view_->input().configure_navigation();
+    }
+
     for (const auto& element : document.elements)
     {
         if (!element.caption.empty())
@@ -102,6 +109,33 @@ tool_panel::tool_panel(const tool_entry& source, bool shell, const diagnostics::
 
 /// @brief Release the Lua owner before its retained editor command service.
 tool_panel::~tool_panel() = default;
+
+/// @brief Visibility hides both pixels and semantics while preserving the authored shell instance.
+void tool_panel::region_visible(std::string_view id, bool visible)
+{
+    auto& tree = view_->tree();
+    ui::element_handle target;
+    try
+    {
+        target = view_->find(id);
+    }
+    catch (const std::out_of_range&)
+    {
+        if (visible)
+        {
+            return;
+        }
+
+        throw std::invalid_argument("Shell must provide inspector_controls to hide its inspector");
+    }
+
+    if (tree.requested(target).visible != visible)
+    {
+        tree.commands().set(target, ui::property::visible, visible,
+                            std::numeric_limits<std::uint64_t>::max());
+        tree.apply(tree.commands().seal());
+    }
+}
 
 /// @brief Resolve an authored integration slot after layout publication.
 ui::layout_rect tool_panel::area(std::string_view id) const

@@ -132,7 +132,9 @@ void flow_panel::apply_preview()
 }
 
 /// @brief Advance loading and UI frames without requiring mouse motion to refresh presentation.
-bool flow_panel::pump_preview(std::span<const input::event> events, float density)
+bool flow_panel::pump_preview(std::span<const input::event> events, float density,
+                              ui::accessibility_frame* accessibility,
+                              const ui::accessible_text& resolve)
 {
     if (!visible || !preview_visible_ || !preview_ || preview_bounds_.width <= 0)
     {
@@ -164,8 +166,9 @@ bool flow_panel::pump_preview(std::span<const input::event> events, float densit
                                  ? 0.F
                                  : std::chrono::duration<float>(now - preview_tick_).count();
         preview_tick_ = now;
-        preview_quads_ =
-            preview_->frame(preview_bounds_, input.values(), {.delta_seconds = seconds});
+        preview_quads_ = preview_->frame(
+            preview_bounds_, input.values(),
+            {.delta_seconds = seconds, .accessibility = accessibility, .accessible_text = resolve});
     }
     catch (const std::exception& error)
     {

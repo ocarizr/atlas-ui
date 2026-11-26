@@ -61,6 +61,34 @@ key semantic_key(WPARAM native_key) noexcept
             return key::unknown;
     }
 }
+
+/// @brief Combine committed UTF-16 units without dispatching callbacks or allocating storage.
+void collect_text(native_input_state& state, std::uint32_t unit) noexcept
+{
+    if (unit >= 0xd800 && unit <= 0xdbff)
+    {
+        state.high_surrogate = unit;
+        return;
+    }
+
+    auto scalar = unit;
+    if (unit >= 0xdc00 && unit <= 0xdfff)
+    {
+        if (!state.high_surrogate)
+        {
+            return;
+        }
+
+        scalar = 0x10000 + ((state.high_surrogate - 0xd800) << 10) + (unit - 0xdc00);
+    }
+
+    state.high_surrogate = 0;
+    if (scalar >= 0x20 && scalar <= 0x10ffff && !(scalar >= 0x7f && scalar <= 0x9f))
+    {
+        (void)state.buffer.try_push({event_kind::text_input, {1, device_kind::keyboard}, scalar});
+    }
+}
+
 } // namespace
 
 /// @brief OS callbacks never allocate, wait for jobs or invoke UI/Lua handlers.
@@ -119,6 +147,12 @@ bool collect_input(native_input_state& state, const native_input_message& packet
         return true;
     }
 
+    if (message == WM_CHAR)
+    {
+        collect_text(state, static_cast<std::uint32_t>(native_key));
+        return true;
+    }
+
     if (message == WM_KEYDOWN || message == WM_KEYUP)
     {
         const auto normalized = semantic_key(native_key);
@@ -147,6 +181,7 @@ bool collect_input(native_input_state& state, const native_input_message& packet
 
     if (message == WM_KILLFOCUS || message == WM_CLOSE)
     {
+        state.high_surrogate = 0;
         (void)queue.try_push({event_kind::focus_lost});
         if (GetCapture() == handle)
         {

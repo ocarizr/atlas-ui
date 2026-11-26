@@ -172,6 +172,8 @@ void input_session::impl::broadcast(event_kind kind)
 /// @brief Earlier sealed publications survive; unsealed commands and stale input ownership do not.
 void input_session::impl::fail() noexcept
 {
+    activation_target = {};
+    activation_key = 0;
     focus_shift = false;
     stats.failed = true;
     stage = 5;

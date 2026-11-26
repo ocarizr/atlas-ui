@@ -3,6 +3,7 @@
  * @brief Shared viewport composition and exclusive input routing for Flow presentations.
  */
 #pragma once
+#include <atlas/ui/accessibility_frame.hpp>
 #include <atlas/ui/paint_engine.hpp>
 #include <atlas/ui_content/flow.hpp>
 
@@ -13,6 +14,9 @@ struct flow_frame_options
 {
     float delta_seconds = 0;       ///< Finite nonnegative monotonic elapsed time.
     std::uint32_t back_action = 0; ///< Optional performed semantic action; Escape also works.
+    ui::accessibility_frame* accessibility =
+        nullptr;                           ///< Borrow active-window composition this frame.
+    ui::accessible_text accessible_text{}; ///< Owner resolver; no native query invokes it.
 };
 
 /// @brief Owner-only presentation adapter; the manager and shared engines outlive this object.
@@ -25,7 +29,7 @@ class flow_viewport
     /// @brief Arrange nested hosts, route real/replayed input, close phases, then paint in order.
     [[nodiscard]] std::vector<ui::paint_quad> frame(std::uint64_t frame, ui::layout_rect bounds,
                                                     std::span<const ui::input_event> events = {},
-                                                    flow_frame_options options = {});
+                                                    const flow_frame_options& options = {});
     flow_viewport(const flow_viewport&) = delete; ///< Input capture belongs to one coordinator.
     flow_viewport& operator=(const flow_viewport&) = delete; ///< Never share mutable routing state.
   private:

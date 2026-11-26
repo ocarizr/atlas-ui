@@ -1,4 +1,6 @@
 add_executable(atlas_ui_tests focus_navigation_tests.cpp focus_navigation_input_tests.cpp focus_navigation_budget_tests.cpp command_merge_tests.cpp command_validation_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE accessibility_frame_tests.cpp)
+target_sources(atlas_ui_tests PRIVATE keyboard_activation_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE grid_geometry_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE grid_placement_tests.cpp grid_state_tests.cpp grid_validation_tests.cpp)
 target_sources(atlas_ui_tests PRIVATE grid_execution_tests.cpp)

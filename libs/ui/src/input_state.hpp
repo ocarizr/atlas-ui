@@ -81,7 +81,9 @@ class input_session::impl
     bool move_focus(focus_direction direction,
                     element_handle scope = {});                  ///< Allocation-free search.
     bool focus_navigation_packet(input_event raw, bool execute); ///< Semantic/keyboard adapter.
-    pending_scroll* scroll(element_handle target); ///< Captured sparse viewport lookup.
+    void process_key(input_event raw); ///< User routing precedes optional default activation.
+    bool keyboard_activation_packet(input_event raw); ///< Nonrepeating, focus-bound release policy.
+    pending_scroll* scroll(element_handle target);    ///< Captured sparse viewport lookup.
     bool scroll_navigation(element_handle current,
                            input_event raw);                    ///< Ordered list focus navigation.
     bool scroll_wheel(element_handle current, input_event raw); ///< Axis-aware wheel consumption.
@@ -140,15 +142,18 @@ class input_session::impl
     std::pmr::vector<detail::focus_scope> focus_scopes; ///< Sparse search groups.
     focus_navigation_actions focus_actions;             ///< Global device-independent actions.
     bool focus_keyboard = false;                        ///< Opt-in portable keys.
-    bool focus_shift = false;                           ///< Owner-tracked portable Shift state.
-    scroll_navigation_actions navigation;               ///< Optional semantic action identities.
-    std::optional<scroll_drag> dragging;                ///< At most one primary-pointer drag.
-    input_statistics stats; ///< Current/last admitted frame, not process memory.
-    float delta = 0;        ///< Finite frame duration.
-    unsigned stage = 0;     ///< 0 closed, 1 input, 2 tick, 3 late, 4 end, 5 failed.
-    bool terminal = false;  ///< Explicit shutdown permanently stops admission.
-    bool busy = false;      ///< Reentrant callback/diagnostic calls are rejected.
-    std::uint64_t session;  ///< Bound tree identity.
+    bool keyboard_activation = false;     ///< Application-owned Enter/Space convention, opt-in.
+    element_handle activation_target{};   ///< Original focus generation for a held activation key.
+    std::uint32_t activation_key = 0;     ///< Only its matching release can activate.
+    bool focus_shift = false;             ///< Owner-tracked portable Shift state.
+    scroll_navigation_actions navigation; ///< Optional semantic action identities.
+    std::optional<scroll_drag> dragging;  ///< At most one primary-pointer drag.
+    input_statistics stats;               ///< Current/last admitted frame, not process memory.
+    float delta = 0;                      ///< Finite frame duration.
+    unsigned stage = 0;                   ///< 0 closed, 1 input, 2 tick, 3 late, 4 end, 5 failed.
+    bool terminal = false;                ///< Explicit shutdown permanently stops admission.
+    bool busy = false;                    ///< Reentrant callback/diagnostic calls are rejected.
+    std::uint64_t session;                ///< Bound tree identity.
     const std::thread::id owner = std::this_thread::get_id(); ///< Sole serial event owner.
 };
 } // namespace atlas::ui

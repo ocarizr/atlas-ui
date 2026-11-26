@@ -1,6 +1,7 @@
 add_library(atlas_input STATIC src/input_system.cpp src/event_queue.cpp src/processors.cpp
     src/action_mapping.cpp src/device_state.cpp src/action_aggregation.cpp src/action_transitions.cpp src/input_dispatch.cpp)
 add_library(atlas::input ALIAS atlas_input)
+target_sources(atlas_input PRIVATE src/text_entry.cpp)
 target_include_directories(atlas_input PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 target_compile_features(atlas_input PUBLIC cxx_std_20)

@@ -32,8 +32,9 @@ class flow_panel
     void bind_preview(const jobs::job_dispatcher& jobs,
                       std::shared_ptr<streaming::catalog_streamer> storage,
                       std::shared_ptr<std::pmr::memory_resource> memory = {});
-    bool pump_preview(std::span<const input::event> events,
-                      float density); ///< Advance even without input.
+    bool pump_preview(std::span<const input::event> events, float density,
+                      ui::accessibility_frame* accessibility = nullptr,
+                      const ui::accessible_text& resolve = {}); ///< Advance even without input.
     void
     register_module(std::span<const scripting::source_asset> sources,
                     scripting::callable_module entry); ///< Isolated bounded metadata discovery.
