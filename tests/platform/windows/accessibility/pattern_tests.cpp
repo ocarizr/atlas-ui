@@ -3,6 +3,35 @@
 
 namespace atlas::accessibility_host::tests
 {
+/// @brief A tab group may temporarily have no selection while its owner rebuilds content.
+TEST_F(native_accessibility_test, TabsPermitTransientEmptySelection)
+{
+    accessibility::node group{{0, 1, 1}, {}, accessibility::role::tab_group, "Settings"};
+    button.parent = group.id;
+    button.kind = accessibility::role::tab;
+    button.invoke = false;
+    button.select = true;
+    channel->publish({group, button});
+    Microsoft::WRL::ComPtr<detail::provider> tabs;
+    tabs.Attach(new detail::provider{endpoint, group.id});
+    BOOL required = TRUE;
+    ASSERT_EQ(tabs->get_IsSelectionRequired(&required), S_OK);
+    EXPECT_FALSE(required);
+    SAFEARRAY* selection = nullptr;
+    ASSERT_EQ(tabs->GetSelection(&selection), S_OK);
+    ASSERT_NE(selection, nullptr);
+    LONG upper = 0;
+    EXPECT_EQ(SafeArrayGetUBound(selection, 1, &upper), S_OK);
+    EXPECT_EQ(upper, -1);
+    SafeArrayDestroy(selection);
+    button.selected = true;
+    channel->publish({group, button});
+    required = TRUE;
+    ASSERT_EQ(tabs->get_IsSelectionRequired(&required), S_OK);
+    EXPECT_FALSE(required);
+    EXPECT_TRUE(channel->take_requests().empty());
+}
+
 /// @brief Tabs expose selection instead of Invoke and return retained selected-child interfaces.
 TEST_F(native_accessibility_test, TabsExposeSingleSelectionWithoutInvoke)
 {

@@ -146,13 +146,16 @@ shutdown. UI tests cover geometry, localization, disabled/removed controls, sema
 and modal restrictions. Windows fixtures test native properties, patterns, fragment navigation
 and disconnect behavior without requiring GPU rendering or a running screen reader.
 
-These automated provider tests are not a claim of verified Narrator/NVDA compatibility. The
-Narrator acceptance walkthrough must record its Windows/reader version and results for reading
-names/help/value/state, directional focus, invoke, tab selection, modal popups, reveal, language
-changes, recycled entries and shutdown. Full editable-text selection/caret support and NVDA
-compatibility are outside the current menu-focused adapter contract.
+Automated provider tests alone do not establish reader compatibility. The
+[Windows accessibility validation](accessibility_validation.md) records the tested Narrator
+version, actual speech observations, editor traversal and repeatable native semantic fixture.
+Full editable-text selection/caret support and NVDA compatibility are outside the current
+menu-focused adapter contract. Tab groups permit transient empty selection and do not advertise
+a mandatory selection to native readers.
 
 The editor restores a focused native command after rebuilding chrome, while retiring the old
-runtime identity. Repeated reconstruction and virtual-list reader navigation still require the
-interactive Narrator acceptance described above. Automated tests and tree inspection do not
-establish the reader's speech, traversal or announcement behavior.
+runtime identity. Reader-driven inspector entry/return was validated across reconstruction.
+The real UI virtual-list walkthrough verifies realized-row navigation, logical first/last reveal
+and generation changes. Generic discovery of unrealized rows and logical set-position metadata
+are not covered by that claim. Automated tests and tree inspection do not replace reader speech
+evidence.

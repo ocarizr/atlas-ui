@@ -7,4 +7,8 @@ if(ATLAS_TARGET_PLATFORM STREQUAL "windows" AND ATLAS_BUILD_WINDOWS_INTEGRATION)
     target_link_libraries(atlas_accessibility_host_tests PRIVATE uiautomationcore oleaut32 ole32 user32)
 endif()
 atlas_configure_test(atlas_accessibility_host_tests)
+
+add_executable(atlas_accessibility_walkthrough walkthrough.cpp)
+target_link_libraries(atlas_accessibility_walkthrough PRIVATE atlas::accessibility_host)
+atlas_configure_target(atlas_accessibility_walkthrough)
 gtest_discover_tests(atlas_accessibility_host_tests DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 30 PROPERTIES LABELS accessibility-host TIMEOUT 30)
