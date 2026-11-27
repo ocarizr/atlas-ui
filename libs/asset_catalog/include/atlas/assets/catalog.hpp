@@ -54,7 +54,8 @@ enum class asset_type : std::uint8_t
     menu,         ///< Top-level authored menu presentation.
     submenu,      ///< Content mounted in a menu-owned region.
     popup,        ///< Overlay presentation with input and dismissal policy.
-    widget        ///< Reusable UI composition, not a Flow destination.
+    widget,       ///< Reusable UI composition, not a Flow destination.
+    palette       ///< Complete semantic color palette.
 };
 
 /// @brief Recognize legacy UI and explicit presentation assets without treating media as UI.

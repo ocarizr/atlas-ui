@@ -1,5 +1,8 @@
 # UI element state and commands
 
+[Semantic palettes](../../docs/ui_palettes.md) provide immutable bounded color
+contracts, compact slots and explicit per-context owner-thread theme selection.
+
 [Input and lifecycle](../../docs/ui_input.md) adds owner-thread hit testing,
 capture/target/bubble routing, focus/capture cleanup and ordered system events.
 [Reusable input](../input/README.md) owns device events and action mapping.

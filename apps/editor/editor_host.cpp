@@ -5,6 +5,7 @@
 #include "document_file.hpp"
 #include "editor_graphics.hpp"
 #include "flow_project.hpp"
+#include "theme_storage.hpp"
 #include "tool_registry.hpp"
 #include <algorithm>
 #include <atlas/application/entry_point.hpp>
@@ -193,6 +194,18 @@ void present_editor(editor_view& view, jobs::job_system& workers, const launch_o
 }
 
 /// @brief Mount the editor's preview catalog and compose one application-owned worker pool.
+ui_content::construction preview_options(streaming::catalog_streamer& storage,
+                                         std::shared_ptr<std::pmr::memory_resource> memory,
+                                         const diagnostics::services& sinks)
+{
+    ui_content::construction result{storage};
+    result.memory = std::move(memory);
+    result.diagnostics = sinks;
+    result.palette = std::make_shared<ui::palette_context>(editor_preset("dark"));
+    return result;
+}
+
+/// @brief Mount the editor's preview catalog and compose one application-owned worker pool.
 void run(const launch_options& options, const diagnostics::services& sinks)
 {
     const auto memory = memory::make_resource();
@@ -238,7 +251,8 @@ void run(const launch_options& options, const diagnostics::services& sinks)
         };
     }
 
-    document_workspace workspace{{*preview_sources, {}, memory, sinks}, std::move(storage)};
+    document_workspace workspace{preview_options(*preview_sources, memory, sinks),
+                                 std::move(storage)};
     for (const auto& file : options.files)
     {
         const auto absolute = std::filesystem::absolute(file);
@@ -268,6 +282,11 @@ void run(const launch_options& options, const diagnostics::services& sinks)
     }
 
     editor_view view{workspace, workers, sinks, &tools};
+    if (!options.smoke)
+    {
+        open_theme_preferences(view.theme(), workers, sinks);
+    }
+
     if (repository)
     {
         view.bind_assets(*repository, asset_root);

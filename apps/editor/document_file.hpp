@@ -15,6 +15,7 @@ void write_editor_source(const std::filesystem::path& path, std::string_view byt
                          bool replace = true);
 /// @brief Locate installed editor tools alongside the executable.
 [[nodiscard]] std::filesystem::path installed_tools_root();
+[[nodiscard]] std::filesystem::path editor_preferences_path(); ///< Per-user configuration location.
 /// @brief Test whether the selected file exists, surfacing errors other than absence.
 [[nodiscard]] bool document_exists(const std::filesystem::path& path);
 /// @brief Acquire a bounded text source via the streamer from a host-selected file.

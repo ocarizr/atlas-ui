@@ -179,6 +179,8 @@ void paint_fields(fields& xml, element& data)
     xml.value("g", paint.color[1]);
     xml.value("b", paint.color[2]);
     xml.value("a", paint.color[3]);
+    xml.optional("color-key", data.color_key, !data.color_key.empty());
+    xml.optional("material-color-key", data.material_color_key, !data.material_color_key.empty());
     xml.value("u", paint.uv.x);
     xml.value("v", paint.uv.y);
     xml.value("uv-width", paint.uv.width);

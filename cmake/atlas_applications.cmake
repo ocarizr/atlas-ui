@@ -27,6 +27,10 @@ function(atlas_add_application target source output label argument)
         install(FILES "${PROJECT_SOURCE_DIR}/assets/renderer/checker.bmp" "${PROJECT_SOURCE_DIR}/assets/renderer/quad.hlsl"
             DESTINATION bin/content)
     elseif(label STREQUAL "editor")
+        target_sources(${target} PRIVATE apps/editor/editor_theme.cpp apps/editor/theme_yaml.cpp
+            apps/editor/theme_panel.cpp apps/editor/theme_storage.cpp apps/editor/panel_theme.cpp
+            apps/editor/editor_theme_view.cpp apps/editor/document_colors.cpp apps/editor/color_inspector.cpp)
+        target_link_libraries(${target} PRIVATE yaml-cpp::yaml-cpp)
         target_sources(${target} PRIVATE ${atlas_flow_panel_sources} apps/editor/flow_project.cpp apps/editor/flow_file.cpp apps/editor/document_session.cpp apps/editor/document_accessibility.cpp apps/editor/document_drag.cpp apps/editor/document_workspace.cpp
             apps/editor/document_recovery.cpp apps/editor/editor_host.cpp
             apps/editor/asset_repository.cpp apps/editor/asset_transactions.cpp apps/editor/asset_analysis.cpp
@@ -92,6 +96,7 @@ atlas_add_application(atlas_cook tools/cook/main.cpp atlas_cook tools --help)
 atlas_add_application(atlas_package tools/package/main.cpp atlas_package tools --help)
 if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
     add_executable(atlas_editor_tests "${PROJECT_SOURCE_DIR}/tests/editor/session_tests.cpp"
+        apps/editor/editor_theme.cpp apps/editor/theme_yaml.cpp apps/editor/document_colors.cpp tests/editor/theme_tests.cpp
         "${PROJECT_SOURCE_DIR}/apps/editor/document_session.cpp"
         "${PROJECT_SOURCE_DIR}/apps/editor/document_accessibility.cpp"
         "${PROJECT_SOURCE_DIR}/tests/editor/accessibility_document_tests.cpp"
@@ -107,7 +112,7 @@ if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
         tests/editor/asset_repository_tests.cpp)
     target_include_directories(atlas_editor_tests PRIVATE "${PROJECT_SOURCE_DIR}/apps/editor"
         "${PROJECT_SOURCE_DIR}/apps/common")
-    target_link_libraries(atlas_editor_tests PRIVATE atlas::editor_flow atlas::ui_content atlas::mvvm_content GTest::gtest_main)
+    target_link_libraries(atlas_editor_tests PRIVATE atlas::editor_flow atlas::ui_content atlas::mvvm_content GTest::gtest_main yaml-cpp::yaml-cpp)
     if(ATLAS_BUILD_WINDOWS_INTEGRATION)
         target_sources(atlas_editor_tests PRIVATE ${atlas_flow_panel_sources} apps/editor/flow_project.cpp apps/editor/flow_file.cpp tests/platform/windows/editor/flow_workspace_tests.cpp tests/platform/windows/editor/flow_preview_tests.cpp tests/platform/windows/editor/flow_recovery_tests.cpp tests/platform/windows/editor/authoring_tests.cpp
             libs/platform/windows/editor/document_file.cpp apps/editor/editor_accessibility.cpp apps/editor/editor_view.cpp apps/editor/editor_input.cpp
@@ -118,6 +123,8 @@ if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
             libs/platform/windows/editor/asset_files.cpp libs/platform/windows/editor/asset_acquisition.cpp
             libs/platform/windows/editor/asset_dialog.cpp)
         target_sources(atlas_editor_tests PRIVATE tests/platform/windows/editor/accessibility_tests.cpp)
+        target_sources(atlas_editor_tests PRIVATE apps/editor/theme_panel.cpp apps/editor/panel_theme.cpp
+            apps/editor/editor_theme_view.cpp apps/editor/color_inspector.cpp tests/platform/windows/editor/theme_tests.cpp)
         target_link_libraries(atlas_editor_tests PRIVATE bcrypt comdlg32)
         add_dependencies(atlas_editor_tests atlas_editor_tools)
         target_link_libraries(atlas_editor_tests PRIVATE atlas::ui_text)

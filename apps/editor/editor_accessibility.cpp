@@ -40,6 +40,7 @@ std::shared_ptr<const editor_frame> editor_view::snapshot(const window::window_s
     }
 
     std::optional<ui::accessibility_frame> accessibility;
+    impl_->refresh_theme();
     if (impl_->accessibility_channel)
     {
         accessibility.emplace(*impl_->accessibility_channel, impl_->accessibility_coordinates,
@@ -47,7 +48,8 @@ std::shared_ptr<const editor_frame> editor_view::snapshot(const window::window_s
     }
 
     auto* frame = accessibility ? &*accessibility : nullptr;
-    const bool editing = impl_->accessibility_fields.input(events, impl_->session());
+    const bool editing = impl_->theme_fields.input(events) ||
+                         impl_->accessibility_fields.input(events, impl_->session());
     std::vector<input::event> filtered;
     if (editing)
     {

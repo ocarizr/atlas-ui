@@ -42,6 +42,9 @@ class document_session
     bool redo(); ///< Reapply a retained authored revision and rebuild preview.
     /// @brief Validate selected semantics and commit one undoable source revision.
     bool set_accessibility(std::optional<ui::accessible_element> descriptor, bool decorative);
+    bool set_color_key(std::string key,
+                       bool material = false);   ///< One validated tint-reference edit.
+    std::vector<std::string> color_keys() const; ///< Available keys in the preview's own context.
     ///< Validate a selected element's semantics and commit one undoable source revision.
     void replace(ui_content::document source, bool saved); ///< Publish valid replacement only.
     void restore(ui_content::document source); ///< Restore recovery as an undoable dirty edit.

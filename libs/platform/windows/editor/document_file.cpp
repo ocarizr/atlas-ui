@@ -8,6 +8,26 @@
 
 namespace atlas::editor
 {
+/// @brief Keep user choices outside engine/submodule sources and project assets.
+std::filesystem::path editor_preferences_path()
+{
+    const auto length = GetEnvironmentVariableW(L"LOCALAPPDATA", nullptr, 0);
+    if (length == 0 || length > 32768)
+    {
+        throw std::runtime_error("Missing user configuration directory");
+    }
+
+    std::wstring directory(length, L'\0');
+    const auto copied = GetEnvironmentVariableW(L"LOCALAPPDATA", directory.data(), length);
+    if (copied == 0 || copied >= length)
+    {
+        throw std::runtime_error("User configuration directory changed");
+    }
+
+    directory.resize(copied);
+    return std::filesystem::path{directory} / "AtlasUI" / "editor.yaml";
+}
+
 namespace
 {
 /// @brief Surface native errors while preserving the affected operation.

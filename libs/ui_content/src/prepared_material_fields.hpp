@@ -13,7 +13,7 @@ inline constexpr auto reference = [](auto& format, assets::asset_ref& ref)
     }
 
     format.field(ref.id.local);
-    format.choice(ref.type, assets::asset_type::widget);
+    format.choice(ref.type, assets::asset_type::palette);
 };
 
 /// @brief The first and last v1 material slots delimit the frozen scalar payload.

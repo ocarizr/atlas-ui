@@ -3,6 +3,7 @@
 #include "document_validation.hpp"
 #include "drag_content.hpp"
 #include "prepared_navigation.hpp"
+#include "prepared_palette.hpp"
 #include "prepared_ui_fields.hpp"
 #include "prepared_versions.hpp"
 #include <algorithm>
@@ -172,17 +173,25 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
         {
             return std::holds_alternative<ui::grid_layout>(node.panel) || node.grid.has_value();
         });
-    const bool drag = std::ranges::any_of(
-        source.view.elements,
-        [](const auto& node)
-        {
-            return node.drag_source || node.drop_target ||
-                   std::ranges::any_of(node.actions,
-                                       [](const auto& route)
-                                       {
-                                           return route.binding.event > ui::event_kind::activate;
-                                       });
-        });
+    const bool palettes =
+        std::ranges::any_of(source.view.elements,
+                            [](const auto& node)
+                            {
+                                return !node.color_key.empty() || !node.material_color_key.empty();
+                            });
+    const bool drag =
+        palettes ||
+        std::ranges::any_of(source.view.elements,
+                            [](const auto& node)
+                            {
+                                return node.drag_source || node.drop_target ||
+                                       std::ranges::any_of(node.actions,
+                                                           [](const auto& route)
+                                                           {
+                                                               return route.binding.event >
+                                                                      ui::event_kind::activate;
+                                                           });
+                            });
     const bool accessibility =
         drag ||
         std::ranges::any_of(source.view.elements,
@@ -207,8 +216,14 @@ std::vector<std::byte> encode_prepared(const prepared_view& source)
               events || scroll || scrollbars || grids || navigation,
               scrollbars || grids || navigation, grids || navigation, navigation, accessibility,
               drag);
+    if (palettes)
+    {
+        detail::palette_fields(payload, copy.view);
+    }
+
     return mvvm_content::detail::seal_prepared(payload, magic,
-                                               drag            ? std::uint16_t{10}
+                                               palettes        ? std::uint16_t{11}
+                                               : drag          ? std::uint16_t{10}
                                                : accessibility ? std::uint16_t{9}
                                                : navigation    ? std::uint16_t{8}
                                                : grids         ? std::uint16_t{7}
@@ -224,7 +239,7 @@ prepared_view decode_prepared(std::span<const std::byte> bytes)
 {
     const auto version = detail::prepared_version(bytes);
     if (version != wire_version && version != 3 && version != 4 && version != 5 && version != 6 &&
-        version != 7 && version != 8 && version != 9 && version != 10)
+        version != 7 && version != 8 && version != 9 && version != 10 && version != 11)
     {
         throw std::invalid_argument("Unsupported prepared UI version");
     }
@@ -233,6 +248,11 @@ prepared_view decode_prepared(std::span<const std::byte> bytes)
     prepared_view result;
     serialize(archive, result, version >= 3, version >= 4, version >= 6, version >= 7, version >= 8,
               version >= 9, version >= 10);
+    if (version >= 11)
+    {
+        detail::palette_fields(archive, result.view);
+    }
+
     if (version < 5 && std::ranges::any_of(
                            result.view.elements,
                            [](const auto& node)

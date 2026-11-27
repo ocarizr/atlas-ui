@@ -123,6 +123,7 @@ void instance::begin_models(std::uint64_t frame)
 void instance::synchronize()
 {
     const diagnostics::operation_scope scope{impl_->diagnostics, {"ui.content.sync", "ui.content"}};
+    impl_->synchronize_palette();
     for (const auto& context : impl_->model_order)
     {
         impl_->models.at(context)->flush();
@@ -136,6 +137,12 @@ void instance::synchronize()
             binding->second->publish();
         }
     }
+}
+
+/// @brief Apply a host palette selection outside model/input dispatch without touching layout.
+void instance::refresh_palette()
+{
+    impl_->synchronize_palette();
 }
 
 /// @brief Only an explicit reverse demand can update a two-way binding.

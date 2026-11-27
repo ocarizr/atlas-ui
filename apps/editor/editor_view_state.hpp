@@ -5,6 +5,7 @@
 #include "editor_view.hpp"
 #include "flow_panel.hpp"
 #include "panel_scene.hpp"
+#include "theme_panel.hpp"
 #include "tool_panel.hpp"
 
 namespace atlas::editor
@@ -17,8 +18,8 @@ class editor_view::impl
     impl(document_session& active, jobs::job_system& workers, std::filesystem::path path,
          const diagnostics::services& destinations, const tool_registry* sources)
         : legacy_session{&active}, jobs{workers}, file{std::move(path)}, sinks{destinations},
-          layout{jobs.dispatcher(), {}, {}, sinks}, paint{jobs.dispatcher(), {}, {}, sinks},
-          tools{sources}, drag{{}, {}, sinks}
+          theme{sinks}, layout{jobs.dispatcher(), {}, {}, sinks},
+          paint{jobs.dispatcher(), {}, {}, sinks}, tools{sources}, drag{{}, {}, sinks}
     {
         if (tools)
         {
@@ -26,7 +27,7 @@ class editor_view::impl
             {
                 if (const auto& definition = tools->shell())
                 {
-                    shell = std::make_unique<tool_panel>(*definition, true, sinks);
+                    shell = std::make_unique<tool_panel>(*definition, true, sinks, theme.context());
                 }
                 else
                 {
@@ -50,7 +51,8 @@ class editor_view::impl
                       ui::layout_rect bounds); ///< Graph tool and explicit mode switch.
     void compose_workspace(panel_plan& plan,
                            ui::layout_rect bounds); ///< Document lifecycle chrome.
-    void cycle_tool(); ///< Switch to the next valid contribution or the preview.
+    void cycle_tool();    ///< Switch to the next valid contribution or the preview.
+    void refresh_theme(); ///< Refresh colors without reconstructing the input tree.
     bool commit_drop(const ui::drop_request& request);  ///< One native editor document transaction.
     std::shared_ptr<const editor_frame> presentation(); ///< Shared base plus small drag feedback.
     bool dispatch(std::span<const input::event> events,
@@ -59,6 +61,7 @@ class editor_view::impl
                        std::span<ui::input_session* const> views,
                        ui::accessibility_frame* accessibility); ///< Window-domain dispatch/cleanup.
     accessibility_inspector accessibility_fields; ///< Private staged inspector transaction.
+    theme_panel theme_fields; ///< Chrome preferences, independent from the selected UI document.
     std::shared_ptr<accessibility::channel>
         accessibility_channel;                          ///< Active window endpoint, not native UI.
     ui::accessibility_view accessibility_coordinates{}; ///< Captured client-to-screen transform.
@@ -85,9 +88,11 @@ class editor_view::impl
     std::uint64_t next_document = 1;         ///< Monotonic candidate suffix for New.
     std::chrono::steady_clock::time_point next_autosave =
         std::chrono::steady_clock::now() + std::chrono::seconds{30}; ///< Owner checkpoint deadline.
-    jobs::job_system& jobs;              ///< Used for native streamer reads and joined layout work.
-    std::filesystem::path file;          ///< Explicit host-selected document file.
-    diagnostics::services sinks;         ///< Logs and profile destinations.
+    jobs::job_system& jobs;      ///< Used for native streamer reads and joined layout work.
+    std::filesystem::path file;  ///< Explicit host-selected document file.
+    diagnostics::services sinks; ///< Logs and profile destinations.
+    editor_theme theme;          ///< Shared chrome context, never passed to the project preview.
+    std::uint64_t theme_revision = 0;    ///< Last palette published in the immutable editor packet.
     ui::layout_engine layout;            ///< Shared engine, reused by chrome and preview.
     ui::paint_engine paint;              ///< Shared ordered paint preparation.
     std::unique_ptr<panel_scene> chrome; ///< Cached controls and immutable packet.

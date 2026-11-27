@@ -180,6 +180,8 @@ void write_element(pugi::xml_node node, const element& source)
     attributes.visual = source.visual;
     attributes.texture = source.texture;
     attributes.material = source.material;
+    attributes.color_key = source.color_key;
+    attributes.material_color_key = source.material_color_key;
     fields paint{node.append_child("paint"), false};
     paint_fields(paint, attributes);
     if (source.canvas)

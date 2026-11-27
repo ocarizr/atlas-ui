@@ -240,3 +240,7 @@ profile scopes for opening, preparation, inspection and publication.
 
 See [Flow graph documents](editor_flow.md) for the independent graph-document,
 history, runtime-candidate and recovery contracts.
+
+[Semantic palettes and editor themes](ui_palettes.md) describe independent
+chrome/preview contexts, user YAML overrides, preset/reset controls and
+literal versus semantic tint authoring.

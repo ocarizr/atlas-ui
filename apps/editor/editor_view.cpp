@@ -1,5 +1,6 @@
 /** @file @brief Editor owner loop for transactional commands and cached panel presentation. */
 #include "asset_files.hpp"
+#include "color_inspector.hpp"
 #include "editor_view_state.hpp"
 #include <algorithm>
 
@@ -18,7 +19,8 @@ void editor_view::impl::cycle_tool()
     {
         try
         {
-            auto candidate = std::make_unique<tool_panel>(entries[next - 1], false, sinks);
+            auto candidate =
+                std::make_unique<tool_panel>(entries[next - 1], false, sinks, theme.context());
             (void)candidate->paint(tool_bounds, layout, paint);
             active_tool = std::move(candidate);
             tool_index = next;
@@ -96,7 +98,8 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
     {
         try
         {
-            shell->region_visible("inspector_controls", !accessibility_fields.visible);
+            shell->region_visible("inspector_controls",
+                                  !accessibility_fields.visible && !theme_fields.visible);
             shell_paint = shell->paint(bounds, layout, paint);
             areas = shell_areas{shell->area("hierarchy"), shell->area("inspector"),
                                 shell->area("preview")};
@@ -119,7 +122,10 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
 
     auto plan = make_panels(session(), {bounds.width, bounds.height}, page, status,
                             areas ? &*areas : nullptr);
+    append_color_controls(plan, session());
     accessibility_fields.append(plan, session());
+    plan.palette = theme.context()->snapshot();
+    theme_fields.append(plan, theme);
     plan.shell = std::move(shell_paint);
     compose_workspace(plan, bounds);
 
@@ -172,6 +178,7 @@ void editor_view::impl::rebuild(ui::layout_rect bounds, float scale)
 
     viewport = bounds;
     density = scale;
+    theme_revision = theme.context()->revision();
 }
 
 /// @brief Initialize reusable layout/paint services on the main owner.
@@ -184,6 +191,12 @@ editor_view::editor_view(document_session& session, jobs::job_system& jobs,
 
 /// @brief Release main-owned input state after the render loop drains retained packets.
 editor_view::~editor_view() = default;
+
+/// @brief Expose the composition root's explicit chrome theme and persistence hook.
+editor_theme& editor_view::theme()
+{
+    return impl_->theme;
+}
 
 /// @brief The application retains repository services through every panel callback and frame.
 void editor_view::bind_assets(asset_repository& repository, std::filesystem::path root)

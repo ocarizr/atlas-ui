@@ -11,8 +11,8 @@ namespace
 constexpr std::string_view digits = "0123456789abcdef"; ///< Canonical lowercase hexadecimal digits.
 constexpr auto types = std::to_array<std::string_view>(
     {"ui", "view_model", "flow", "script", "texture", "shader", "material", "video", "audio",
-     "localization", "menu", "submenu", "popup",
-     "widget"}); ///< Stable v1 vocabulary in enumeration order.
+     "localization", "menu", "submenu", "popup", "widget",
+     "palette"}); ///< Stable v1 vocabulary in enumeration order.
 
 /// @brief Reject uppercase, whitespace and nonhex input before decoding.
 std::uint8_t nibble(char digit)

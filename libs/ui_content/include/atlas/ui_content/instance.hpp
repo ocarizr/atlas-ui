@@ -5,6 +5,7 @@
 #pragma once
 #include <atlas/scripting/domain.hpp>
 #include <atlas/streaming/catalog_streamer.hpp>
+#include <atlas/ui/palette.hpp>
 #include <atlas/ui_content/animation.hpp>
 #include <atlas/ui_content/document.hpp>
 #include <atlas/ui_content/material.hpp>
@@ -56,7 +57,8 @@ struct construction
     std::span<const flow_control> navigation{};       ///< Optional graph-authored control routes.
     std::function<bool(std::string_view)> navigate{}; ///< Owner-only navigation admission.
     std::function<void(const event_action&)>
-        dispatch_event{}; ///< Optional owner Flow/registry bridge.
+        dispatch_event{};                           ///< Optional owner Flow/registry bridge.
+    std::shared_ptr<ui::palette_context> palette{}; ///< Owner palette; preview/chrome may differ.
 };
 
 /// @brief Acquire an authored UI document through a typed catalog mount.
@@ -93,6 +95,7 @@ class instance
     [[nodiscard]] std::span<const event_action> event_bindings() const;
     void begin_models(std::uint64_t frame); ///< Begin matching model and Lua frames before input.
     void synchronize(); ///< Flush models, apply Lua subscription edits and queue property writes.
+    void refresh_palette(); ///< Owner paint-only publication, independent of model/input phases.
     /// @brief Replace playback after validating a clip against live targets and binding ownership.
     void play_animation(animation_clip clip, animation_repeat repeat = animation_repeat::once);
     void stop_animation(); ///< Retire playback and completion, holding already applied values.

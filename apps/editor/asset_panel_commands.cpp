@@ -119,7 +119,7 @@ bool asset_panel::execute(const control_action& action, document_workspace* docu
         case control_kind::assets_type:
             type_ = static_cast<assets::asset_type>(
                 (static_cast<unsigned>(type_) + 1) %
-                (static_cast<unsigned>(assets::asset_type::widget) + 1));
+                (static_cast<unsigned>(assets::asset_type::palette) + 1));
             selected_.reset();
             page_ = 0;
             break;

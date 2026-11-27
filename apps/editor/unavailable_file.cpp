@@ -3,6 +3,12 @@
 
 namespace atlas::editor
 {
+/// @brief SDK-free builds do not invent a writable user configuration directory.
+std::filesystem::path editor_preferences_path()
+{
+    return {};
+}
+
 /// @brief Report unavailable native persistence without opening any source.
 void write_editor_source(const std::filesystem::path&, std::string_view, bool)
 {

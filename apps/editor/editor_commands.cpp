@@ -1,4 +1,5 @@
 /** @file @brief Document commands and timed checkpointing outside UI dispatch. */
+#include "color_inspector.hpp"
 #include "document_file.hpp"
 #include "editor_view_state.hpp"
 
@@ -108,7 +109,18 @@ void editor_view::impl::execute(const control_action& action)
 
         switch (action.kind)
         {
+            case control_kind::color_source:
+                cycle_color_source(session(), action.target == "material");
+                break;
+            case control_kind::theme:
+                theme_fields.execute(action.target, theme);
+                if (theme_fields.visible)
+                {
+                    accessibility_fields.visible = false;
+                }
+                break;
             case control_kind::accessibility:
+                theme_fields.visible = false;
                 (void)accessibility_fields.execute(action.target, session());
                 break;
             case control_kind::select:
