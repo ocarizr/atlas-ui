@@ -95,6 +95,11 @@ atlas_add_application(atlas_editor apps/editor/main.cpp atlas_editor editor --sm
 atlas_add_application(atlas_cook tools/cook/main.cpp atlas_cook tools --help)
 atlas_add_application(atlas_package tools/package/main.cpp atlas_package tools --help)
 if(BUILD_TESTING AND editor IN_LIST atlas_requested_components)
+    add_executable(atlas_editor_accessibility_walkthrough
+        tests/editor/virtual_accessibility_walkthrough.cpp)
+    target_link_libraries(atlas_editor_accessibility_walkthrough PRIVATE
+        atlas::ui atlas::accessibility_host)
+    atlas_configure_target(atlas_editor_accessibility_walkthrough)
     add_executable(atlas_editor_tests "${PROJECT_SOURCE_DIR}/tests/editor/session_tests.cpp"
         apps/editor/editor_theme.cpp apps/editor/theme_yaml.cpp apps/editor/document_colors.cpp tests/editor/theme_tests.cpp
         "${PROJECT_SOURCE_DIR}/apps/editor/document_session.cpp"

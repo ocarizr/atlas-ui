@@ -2,7 +2,7 @@ components:
   accessibility-host:
     paths: [libs/accessibility_host/**, libs/platform/windows/accessibility/**, tests/accessibility_host/**, tests/platform/windows/accessibility/**]
     depends_on: [accessibility, window]
-    build_targets: [atlas_accessibility_host, atlas_accessibility_host_tests]
+    build_targets: [atlas_accessibility_host, atlas_accessibility_host_tests, atlas_accessibility_walkthrough]
     test_labels: [accessibility-host]
     build_requires: [accessibility, window]
     vendors: [testing, content]
@@ -409,6 +409,7 @@ components:
     build_targets:
     - atlas_editor
     - atlas_editor_tests
+    - atlas_editor_accessibility_walkthrough
     - atlas_editor_tools
     test_labels:
     - editor

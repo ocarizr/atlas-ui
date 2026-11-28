@@ -70,7 +70,7 @@ HRESULT provider::get_CanSelectMultiple(BOOL* output)
     return read() ? S_OK : UIA_E_ELEMENTNOTAVAILABLE;
 }
 
-/// @brief Tabs require a current selection; lists may have none.
+/// @brief Owner publications permit empty selection, including transient tab rebuilds.
 HRESULT provider::get_IsSelectionRequired(BOOL* output)
 {
     if (!output)
@@ -86,7 +86,6 @@ HRESULT provider::get_IsSelectionRequired(BOOL* output)
         return UIA_E_ELEMENTNOTAVAILABLE;
     }
 
-    *output = value->kind == accessibility::role::tab_group;
     return S_OK;
 }
 
