@@ -1,5 +1,6 @@
 /** @file @brief Selection, toggle and read-only range capabilities match semantic menu roles. */
 #include "provider_fixture.hpp"
+#include <memory>
 
 namespace atlas::accessibility_host::tests
 {
@@ -19,11 +20,17 @@ TEST_F(native_accessibility_test, TabsPermitTransientEmptySelection)
     EXPECT_FALSE(required);
     SAFEARRAY* selection = nullptr;
     ASSERT_EQ(tabs->GetSelection(&selection), S_OK);
-    ASSERT_NE(selection, nullptr);
+    if (selection == nullptr)
+    {
+        ADD_FAILURE() << "selection must return an array, even when empty";
+        return;
+    }
+
+    const std::unique_ptr<SAFEARRAY, decltype(&SafeArrayDestroy)> selection_owner{selection,
+                                                                                  SafeArrayDestroy};
     LONG upper = 0;
     EXPECT_EQ(SafeArrayGetUBound(selection, 1, &upper), S_OK);
     EXPECT_EQ(upper, -1);
-    SafeArrayDestroy(selection);
     button.selected = true;
     channel->publish({group, button});
     required = TRUE;
